@@ -3,7 +3,7 @@
 
          net.glowstone/glowstone {:mvn/version "2018.10.0-SNAPSHOT"}
          #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
-         move-namespace {:local/root "/home/arne/github/lambdaisland/move-namespace"}
+         ;;move-namespace {:local/root "/home/arne/github/lambdaisland/move-namespace"}
          }
 
  :mvn/repos
