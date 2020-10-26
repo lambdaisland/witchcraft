@@ -1,17 +1,9 @@
 {:paths ["src" "test" "resources"]
  :deps  {org.clojure/clojure {:mvn/version "1.10.1"}
 
-         net.glowstone/glowstone
-         {:mvn/version "2018.10.0-SNAPSHOT"}
+         net.glowstone/glowstone {:mvn/version "2018.10.0-SNAPSHOT"}
          #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
          }
 
  :mvn/repos
- {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}}
-
- :aliases
- {:dev
-  {}
-
-  :test
-  {:extra-deps {lambdaisland/kaocha {:mvn/version "0.0-554"}}}}}
+ {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}}}

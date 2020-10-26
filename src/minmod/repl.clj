@@ -1,62 +1,23 @@
 (ns minmod.repl
+  (:refer-clojure :exclude [bean])
   (:import (net.glowstone GlowServer)
            (org.bukkit Location))
   (:require [clojure.string :as str]
-            [minmod.glowserver :as server]
+            [minmod.glowserver :as server :refer :all]
+            [minmod.safe-bean :refer [bean]]
             [minmod.bukkit :as bukkit :refer [entities materials]]))
 
 (server/start!)
+(fly!)
+(world)
 
-(def me (server/player))
 
-(def my-loc (.getLocation me))
-(def world (.getWorld my-loc))
 
-(defprotocol Datafy
-  (datafy [_]))
-
-(defprotocol Loc
-  (location [_])
-  (world [_]))
-
-(extend-protocol Datafy
-  Location
-  (datafy [l]
-    {:x (.getBlockX l)
-     :y (.getBlockY l)
-     :z (.getBlockZ l)
-     :yaw (.getYaw l)
-     :pitch (.getPitch l)
-     :world (.getWorld l)}))
-
-(extend-protocol Loc
-  net.glowstone.entity.GlowPlayer
-  (location [player]
-    (.getLocation player))
-  (world [player]
-    (world (.getLocation player)))
-
-  org.bukkit.Location
-  (world [loc]
-    (.getWorld loc))
-
-  java.util.Map
-  (location [{:keys [x y z yaw pitch world]}]
-    (Location. world x y z yaw pitch))
+(let [{:keys [x y z]} (bean (player-location))]
   )
 
-[(location (datafy (location me)))
- (location me)]
-
-
-(defn set-block-type [world {:keys [x y z]} type]
-  (.setType (.getBlockAt world x y z) type))
-
-(let [{:keys [x y z]} (datafy (location (server/player)))]
-  (doseq [x (range x (+ x 5))
-          y (range y (+ y 5))
-          z (range z (+ z 5))]
-    (set-block-type (world (server/player)) {:x x :y y :z z} (:diamond-block materials))))
+(fill (player-location) [10 3 5] :jack-o-lantern)
+materials
 
 (let [radius 100
       {:keys [x y z]} (datafy (location (server/player)))]
@@ -87,10 +48,6 @@
 
 (bukkit/empty-inventory (server/player))
 
-(defn fly! []
-  (.setAllowFlight (server/player) true)
-  (.setFlying (server/player) true))
-
 (fly!)
 
 (datafy(location (server/player)))
@@ -99,11 +56,6 @@
 
 (datafy (location (server/player)))
 
-(defn update-location [entity f & args]
-  (let [l (location (apply f (datafy (location entity)) args))]
-    (.teleport entity
-               l
-               org.bukkit.event.player.PlayerTeleportEvent$TeleportCause/PLUGIN)))
 
 (future
   (dotimes [i 1000]
@@ -111,7 +63,7 @@
     (Thread/sleep 50)))
 
 (fly!)
-(update-location (server/player) update :y + 1)
+(update-location (server/player) update :y + 5)
 
 (datafy (location (server/player)))
 {:x -470, :y 75, :z 131, :yaw 98.16312, :pitch 4.5000563, :world #object[net.glowstone.GlowWorld 0x171c38da "GlowWorld(name=world)"]}
@@ -168,19 +120,19 @@ materials
             :lengte 10})
 
 
-(.setTime (world (server/player)) (+ (.getTime (world (server/player))) 3 3000))
+
 
 (defn rand-loc []
-  (let [loc (datafy (location (server/player)))]
-    (location (-> loc
-                  (update :x + (- (rand-int 10) 5))
-                  (update :y + 10)
-                  (update :z + (- (rand-int 10) 5))))))
+  (let [loc (bean (location))]
+    (map->location (-> loc
+                       (update :x + (- (rand-int 10) 5))
+                       (update :y + 10)
+                       (update :z + (- (rand-int 10) 5))))))
 
 (rand-loc)
 
 (defn spawn-random-chicken []
-  (.spawnEntity (world (server/player)) (rand-loc) (:chicken entities)))
+  (.spawnEntity (world) (rand-loc) (:chicken entities)))
 
 (doseq [_ (range 100)]
   (spawn-random-chicken)

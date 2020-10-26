@@ -16,6 +16,12 @@
               (map (juxt #(keyword (str/replace (str/lower-case (.name %)) "_" "-")) identity)))
         (java.util.EnumSet/allOf org.bukkit.Material)))
 
+(def block-faces
+  (into {}
+        (comp (filter #(.name %))
+              (map (juxt #(keyword (str/replace (str/lower-case (.name %)) "_" "-")) identity)))
+        (java.util.EnumSet/allOf org.bukkit.block.BlockFace)))
+
 (defn inventory [player]
   (.getInventory player))
 
