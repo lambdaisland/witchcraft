@@ -1,11 +1,11 @@
-(ns minmod.repl
+(ns lambdaisland.witchcraft.repl
   (:refer-clojure :exclude [bean])
   (:import (net.glowstone GlowServer)
            (org.bukkit Location))
   (:require [clojure.string :as str]
-            [minmod.glowserver :as server :refer :all]
-            [minmod.safe-bean :refer [bean]]
-            [minmod.bukkit :as bukkit :refer [entities materials]]))
+            [lambdaisland.witchcraft.glowserver :as server :refer :all]
+            [lambdaisland.witchcraft.safe-bean :refer [bean]]
+            [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]))
 
 (server/start!)
 (fly!)

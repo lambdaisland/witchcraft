@@ -1,4 +1,4 @@
-(ns minmod.safe-bean
+(ns lambdaisland.witchcraft.safe-bean
   (:refer-clojure :exclude [bean]))
 
 (defn bean

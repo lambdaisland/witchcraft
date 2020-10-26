@@ -1,5 +1,5 @@
-(ns minmod.cursor
-  (:require [minmod.bukkit :as bukkit]))
+(ns lambdaisland.witchcraft.cursor
+  (:require [lambdaisland.witchcraft.bukkit :as bukkit]))
 
 (def directions
   [:north-west

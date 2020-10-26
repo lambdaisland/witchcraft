@@ -1,4 +1,4 @@
-(ns minmod.bukkit
+(ns lambdaisland.witchcraft.bukkit
   (:import (net.glowstone GlowServer)
            (org.bukkit Location)
            (org.bukkit.inventory ItemStack))
