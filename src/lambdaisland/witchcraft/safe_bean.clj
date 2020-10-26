@@ -58,10 +58,14 @@
         (without [k] (dissoc (snapshot) k))
         (seq [] (thisfn (keys pmap)))))))
 
-(defn bean-> [obj & path]
-  (let [[p & path] path
-        obj (if (map? obj) obj (bean obj))
-        val (p obj)]
-    (if (seq path)
-      (recur val path)
-      val)))
+(defmacro bean->
+  "Like ->, but call bean on the initial value, and on each intermediate result"
+  [x & forms]
+  (loop [x x, forms forms]
+    (if forms
+      (let [form (first forms)
+            threaded (if (seq? form)
+                       (with-meta `(~(first form) (bean ~x) ~@(next form)) (meta form))
+                       `(~form (bean ~x)))]
+        (recur threaded (next forms)))
+      `(bean ~x))))

@@ -19,8 +19,10 @@
         (finally
           (println ::started))))
     (reset! server gs)))
-#_
-(.shutdown @server)
+
+(defn stop! []
+  (.shutdown @server)
+  (reset! server nil))
 
 (defn players []
   (.getOnlinePlayers ^GlowServer @server))
@@ -35,8 +37,19 @@
             %)
          (players))))
 
-(defn player-location []
-  (:location (bean (player))))
+(defn player-location
+  "The location of the default player (see [[default-player]]). With a numeric
+  argument, returns a location that is that many blocks in front of the player,
+  so it is directly in view."
+  ([]
+   (:location (bean (player))))
+  ([n]
+   (let [loc (bean (player-location))
+         dir (bean-> (player-location) :direction)]
+     (-> loc
+         (update :x + (* (:x dir) n))
+         (update :y + (* (:y dir) n))
+         (update :z + (* (:z dir) n))))))
 
 (defn worlds []
   (:worlds (bean @server)))
@@ -56,7 +69,7 @@
                       :or {x 0 y 0 z 0 yaw 0 pitch 0 world (world)}}]
   (Location. world x y z yaw pitch))
 
-(defn update-location [entity f & args]
+(defn update-location! [entity f & args]
   (.teleport entity
              (map->location (apply f  (bean (:location (bean (player)))) args))
              org.bukkit.event.player.PlayerTeleportEvent$TeleportCause/PLUGIN))
@@ -117,3 +130,20 @@
 (defn highest-block-at [loc]
   (let [{:keys [x y z world] :or {world (world)}} (bean loc)]
     (.getHighestBlockAt world (map->location {:x x :y 0 :z z :world world}))))
+
+(defn spawn [loc entity]
+  (let [{:keys [x y z world] :or {world (world)}} (bean loc)]
+    (.spawnEntity world
+                  (map->location {:x x :y y :z z :world world})
+                  (if (keyword? entity)
+                    (get bukkit/entities entity)
+                    entity))))
+
+(defn game-mode
+  ([]
+   (game-mode (player)))
+  ([player]
+   (keyword  (str (.getGameMode player)))))
+
+;; Best to do this, so your world doesn't get corrupted
+(stop!)
