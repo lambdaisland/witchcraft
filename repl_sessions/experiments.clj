@@ -1,14 +1,14 @@
 (ns repl-sessions.experiments
   (:refer-clojure :exclude [bean])
-  (:import (net.glowstone GlowServer)
-           (org.bukkit Location))
-  (:require [clojure.string :as str]
-            [lambdaisland.witchcraft :as wc :refer :all]
-            [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
-            [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]))
+  (:require [lambdaisland.witchcraft :as wc :refer :all]
+            [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]
+            [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
 ;; Start the server
 (wc/start!)
+
+;; Best to do this before you finish, so your world doesn't get corrupted
+#_(stop!)
 
 ;; Now start the minecraft launcher (https://www.minecraft.net/en-us/download),
 ;; and download version 1.12.2 (the latest that works with Glowkit). Start a

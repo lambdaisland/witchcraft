@@ -54,9 +54,14 @@
 (defn worlds []
   (:worlds (bean @server)))
 
-(defn world []
-  (or (:world (bean (player)))
-      (first (worlds))))
+(defn world
+  ([]
+   (or (:world (bean (player)))
+       (first (worlds))))
+  ([name]
+   (some #(when (= name (:name (bean %)))
+            %)
+         (worlds))))
 
 (defn fast-forward [time]
   (.setTime (world) (+ (.getTime (world)) time)))
@@ -68,6 +73,11 @@
 (defn map->location [{:keys [x y z yaw pitch world]
                       :or {x 0 y 0 z 0 yaw 0 pitch 0 world (world)}}]
   (Location. world x y z yaw pitch))
+
+(defn ->location [loc]
+  (or (and (instance? Location loc) loc)
+      (:location (bean loc))
+      (map->location (bean loc))))
 
 (defn update-location! [entity f & args]
   (.teleport entity
@@ -145,5 +155,12 @@
   ([player]
    (keyword  (str (.getGameMode player)))))
 
-;; Best to do this, so your world doesn't get corrupted
-(stop!)
+(defn plugin-manager []
+  (:pluginManager (bean @server)))
+
+(defn teleport
+  ([loc]
+   (teleport (player) loc))
+  ([entity loc]
+   (let [{:keys [world] :or {world (world)} :as loc} (bean loc)]
+     (.teleport entity (->location (merge (bean (.getSpawnLocation world)) loc))))))

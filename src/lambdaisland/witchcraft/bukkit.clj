@@ -1,26 +1,10 @@
 (ns lambdaisland.witchcraft.bukkit
-  (:import (net.glowstone GlowServer)
-           (org.bukkit Location)
-           (org.bukkit.inventory ItemStack))
-  (:require [clojure.string :as str]))
+  (:require [lambdaisland.witchcraft.util :as util])
+  (:import (org.bukkit.inventory ItemStack)))
 
-(def entities
-  (into {}
-        (comp (filter #(.getName %))
-              (map (juxt #(keyword (str/replace (str/lower-case (.getName %)) "_" "-")) identity)))
-        (java.util.EnumSet/allOf org.bukkit.entity.EntityType)))
-
-(def materials
-  (into {}
-        (comp (filter #(.name %))
-              (map (juxt #(keyword (str/replace (str/lower-case (.name %)) "_" "-")) identity)))
-        (java.util.EnumSet/allOf org.bukkit.Material)))
-
-(def block-faces
-  (into {}
-        (comp (filter #(.name %))
-              (map (juxt #(keyword (str/replace (str/lower-case (.name %)) "_" "-")) identity)))
-        (java.util.EnumSet/allOf org.bukkit.block.BlockFace)))
+(def entities (util/enum->map org.bukkit.entity.EntityType))
+(def materials (util/enum->map org.bukkit.Material))
+(def block-faces (util/enum->map org.bukkit.block.BlockFace))
 
 (defn inventory [player]
   (.getInventory player))
