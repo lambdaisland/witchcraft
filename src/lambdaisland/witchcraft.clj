@@ -1,12 +1,13 @@
 (ns lambdaisland.witchcraft
   (:refer-clojure :exclude [bean])
-  (:import (net.glowstone GlowServer)
-           (org.bukkit Location))
-  (:require [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
-            [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]
+  (:require [lambdaisland.witchcraft.bukkit :as bukkit :refer [materials]]
             [lambdaisland.witchcraft.cursor :as c]
-            [clojure.string :as str]
-            [clojure.java.io :as io]))
+            [lambdaisland.witchcraft.safe-bean :refer [bean bean->]])
+  (:import net.glowstone.GlowServer
+           (org.bukkit Material Location)
+           (org.bukkit.material MaterialData)))
+
+;; (set! *warn-on-reflection* true)
 
 (defonce server (atom nil))
 (defonce default-player (atom nil))
@@ -121,6 +122,20 @@
   (when (and (map? loc) (:dir loc))
     (set-block-direction loc))
   loc)
+
+(defn set-blocks
+  "Optimized way to set multiple blocks, takes a sequence of maps
+  with :x, :y, :z, :material, and optionally :world and :data."
+  [blocks]
+  (let [^net.glowstone.util.BlockStateDelegate delegate (net.glowstone.util.BlockStateDelegate.)]
+    (doseq [{:keys [world x y z material data]
+             :or {world (world)}} blocks
+            :let [^Material material (if (keyword? material) (get materials material) material)
+                  ^MaterialData data (if (number? data) (MaterialData. material (byte data)) data)]]
+      (if data
+        (.setTypeAndData delegate world x y z material data)
+        (.setType delegate world x y z material)))
+    (.updateBlockStates delegate)))
 
 (defn fill [loc [w h d] type]
   (let [{:keys [x y z]} (bean loc)

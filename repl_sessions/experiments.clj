@@ -178,3 +178,7 @@
 ;;       (.setData (.getBlock chunk x y z) (.getData data x y z)))
 
 ;;     ))
+
+(set-blocks [(assoc (player-location 3) :material :grass)
+             (assoc (player-location 4) :material :grass)
+             (assoc (player-location 5) :material :grass)])

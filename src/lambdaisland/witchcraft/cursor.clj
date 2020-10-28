@@ -58,10 +58,11 @@
         (update :y + y)
         (update :z + z))))
 
-(-> {:x 1 :y 1 :z 1 :dir :east}
-    (rotate 4)
-    step
-    step
-    step
-    (rotate 2)
-    step)
+(comment
+  (-> {:x 1 :y 1 :z 1 :dir :east}
+      (rotate 4)
+      step
+      step
+      step
+      (rotate 2)
+      step))
