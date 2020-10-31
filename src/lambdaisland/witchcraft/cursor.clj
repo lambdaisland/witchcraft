@@ -1,62 +1,212 @@
 (ns lambdaisland.witchcraft.cursor
-  (:require [lambdaisland.witchcraft.bukkit :as bukkit]))
+  "Logo-like API for drawing blocks by using a walking metaphor.
+
+  This is a functional API, movements simply build up a list of block positions,
+  call [[build]] at the end to actually make them materialize in the game.
+
+  A cursor contains a current location (x/y/z), a
+  directions (:north, :north-east, :east, etc.), and a current building
+  material, e.g :lapis-block (see [[lambdaisland.witchcraft.bukkit/materials]]).
+
+  It also contains a drawing flag `:draw?` and a list of blocks `:blocks`. When
+  drawing is on, then any step will add a block to the list. [[build]] creates
+  blocks in the world based on this, and resets the list.
+
+  Call [[start]] to get an initial cursor, this will return a cursor that is one
+  step ahead of the player (so what you draw is in sight), facing away from the
+  player.
+
+  ```
+  (require '[lambdaisland.witchcraft.cursor :as c])
+
+  (-> (c/start)
+      (c/draw)
+      (c/material :red-glazed-terracotta)
+      (c/steps 3)
+      (c/rotate 2)
+      (c/material :blue-glazed-terracotta)
+      (c/steps 3)
+      (c/rotate 2)
+      (c/material :green-glazed-terracotta)
+      (c/steps 3)
+      (c/rotate 2)
+      (c/material :yellow-glazed-terracotta)
+      (c/steps 3)
+      (c/build)
+      )
+  ```
+  "
+  (:refer-clojure :exclude [bean])
+  (:require [lambdaisland.witchcraft.bukkit :as bukkit]
+            [lambdaisland.witchcraft :as wc]
+            [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
+
+bukkit/materials
+(def default-material :lapis-block)
 
 (def directions
-  [:north-west
-   ;;:north-north-west
-   :north
-   ;;:north-north-east
-   :north-east
-   ;;:east-north-east
-   :east
-   ;;:east-south-east
-   :south-east
-   ;;:south-south-east
-   :south
-   ;;:south-south-west
+  [:south
    :south-west
-   ;;:west-south-west
    :west
-   ;;:west-north-west
-   ])
+   :north-west
+   :north
+   :north-east
+   :east
+   :south-east])
 
 (def movements
-  {:north-west [1 0 -1]
-   :north      [1 0 0]
-   :north-east [1 0 1]
-   :east       [0 0 1]
-   :south-east [-1 0 1]
-   :south      [-1 0 0]
-   :south-west [-1 0 -1]
-   :west       [0 0 -1]
+  {:south      [0 0 1],
+   :south-west [-1 0 1],
+   :west       [-1 0 0],
+   :north-west [-1 0 -1],
+   :north      [0 0 -1],
+   :north-east [1 0 -1],
+   :east       [1 0 0],
+   :south-east [1 0 1]
    :up         [0 1 0]
    :down       [0 -1 0]})
 
-(defn rotate-dir [dir n]
-  (if (#{:up :down} dir)
-    (if (#{3 4 5} (mod n 8))
-      ({:up :down :down :up} dir)
-      dir)
-    (nth (drop-while (complement #{dir}) (cycle directions)) n)))
+(declare step)
 
-(defn rotate [cursor n]
-  (update cursor :dir rotate-dir n))
+(defn start
+  "Creates a new cursor, starting one block ahead of the player."
+  []
+  (let [player-loc (bean (wc/player-location))]
+    (step {:dir (nth directions (-> player-loc
+                                    :yaw
+                                    (/ 45)
+                                    Math/round
+                                    (mod (count directions))))
+           :x (Math/round (:x player-loc))
+           :y (Math/round (:y player-loc))
+           :z (Math/round (:z player-loc))
+           :material default-material
+           :draw? false
+           :blocks []})))
 
-(defn up [cursor]
-  (update cursor :y inc))
+(defn draw
+  "Enable/disable drawing. Enables by default, pass false to disable."
+  ([c]
+   (draw c true))
+  ([c draw?]
+   (assoc c :draw? draw?)))
 
-(defn down [cursor]
-  (assoc cursor :y dec))
+(defn block
+  "Add a block to the block list based on the cursor location."
+  [cursor]
+  (update cursor :blocks conj (assoc (select-keys cursor [:x :y :z :material])
+                                     :data (:material-data cursor))))
 
-(defn direction [cursor dir]
-  (assoc cursor :dir dir))
+(defn ?block
+  "Add a block to the block list based on the current cursor location and
+  material, but only if drawing is enabled. (pronounced \"maybe block\")"
+  [c]
+  (if (:draw? c)
+    (block c)
+    c))
 
-(defn step [cursor]
-  (let [[x y z] (get movements (:dir cursor))]
-    (-> cursor
+(defn material
+  "Set the current cursor material, and optionally material-data, to be used for
+  consecutive blocks."
+  ([cursor m]
+   (assoc cursor :material m :material-data nil))
+  ([cursor m md]
+   (assoc cursor :material m :material-data md)))
+
+(defn rotate-dir
+  "Given a direction keyword like :north or :south and a number, make that many
+  1/8 turns clockwise.
+
+  (rotate :north 4) ;; => :south"
+  [dir n]
+  (if (some #{dir} directions)
+    (nth (drop-while (complement #{dir}) (cycle directions)) (mod n 8))
+    dir))
+
+(defn rotate
+  "Rotate the cursor clockwise by a number of 1/8 turns clockwise."
+  [{:keys [dir xy-dir] :as cursor} n]
+  (let [n-even (mod (+ n (mod n 2)) 8)]
+    (assoc
+      cursor :dir
+      (cond
+        (= dir :up)
+        (case n-even
+          0 :up
+          2 (rotate-dir xy-dir 2)
+          4 :down
+          6 (rotate-dir xy-dir 6))
+        (= dir :down)
+        (case n-even
+          0 :down
+          2 (rotate-dir xy-dir 6)
+          4 :up
+          6 (rotate-dir xy-dir 2))
+
+        :else
+        (rotate-dir dir n)))))
+
+(defn face
+  "Face the cursor in a certain direction"
+  [cursor dir]
+  (if (not= dir (:dir cursor))
+    (assoc cursor
+           :dir dir
+           :xy-dir (cond
+                     ;; save the direction where the feet are pointing when going
+                     ;; up/down, important for rotate later on
+                     (= :up dir) (:dir cursor)
+                     (= :down dir) (rotate-dir (:dir cursor) 4)))
+    cursor))
+
+(defn- step* [m dir]
+  (let [[x y z] (get movements dir)]
+    (-> m
         (update :x + x)
         (update :y + y)
         (update :z + z))))
+
+(defn step
+  "Take one step forward in the direction given, or the direction the cursor is
+  facing. If drawing is enabled this will also add a block to the block list
+  corresponding with the new location."
+  ([cursor]
+   (step cursor (:dir cursor)))
+  ([cursor dir]
+   (?block (step* cursor dir))))
+
+(defn steps
+  "Take n steps forward as with [[step]]"
+  ([cursor n]
+   (steps cursor n (:dir cursor)))
+  ([cursor n dir]
+   (nth (iterate #(step % dir) cursor) n)))
+
+(defn extrude
+  "Take the current block list and extrude it in a given direction, by default
+  up."
+  ([cursor n]
+   (extrude cursor n :up))
+  ([{:keys [material material-data] :as cursor } n dir]
+   (update cursor
+           :blocks
+           (fn [blocks]
+             (reduce (fn [res i]
+                       (into res
+                             (map (fn [b]
+                                    (nth (iterate #(step* % dir) (assoc b
+                                                                        :material material
+                                                                        :material-data material-data)) i)))
+                             blocks))
+                     blocks
+                     (range 1 (inc n)))))))
+
+
+(defn build
+  "Apply the list of blocks in the cursor to the world."
+  [cursor]
+  (wc/set-blocks (:blocks cursor))
+  (assoc cursor :blocks []))
 
 (comment
   (-> {:x 1 :y 1 :z 1 :dir :east}

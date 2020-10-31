@@ -4,6 +4,8 @@
             [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
+#_ (wc/start!)
+(fast-forward 5000)
 (def size 50)
 
 (def grid (atom (vec (for [x (range size)]

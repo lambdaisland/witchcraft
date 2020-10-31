@@ -1,7 +1,7 @@
 (ns lambdaisland.witchcraft
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft.bukkit :as bukkit :refer [materials]]
-            [lambdaisland.witchcraft.cursor :as c]
+;;            [lambdaisland.witchcraft.cursor :as c]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]])
   (:import net.glowstone.GlowServer
            (org.bukkit Material Location)
@@ -100,10 +100,10 @@
     (.getBlockAt world (int x) (int y) (int z))))
 
 (defn set-block-direction
-  ([cursor]
-   ;; Try to get stairs to line up
-   (set-block-direction cursor (c/rotate-dir (:dir cursor) 2))
-   cursor)
+  ;; ([cursor]
+  ;;  ;; Try to get stairs to line up
+  ;;  (set-block-direction cursor (c/rotate-dir (:dir cursor) 2))
+  ;;  cursor)
   ([loc dir]
    (let [block (get-block loc)
          data (bean-> block :state :data)]
