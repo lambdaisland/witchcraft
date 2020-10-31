@@ -1,7 +1,7 @@
 (ns lambdaisland.witchcraft
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft.bukkit :as bukkit :refer [materials]]
-;;            [lambdaisland.witchcraft.cursor :as c]
+            ;;            [lambdaisland.witchcraft.cursor :as c]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]])
   (:import net.glowstone.GlowServer
            (org.bukkit Material Location)
@@ -179,3 +179,8 @@
   ([entity loc]
    (let [{:keys [world] :or {world (world)} :as loc} (bean loc)]
      (.teleport entity (->location (merge (bean (.getSpawnLocation world)) loc))))))
+
+(defn clear-weather []
+  (doto (world)
+    (.setThundering false)
+    (.setStorm false)))

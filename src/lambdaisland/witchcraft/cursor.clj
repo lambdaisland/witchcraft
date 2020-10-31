@@ -41,8 +41,11 @@
             [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
-bukkit/materials
+#_bukkit/materials
 (def default-material :lapis-block)
+
+(defonce undo-history (atom ()))
+(defonce redo-history (atom ()))
 
 (def directions
   [:south
@@ -82,7 +85,7 @@ bukkit/materials
            :z (Math/round (:z player-loc))
            :material default-material
            :draw? false
-           :blocks []})))
+           :blocks #{}})))
 
 (defn draw
   "Enable/disable drawing. Enables by default, pass false to disable."
@@ -91,11 +94,14 @@ bukkit/materials
   ([c draw?]
    (assoc c :draw? draw?)))
 
+(defn block-value [cursor]
+  (assoc (select-keys cursor [:x :y :z :material])
+         :data (:material-data cursor)))
+
 (defn block
   "Add a block to the block list based on the cursor location."
   [cursor]
-  (update cursor :blocks conj (assoc (select-keys cursor [:x :y :z :material])
-                                     :data (:material-data cursor))))
+  (update cursor :blocks conj (block-value cursor)))
 
 (defn ?block
   "Add a block to the block list based on the current cursor location and
@@ -160,6 +166,9 @@ bukkit/materials
     cursor))
 
 (defn- step* [m dir]
+  (assert (keyword? dir) (str "Direction must be a keyword, got " dir))
+  (assert (contains? movements dir) (str "Unknown direction " dir ", should be one-of "
+                                         (keys movements)))
   (let [[x y z] (get movements dir)]
     (-> m
         (update :x + x)
@@ -180,7 +189,30 @@ bukkit/materials
   ([cursor n]
    (steps cursor n (:dir cursor)))
   ([cursor n dir]
-   (nth (iterate #(step % dir) cursor) n)))
+   (if (< n 0)
+     (steps cursor (- n) (rotate-dir dir 4))
+     (nth (iterate #(step % dir) cursor) n))))
+
+(defn move
+  "Move the cursor as with steps, but without drawing."
+  ([{:keys [draw? dir] :as cursor} n]
+   (move cursor n dir))
+  ([{:keys [draw?] :as cursor} n dir]
+   (assert (int? n) (str "Move takes a number of steps, got " n))
+   (-> cursor
+       (draw false)
+       (steps n dir)
+       (draw draw?))))
+
+(defn move-to
+  "Move the cursor to the given location, does not draw."
+  [cursor loc]
+  (merge cursor (select-keys (bean loc) [:x :y :z])))
+
+(defn excursion
+  "Apply a block-drawing function f, then return to the original position."
+  [cursor f]
+  (assoc cursor :blocks (:blocks (f cursor))))
 
 (defn extrude
   "Take the current block list and extrude it in a given direction, by default
@@ -201,12 +233,41 @@ bukkit/materials
                      blocks
                      (range 1 (inc n)))))))
 
+(def material->keyword (into {} (map (juxt val key)) bukkit/materials))
+
+(defn- lookup-block [block]
+  (let [{:keys [x y z type state]} (bean (wc/get-block block))]
+    {:x x
+     :y y
+     :z z
+     :material (material->keyword type)
+     :data (.getData (.getData state))}))
 
 (defn build
   "Apply the list of blocks in the cursor to the world."
-  [cursor]
-  (wc/set-blocks (:blocks cursor))
-  (assoc cursor :blocks []))
+  [{:keys [blocks] :as cursor}]
+  (swap! undo-history conj (doall (map lookup-block blocks)))
+  (wc/set-blocks blocks)
+  (assoc cursor :blocks #{}))
+
+(defn undo!
+  "Undo the last build. Can be repeated to undo multiple builds."
+  []
+  (swap! undo-history (fn [[blocks & rest]]
+                        (when blocks
+                          (wc/set-blocks blocks)
+                          (swap! redo-history conj blocks))
+                        rest))
+  :undo)
+
+(defn redo! []
+  "Redo the last build that was undone with [[undo!]]"
+  (swap! redo-history (fn [[blocks & rest]]
+                        (when blocks
+                          (wc/set-blocks blocks)
+                          (swap! undo-history conj blocks))
+                        rest))
+  :redo)
 
 (comment
   (-> {:x 1 :y 1 :z 1 :dir :east}
