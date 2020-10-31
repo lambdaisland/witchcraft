@@ -1,8 +1,4 @@
-# {project}
-
-<!-- badges -->
-[![CircleCI](https://circleci.com/gh/lambdaisland/{project}.svg?style=svg)](https://circleci.com/gh/lambdaisland/{project}) [![cljdoc badge](https://cljdoc.org/badge/lambdaisland/{project})](https://cljdoc.org/d/lambdaisland/{project}) [![Clojars Project](https://img.shields.io/clojars/v/lambdaisland/{project}.svg)](https://clojars.org/lambdaisland/{project})
-<!-- /badges -->
+# Witchcraft
 
 This project uses the [GlowstoneMC](https://github.com/GlowstoneMC/Glowstone) open source minecraft server and wraps the [Bukkit](https://github.com/Bukkit/Bukkit) modding API.
 
@@ -35,8 +31,6 @@ Hold `F3` and press `p` so you can tab out without the game pausing.
 
 ## License
 
-Copyright &copy; 2019 Arne Brasseur
+Copyright &copy; 2020 Arne Brasseur
 
 Licensed under the term of the Mozilla Public License 2.0, see LICENSE.
-
-Available under the terms of the Eclipse Public License 1.0, see LICENSE.txt
