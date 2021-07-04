@@ -263,6 +263,9 @@
         (map (juxt class->kw identity))
         event-classes))
 
+#_
+(keys events)
+
 (def priority (util/enum->map org.bukkit.event.EventPriority))
 
 (defn unregister-all-event-listeners [event]
@@ -281,10 +284,10 @@
       (when (= key (::key (meta listener)))
         (.unregister handler-list listener)))))
 
-(defn register-event-listener [event k fn]
+(defn register-event-listener [event k f]
   (let [event-class (if (class? event) event (get events event))]
     (unregister-event-listener event-class k)
-    (.registerEvent (plugin-manager)
+    (.registerEvent (wc/plugin-manager)
                     event-class
                     (with-meta
                       (reify org.bukkit.event.Listener)
@@ -292,10 +295,10 @@
                     (priority :normal)
                     (reify org.bukkit.plugin.EventExecutor
                       (execute [this listener event]
-                        (fn event)))
+                        (f event)))
                     (proxy [org.bukkit.plugin.PluginBase] []
                       (getDescription []
-                        (org.bukkit.plugin.PluginDescriptionFile. "my-clojure-plugin" "1.0" "test.test"))
+                        (org.bukkit.plugin.PluginDescriptionFile. (str event) "1.0" (str k)))
                       (isEnabled []
                         true)))))
 

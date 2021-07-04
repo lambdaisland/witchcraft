@@ -9,7 +9,9 @@
   (wc/start!)
   (.setTime (wc/world) 0)
   (wc/clear-weather)
-  (fly!))
+  (fly!)
+  (sort (keys materials))
+  )
 
 (defonce c (c/start))
 
@@ -198,32 +200,39 @@
       (c/draw)
       (c/material :smooth-brick)
       (pillar-row params)
+      c/build)
+
+  (-> pos
+      (assoc :y (+ (:y-base params) (:pillar-height params)
+                   (:platform-height params)))
+      (c/move 3 :left)
+      (c/draw)
+      (c/material :wood-step)
+      (c/steps (+  (* (:distance params)
+                      (:pillars params)) 2))
+      (c/extrude 7 :right)
+      (c/extrude 1 :forward-left)
+      #_(update :blocks
+                (fn [blocks]
+                  (map
+                   (fn [b]
+                     (if (< (rand-int 100) 20)
+                       (assoc b :material :glass)
+                       b))
+                   blocks)))
       c/build))
 
 (build-bridge (c/start)
-              {:pillars 7
-               :distance 20
-               :pillar-height 34
-               :pillar-width 5})
+              {:pillars 3
+               :distance 18
+               :pillar-height 20
+               :pillar-width 5
+               :platform-height 5
+               :y-base 60})
+
+(c/rotate-dir  (:dir pos) 1)
 
 ;; bridge surface
-(-> pos
-    (c/step :down)
-    (c/move 3 :south)
-    (c/draw)
-    (c/material :brick)
-    (c/steps 50)
-    (c/extrude 3 :north-east)
-    (c/extrude 2 :north)
-    (update :blocks
-            (fn [blocks]
-              (map
-               (fn [b]
-                 (if (< (rand-int 100) 20)
-                   (assoc b :material :glass)
-                   b))
-               blocks)))
-    c/build)
 
 (-> pos
     (c/move 3 :south)
@@ -248,13 +257,42 @@
     (c/steps 4)
     c/build)
 
-:fence
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(:dir pos)
+(defn catenary [x length]
+  (let [y #(- (Math/cosh (/ % (/ length 2))) 1)
+        x-factor (y (/ length 2))]
+    (-  (/ (y x) x-factor) 1)))
 
-(-> (c/start)
-    (c/move 10)
-    (c/draw)
-    (c/steps 10)
-    (c/build)
-    )
+(for [x [-10 -5 0 5 10]]
+  (catenary x 20))
+
+(let [start  (c/start)
+      end    (c/move start 60)
+      dip    25
+      delta  (fn [a b]
+               (Math/sqrt (* (Math/abs (- (:x a) (:x b)))
+                             (Math/abs (- (:z a) (:z b))))))
+      length (delta start end)
+      y-fn   #(* (catenary (-  % (/ length 2)) length) dip)
+      step-fn (fn [curs dir]
+                (let [[x _ z] (get c/movements dir)
+                      curs (-> curs (update :x + x) (update :z + z))
+                      dist (delta start curs)]
+                  (assoc curs :y (Math/round (+ (:y start) (y-fn dist))))))
+      curs (assoc start :step-fn step-fn)]
+  (-> curs
+      (c/material :wood-double-step)
+      (c/steps 60)
+      (c/step :left)
+      (c/extrude 1 :forward-right)
+      (c/extrude 3 :right)
+      c/build))
+
+(->  (c/start)
+     (c/material :cobblestone)
+     (c/steps 3)
+     (c/extrude 5 :forward-right)
+     (c/extrude 10 :up)
+
+     c/build)

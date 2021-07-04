@@ -1,35 +1,60 @@
 (ns lambdaisland.witchcraft
+  "Clojure API for Glowstone"
   (:refer-clojure :exclude [bean])
-  (:require [lambdaisland.witchcraft.bukkit :as bukkit :refer [materials]]
-            ;;            [lambdaisland.witchcraft.cursor :as c]
+  (:require [clojure.java.io :as io]
+            [lambdaisland.witchcraft.bukkit :as bukkit :refer [materials]]
+            [lambdaisland.witchcraft.util :as util]
+            [lambdaisland.witchcraft.config :as config]
+            ;; [lambdaisland.witchcraft.cursor :as c]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]])
-  (:import net.glowstone.GlowServer
-           (org.bukkit Material Location)
-           (org.bukkit.material MaterialData)))
+  (:import (net.glowstone GlowServer GlowOfflinePlayer)
+           (org.bukkit Bukkit Material Location World)
+           (org.bukkit.material MaterialData Directional)
+           (org.bukkit.entity Entity Player)
+           (org.bukkit.block Block)
+           (net.glowstone.util.config ServerConfig)
+           org.bukkit.configuration.serialization.ConfigurationSerialization
+           net.glowstone.constants.GlowEnchantment
+           net.glowstone.block.entity.state.GlowDispenser
+           net.glowstone.constants.GlowPotionEffect
+           net.glowstone.util.config.WorldConfig))
 
-;; (set! *warn-on-reflection* true)
+(set! *warn-on-reflection* true)
 
-(defonce server (atom nil))
 (defonce default-player (atom nil))
 
-(defn start! []
-  (let [gs (GlowServer/createFromArguments (into-array String []))]
-    (future
-      (try
-        (.run gs)
-        (finally
-          (println ::started))))
-    (reset! server gs)))
+(defonce init-once
+  (do
+    (ConfigurationSerialization/registerClass GlowOfflinePlayer)
+    (GlowPotionEffect/register)
+    (GlowEnchantment/register)
+    (GlowDispenser/register)))
+
+(defn server ^GlowServer []
+  (Bukkit/getServer))
+
+(defn start!
+  ([]
+   (start! nil))
+  ([{:keys [config]
+     :as opts}]
+   (let [^ServerConfig config (or config (config/server-config opts))]
+     (util/set-static! GlowServer "worldConfig" (WorldConfig. (.getFile config "") (.getFile config "worlds.yml")))
+     (future
+       (try
+         (.run (GlowServer. config))
+         (finally
+           (println ::started)))))))
 
 (defn stop! []
-  (.shutdown @server)
-  (reset! server nil))
+  (.shutdown ^GlowServer (server))
+  (util/set-static! Bukkit "server" nil))
 
 (defn players []
-  (.getOnlinePlayers ^GlowServer @server))
+  (.getOnlinePlayers ^GlowServer (server)))
 
 (defn player
-  ([]
+  (^Player []
    (if @default-player
      (player @default-player)
      (first (players))))
@@ -53,13 +78,13 @@
          (update :z + (* (:z dir) n))))))
 
 (defn worlds []
-  (:worlds (bean @server)))
+  (:worlds (bean (server))))
 
 (defn world
-  ([]
+  (^World []
    (or (:world (bean (player)))
        (first (worlds))))
-  ([name]
+  (^World [name]
    (some #(when (= name (:name (bean %)))
             %)
          (worlds))))
@@ -71,23 +96,23 @@
   (.setAllowFlight (player) true)
   (.setFlying (player) true))
 
-(defn map->location [{:keys [x y z yaw pitch world]
-                      :or {x 0 y 0 z 0 yaw 0 pitch 0 world (world)}}]
+(defn map->location ^Location [{:keys [x y z yaw pitch world]
+                                :or {x 0 y 0 z 0 yaw 0 pitch 0 world (world)}}]
   (Location. world x y z yaw pitch))
 
-(defn ->location [loc]
+(defn ->location ^Location [loc]
   (or (and (instance? Location loc) loc)
       (:location (bean loc))
       (map->location (bean loc))))
 
 (defn update-location! [entity f & args]
-  (.teleport entity
+  (.teleport ^Entity entity
              (map->location (apply f  (bean (:location (bean (player)))) args))
              org.bukkit.event.player.PlayerTeleportEvent$TeleportCause/PLUGIN))
 
 (defn player-chunk []
   (let [{:keys [world location]} (bean (player))]
-    (.getChunkAt world location)))
+    (.getChunkAt ^World world ^Location location)))
 
 (defn chunk-manager []
   (:chunkManager (bean (world))))
@@ -95,9 +120,9 @@
 (defn storage []
   (:storage (bean (world))))
 
-(defn get-block [loc]
+(defn get-block ^Block [loc]
   (let  [{:keys [x y z world] :or {world (world)}} (bean loc)]
-    (.getBlockAt world (int x) (int y) (int z))))
+    (.getBlockAt ^World world (int x) (int y) (int z))))
 
 (defn set-block-direction
   ;; ([cursor]
@@ -106,9 +131,9 @@
   ;;  cursor)
   ([loc dir]
    (let [block (get-block loc)
-         data (bean-> block :state :data)]
+         ^MaterialData data (bean-> block :state :data)]
      (try
-       (.setFacingDirection data (if (keyword? dir) (bukkit/block-faces dir) dir))
+       (.setFacingDirection ^Directional data (if (keyword? dir) (bukkit/block-faces dir) dir))
        (.setData block (.getData data))
        ;; Not all blocks have a direction
        (catch Exception e)))
@@ -154,30 +179,33 @@
 
 (defn highest-block-at [loc]
   (let [{:keys [x y z world] :or {world (world)}} (bean loc)]
-    (.getHighestBlockAt world (map->location {:x x :y 0 :z z :world world}))))
+    (.getHighestBlockAt ^World world (map->location {:x x :y 0 :z z :world world}))))
 
 (defn spawn [loc entity]
-  (let [{:keys [x y z world] :or {world (world)}} (bean loc)]
+  (let [{:keys [x y z ^World world] :or {world (world)}} (bean loc)]
     (.spawnEntity world
                   (map->location {:x x :y y :z z :world world})
-                  (if (keyword? entity)
-                    (get bukkit/entities entity)
-                    entity))))
+                  ^Entity (if (keyword? entity)
+                            (get bukkit/entities entity)
+                            entity))))
 
 (defn game-mode
   ([]
    (game-mode (player)))
-  ([player]
+  ([^Player player]
    (keyword  (str (.getGameMode player)))))
 
 (defn plugin-manager []
-  (:pluginManager (bean @server)))
+  (Bukkit/getPluginManager))
 
 (defn teleport
   ([loc]
    (teleport (player) loc))
-  ([entity loc]
-   (let [{:keys [world] :or {world (world)} :as loc} (bean loc)]
+  ([^Entity entity loc]
+   (prn entity)
+   (let [{:keys [^World world] :or {world (world)} :as loc} (bean loc)]
+     (prn world)
+     (prn (.getSpawnLocation world))
      (.teleport entity (->location (merge (bean (.getSpawnLocation world)) loc))))))
 
 (defn clear-weather []

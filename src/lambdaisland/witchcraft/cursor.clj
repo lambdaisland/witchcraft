@@ -69,6 +69,20 @@
    :up         [0 1 0]
    :down       [0 -1 0]})
 
+(def relative-movements
+  {:forward        0
+   :forwards       0
+   :front          0
+   :forward-right  1
+   :right          2
+   :backward-right 3
+   :back           4
+   :backward       4
+   :backwards      4
+   :backward-left  5
+   :left           6
+   :forward-left   7})
+
 (declare step)
 
 (defn start
@@ -84,7 +98,7 @@
            :y (Math/round (:y player-loc))
            :z (Math/round (:z player-loc))
            :material default-material
-           :draw? false
+           :draw? true
            :blocks #{}})))
 
 (defn draw
@@ -165,15 +179,26 @@
                      (= :down dir) (rotate-dir (:dir cursor) 4)))
     cursor))
 
-(defn- step* [m dir]
+(defn- step* [c dir]
   (assert (keyword? dir) (str "Direction must be a keyword, got " dir))
   (assert (contains? movements dir) (str "Unknown direction " dir ", should be one-of "
                                          (keys movements)))
-  (let [[x y z] (get movements dir)]
-    (-> m
-        (update :x + x)
-        (update :y + y)
-        (update :z + z))))
+  (if-let [step-fn (:step-fn c)]
+    (step-fn c dir)
+    (let [[x y z] (get movements dir)]
+      (-> c
+          (update :x + x)
+          (update :y + y)
+          (update :z + z)))))
+
+(defn resolve-dir
+  "Helper for dealing with forward/left/right type of directions, instead of
+  east/north/west."
+  [facing asked]
+  (let [rotation (get relative-movements asked)]
+    (if rotation
+      (rotate-dir facing rotation)
+      asked)))
 
 (defn step
   "Take one step forward in the direction given, or the direction the cursor is
@@ -182,16 +207,17 @@
   ([cursor]
    (step cursor (:dir cursor)))
   ([cursor dir]
-   (?block (step* cursor dir))))
+   (?block (step* cursor (resolve-dir (:dir cursor) dir)))))
 
 (defn steps
   "Take n steps forward as with [[step]]"
   ([cursor n]
    (steps cursor n (:dir cursor)))
   ([cursor n dir]
-   (if (< n 0)
-     (steps cursor (- n) (rotate-dir dir 4))
-     (nth (iterate #(step % dir) cursor) n))))
+   (let [dir (resolve-dir (:dir cursor) dir)]
+     (if (< n 0)
+       (steps cursor (- n) (rotate-dir dir 4))
+       (nth (iterate #(step % dir) cursor) n)))))
 
 (defn move
   "Move the cursor as with steps, but without drawing."
@@ -219,19 +245,23 @@
   up."
   ([cursor n]
    (extrude cursor n :up))
-  ([{:keys [material material-data] :as cursor } n dir]
-   (update cursor
-           :blocks
-           (fn [blocks]
-             (reduce (fn [res i]
-                       (into res
-                             (map (fn [b]
-                                    (nth (iterate #(step* % dir) (assoc b
-                                                                        :material material
-                                                                        :material-data material-data)) i)))
-                             blocks))
-                     blocks
-                     (range 1 (inc n)))))))
+  ([{:keys [material material-data] :as cursor} n dir]
+   (let [dir (resolve-dir (:dir cursor) dir)]
+     (update
+      cursor
+      :blocks
+      (fn [blocks]
+        (reduce
+         (fn [res i]
+           (into res
+                 (map (fn [b]
+                        (nth (iterate #(step* % dir)
+                                      (assoc b
+                                             :material material
+                                             :material-data material-data)) i)))
+                 blocks))
+         blocks
+         (range 1 (inc n))))))))
 
 (def material->keyword (into {} (map (juxt val key)) bukkit/materials))
 
@@ -260,8 +290,9 @@
                         rest))
   :undo)
 
-(defn redo! []
+(defn redo!
   "Redo the last build that was undone with [[undo!]]"
+  []
   (swap! redo-history (fn [[blocks & rest]]
                         (when blocks
                           (wc/set-blocks blocks)

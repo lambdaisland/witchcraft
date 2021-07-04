@@ -1,10 +1,12 @@
 (ns lambdaisland.witchcraft.bukkit
+  "Bukkit wrapper and"
   (:require [lambdaisland.witchcraft.util :as util])
   (:import (org.bukkit.inventory ItemStack)))
 
 (def entities (util/enum->map org.bukkit.entity.EntityType))
 (def materials (util/enum->map org.bukkit.Material))
 (def block-faces (util/enum->map org.bukkit.block.BlockFace))
+(def tree-species (util/enum->map org.bukkit.TreeSpecies))
 
 (defn inventory [player]
   (.getInventory player))

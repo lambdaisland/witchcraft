@@ -1,11 +1,12 @@
 (ns repl-sessions.experiments
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft :as wc :refer :all]
+            [lambdaisland.witchcraft.config :as config]
             [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
 ;; Start the server
-(wc/start!)
+(wc/start! {:config (config/data-config {:level-type "FLAT"})})
 
 ;; Best to do this before you finish, so your world doesn't get corrupted
 #_(stop!)
@@ -51,7 +52,7 @@
             :lengte 10})
 
 ;; Chickens!
-(spawn (player-location 3) :chicken)
+(spawn (player-location 3) :villager)
 
 (defn rand-loc []
   (let [loc (bean (player-location))]
