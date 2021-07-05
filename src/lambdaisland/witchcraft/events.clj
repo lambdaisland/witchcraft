@@ -1,10 +1,9 @@
 (ns lambdaisland.witchcraft.events
   (:refer-clojure :exclude [bean])
-  (:require [lambdaisland.witchcraft :as wc :refer :all]
-            [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]
-            [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
+  (:require [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  (:import (org.bukkit Bukkit)))
 
 (def event-classes [org.spigotmc.event.player.PlayerSpawnLocationEvent
                     org.spigotmc.event.entity.EntityMountEvent
@@ -275,7 +274,7 @@
     (doseq [handler (.getRegisteredListeners handler-list)]
       (.unregister handler-list handler))))
 
-(defn unregister-event-listener [event key]
+(defn unlisten! [event key]
   (let [event-class (if (class? event) event (get events event))
         getHandlerList (.getMethod event-class "getHandlerList" (into-array Class []))
         handler-list (.invoke getHandlerList nil nil)]
@@ -284,10 +283,10 @@
       (when (= key (::key (meta listener)))
         (.unregister handler-list listener)))))
 
-(defn register-event-listener [event k f]
+(defn listen! [event k f]
   (let [event-class (if (class? event) event (get events event))]
-    (unregister-event-listener event-class k)
-    (.registerEvent (wc/plugin-manager)
+    (unlisten! event-class k)
+    (.registerEvent (Bukkit/getPluginManager)
                     event-class
                     (with-meta
                       (reify org.bukkit.event.Listener)
@@ -295,43 +294,43 @@
                     (priority :normal)
                     (reify org.bukkit.plugin.EventExecutor
                       (execute [this listener event]
-                        (f event)))
+                        (f (bean event))))
                     (proxy [org.bukkit.plugin.PluginBase] []
                       (getDescription []
-                        (org.bukkit.plugin.PluginDescriptionFile. (str event) "1.0" (str k)))
+                        (org.bukkit.plugin.PluginDescriptionFile. (str "Listen for " (name event)) "1.0" (str k)))
                       (isEnabled []
                         true)))))
 
 (comment
-  (register-event-listener :async-player-chat
-                           ::print-chat
-                           (fn [e]
-                             (prn "heyyyya" (:message (bean e)))))
+  (listen! :async-player-chat
+           ::print-chat
+           (fn [e]
+             (prn "heyyyya" (:message (bean e)))))
 
-  (unregister-event-listener :async-player-chat ::print-chat)
+  (unlisten! :async-player-chat ::print-chat)
 
-  (register-event-listener :block-damage
-                           ::show-block-dmg
-                           (fn [e]
-                             (prn "You broke it!" (bean e))))
+  (listen! :block-damage
+           ::show-block-dmg
+           (fn [e]
+             (prn "You broke it!" (bean e))))
 
-  (unregister-event-listener :block-damage ::show-block-dmg)
+  (unlisten! :block-damage ::show-block-dmg)
 
-  (register-event-listener :block-damage
-                           ::self-heal
-                           (fn [e]
-                             (let [block (:block (bean e))
-                                   type (:type (bean block))]
-                               (future
-                                 (Thread/sleep 500)
-                                 (prn type)
-                                 (fill (offset (->location block) [-1 -1 -1])
-                                       [3 3 3]
-                                       type)))))
+  (listen! :block-damage
+           ::self-heal
+           (fn [e]
+             (let [block (:block (bean e))
+                   type (:type (bean block))]
+               (future
+                 (Thread/sleep 500)
+                 (prn type)
+                 (fill (offset (->location block) [-1 -1 -1])
+                       [3 3 3]
+                       type)))))
 
 
 
-  (unregister-event-listener :block-damage ::show-block-dmg)
+  (unlisten! :block-damage ::show-block-dmg)
 
   (unregister-all-event-listeners :async-player-chat)
   )

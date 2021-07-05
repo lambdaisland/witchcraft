@@ -85,28 +85,32 @@
 
 (declare step)
 
-(defn start
-  "Creates a new cursor, starting one block ahead of the player."
-  []
-  (let [player-loc (bean (wc/player-location))]
-    (step {:dir (nth directions (-> player-loc
-                                    :yaw
-                                    (/ 45)
-                                    Math/round
-                                    (mod (count directions))))
-           :x (Math/round (:x player-loc))
-           :y (Math/round (:y player-loc))
-           :z (Math/round (:z player-loc))
-           :material default-material
-           :draw? true
-           :blocks #{}})))
-
 (defn draw
   "Enable/disable drawing. Enables by default, pass false to disable."
   ([c]
    (draw c true))
   ([c draw?]
    (assoc c :draw? draw?)))
+
+(defn start
+  "Creates a new cursor, starting one block ahead of the player."
+  ([]
+   (start (wc/location (wc/player))))
+  ([loc]
+   (let [player-loc (bean loc)]
+     (-> {:dir (nth directions (-> player-loc
+                                   :yaw
+                                   (/ 45)
+                                   Math/round
+                                   (mod (count directions))))
+          :x (Math/round (:x player-loc))
+          :y (Math/round (:y player-loc))
+          :z (Math/round (:z player-loc))
+          :material default-material
+          :draw? false
+          :blocks #{}}
+         step
+         draw))))
 
 (defn block-value [cursor]
   (assoc (select-keys cursor [:x :y :z :material])
@@ -263,7 +267,7 @@
          blocks
          (range 1 (inc n))))))))
 
-(def material->keyword (into {} (map (juxt val key)) bukkit/materials))
+(def material->keyword (into {} (map (juxt val key)) wc/materials))
 
 (defn- lookup-block [block]
   (let [{:keys [x y z type state]} (bean (wc/get-block block))]

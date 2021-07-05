@@ -1,7 +1,6 @@
 (ns bridge
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft :as wc :refer :all]
-            [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]
             [lambdaisland.witchcraft.cursor :as c]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 

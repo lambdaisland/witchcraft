@@ -6,7 +6,7 @@
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
 ;; Start the server
-(wc/start! {:config (config/data-config {:level-type "FLAT"})})
+(wc/start! {:level-type "FLAT"})
 
 ;; Best to do this before you finish, so your world doesn't get corrupted
 #_(stop!)

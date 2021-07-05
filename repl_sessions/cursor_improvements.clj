@@ -1,11 +1,17 @@
 (ns cursor-improvements
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft :as wc :refer :all]
-            [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]
             [lambdaisland.witchcraft.cursor :as c]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
 (def starting-point (c/start))
+
+(-> starting-point
+    (c/material :wood)
+    (c/draw)
+    (c/steps 3)
+    :blocks
+    set-blocks)
 
 #_ starting-point
 ;; => {:dir :east,
@@ -45,12 +51,11 @@
     (c/steps 10)
     (c/extrude 12 :west)
     :blocks
-    set-blocks
-    )
+    set-blocks)
 
-(fast-forward 1000)
-
+;; the roof
 (loop [c (-> starting-point
+             (c/draw false)
              (c/steps 2 :up)
              (c/step :north-west)
              (c/material :red-glazed-terracotta)
@@ -69,8 +74,8 @@
         (c/steps y-steps)
         (c/rotate 2)
         (c/draw false)
-        (c/up)
-        (c/step :south-east)
+        (c/step :up)
+        (c/step :south-east) ;; modify this based on where you are facing
         (c/draw true)
         (recur (- x-steps 2)
                (- y-steps 2)))
@@ -94,7 +99,7 @@
     (c/material :wood)
     (c/draw)
     (c/steps 3)
-    (c/material :air )
+    (c/material :air)
     (c/steps 2)
     (c/material :wood)
     (c/steps 3)
@@ -114,5 +119,4 @@
     (c/rotate 2)
     (c/material :yellow-glazed-terracotta)
     (c/steps 3)
-    (c/build)
-    )
+    (c/build))
