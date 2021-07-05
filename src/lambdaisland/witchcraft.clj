@@ -323,16 +323,18 @@
 (defn highest-block-at
   "Retrieve the highest block at the given location"
   [loc]
-  (.getHighestBlockAt ^World world (location loc)))
+  (let [loc (location loc)]
+    (.getHighestBlockAt ^World (world loc) loc)))
 
 (defn spawn
   "Spawn a new entity"
   [loc entity]
-  (.spawnEntity world
-                (location loc)
-                ^Entity (if (keyword? entity)
-                          (get entities entity)
-                          entity)))
+  (let [loc (location loc)]
+    (.spawnEntity (world loc)
+                  loc
+                  ^Entity (if (keyword? entity)
+                            (get entities entity)
+                            entity))))
 
 (defn game-mode
   "Get the current game mode"
@@ -346,8 +348,12 @@
   ([loc]
    (teleport (player) loc))
   ([^Entity entity loc]
-   (let [{:keys [^World world] :or {world (world (server))} :as loc} (bean loc)]
-     (.teleport entity (location (merge (bean (.getSpawnLocation world)) loc))))))
+   (.teleport entity
+              (location
+               (if (map? loc)
+                 (merge (bean (.getSpawnLocation (world loc)))
+                        loc)
+                 loc)))))
 
 (defn clear-weather
   "Get clear weather"
@@ -514,6 +520,8 @@
     (.distance this (as-vec that)))
   (yaw [v] 0)
   (pitch [v] 0)
+  (distance [this that]
+    (distance (as-vec this) that))
 
   java.util.Map
   (x [m] (or (.get m :x) 0))
@@ -521,9 +529,11 @@
   (z [m] (or (.get m :z) 0))
   (pitch [m] (or (.get m :pitch) 0))
   (yaw [m] (or (.get m :yaw) 0))
-  (world [m] (or (.get m :world) (world (server))))
+  (world [m] (world (location m)))
   (location [m] (or (.get m :location)
                     (map->Location m)))
+  (distance [this that]
+    (distance (as-vec this) that))
   (as-vec [m]
     (vec3 (x m) (y m) (z m)))
 
