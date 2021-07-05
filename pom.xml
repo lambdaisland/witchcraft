@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>witchcraft</artifactId>
-  <version>0.0.17</version>
+  <version>0.0.19</version>
   <name>witchcraft</name>
   <description>Clojure API for Minecraft/Glowstone/Bukkit</description>
   <url>https://github.com/lambdaisland/witchcraft</url>
@@ -22,7 +22,7 @@
     <url>https://github.com/lambdaisland/witchcraft</url>
     <connection>scm:git:git://github.com/lambdaisland/witchcraft.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/witchcraft.git</developerConnection>
-    <tag>03189d3f61ef7067517d9503b95abb7dd5aa6655</tag>
+    <tag>16f3ea0b7d834e3f51b47e37161f2f5040f25c09</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -62,7 +62,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>03189d3f61ef7067517d9503b95abb7dd5aa6655</git-revision>
+              <git-revision>16f3ea0b7d834e3f51b47e37161f2f5040f25c09</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
@@ -87,6 +87,14 @@
     <repository>
       <id>clojars</id>
       <url>https://repo.clojars.org/</url>
+    </repository>
+    <repository>
+      <id>glowstone-repo</id>
+      <url>https://repo.glowstone.net/content/repositories/snapshots/</url>
+    </repository>
+    <repository>
+      <id>aikar</id>
+      <url>https://repo.aikar.co/nexus/content/repositories/aikar-release/</url>
     </repository>
   </repositories>
   <distributionManagement>
