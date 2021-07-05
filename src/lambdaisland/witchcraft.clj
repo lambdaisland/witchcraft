@@ -81,7 +81,8 @@
   (^double z [_])
   (yaw [_])
   (pitch [_])
-  (^org.bukkit.util.Vector direction [_]))
+  (^org.bukkit.util.Vector direction [_])
+  (^org.bukkit.Material material [_]))
 
 ;; =============================================================================
 
@@ -231,6 +232,7 @@
   (yaw [e] (yaw (location e)))
   (pitch [e] (pitch (location e)))
   (^org.bukkit.util.Vector direction [e] (direction (location e)))
+  (material [b] (.getType b))
 
   Location
   (location [l] l)
@@ -286,6 +288,13 @@
   (world [u]
     (.getWorld (server) u))
 
+  clojure.lang.Keyword
+  (material [k]
+    (get materials k))
+
+  Material
+  (material [m] m)
+
   GlowServer
   (world [s]
     (first (worlds s))))
@@ -323,13 +332,6 @@
   ^Location [{:keys [x y z yaw pitch world]
               :or {x 0 y 0 z 0 yaw 0 pitch 0 world (world (server))}}]
   (Location. world x y z yaw pitch))
-
-(defn ->Location
-  "Coerce to Location instance"
-  ^Location [loc]
-  (or (and (instance? Location loc) loc)
-      (:location (bean loc))
-      (map->Location (bean loc))))
 
 (defn player-chunk
   "Return the chunk the player is in"
@@ -440,7 +442,7 @@
    (teleport (player) loc))
   ([^Entity entity loc]
    (let [{:keys [^World world] :or {world (world (server))} :as loc} (bean loc)]
-     (.teleport entity (->Location (merge (bean (.getSpawnLocation world)) loc))))))
+     (.teleport entity (location (merge (bean (.getSpawnLocation world)) loc))))))
 
 (defn clear-weather
   "Get clear weather"

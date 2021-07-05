@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft :as wc :refer :all]
             [lambdaisland.witchcraft.util :as util]
-            [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
 (set! *warn-on-reflection* true)
@@ -18,18 +17,16 @@
                (proxy [net.glowstone.generator.GlowChunkGenerator] [(into-array org.bukkit.generator.BlockPopulator [])]
                  (generateChunkData [world random chunk-x chunk-z biomes]
                    (let [chunk (net.glowstone.generator.GlowChunkData. world)]
-                     (doseq [x (range 16)
-                             y (range 128)
-                             z (range 16)
+                     (doseq [^long x (range 16)
+                             ^long y (range 128)
+                             ^long z (range 16)
                              :let [real-x (+ (* chunk-x 16) x)
                                    real-z (+ (* chunk-z 16) z)
                                    material (gen-fn real-x y real-z #_(.getBiome biomes real-x real-z))]
                              :when material]
-                       (.setBlock chunk x y z (if (keyword? material)
-                                                (get bukkit/materials material)
-                                                material)))
+                       (.setBlock chunk x y z (wc/material material)))
                      chunk)))))
-  (.setSpawnLocation (world name) (->location (assoc spawn-loc :world (world name)))))
+  (.setSpawnLocation (world name) (wc/location (assoc spawn-loc :world (world name)))))
 
 (comment
   (create-world "stone-flats"

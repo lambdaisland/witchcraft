@@ -32,7 +32,7 @@
 ;; player to fly
 (fly!)
 
-(wc/add (wc/->Location {:x 1 :y 2 :z 3}) {:x 4 :y 5 :z 6})
+(wc/add (wc/location {:x 1 :y 2 :z 3}) {:x 4 :y 5 :z 6})
 
 ;; Work in progress
 (defn fish-bowl [{:keys [x y z] :as locatie}
