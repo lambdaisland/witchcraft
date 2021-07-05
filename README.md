@@ -33,13 +33,13 @@ running.
 To use the latest release, add the following to your `deps.edn` ([Clojure CLI](https://clojure.org/guides/deps_and_cli))
 
 ```
-com.lambdaisland/witchcraft {:mvn/version "0.0.19"}
+com.lambdaisland/witchcraft {:mvn/version "0.0.24"}
 ```
 
 or add the following to your `project.clj` ([Leiningen](https://leiningen.org/))
 
 ```
-[com.lambdaisland/witchcraft "0.0.19"]
+[com.lambdaisland/witchcraft "0.0.24"]
 ```
 <!-- /installation -->
 
