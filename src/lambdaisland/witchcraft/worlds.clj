@@ -46,6 +46,7 @@
                       :grass
                       :dirt)
 
+                    :else
                     :water))
                 {:x 0 :y 21 :z 0})
 
