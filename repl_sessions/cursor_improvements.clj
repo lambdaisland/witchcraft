@@ -6,53 +6,94 @@
 
 (def starting-point (c/start))
 
-(-> starting-point
-    (c/material :wood)
-    (c/draw)
-    (c/steps 3)
-    :blocks
-    set-blocks)
-
 #_ starting-point
 ;; => {:dir :east,
 ;;     :x -77,
 ;;     :y 68,
 ;;     :z 85,
 ;;     :material :lapis-block,
-;;     :draw? false,
+;;     :draw? true,
 ;;     :blocks []}
+
+(-> starting-point
+    (c/material :wood)
+    (c/steps 3)
+    #_c/build)
+
+(defn where-am-i [pos]
+  (-> pos
+      (c/block)
+      (c/material :red-glazed-terracotta)
+      (c/step)
+      c/build)
+  (future (Thread/sleep 1500)
+          (c/undo!)))
+
 
 ;; the walls
 (-> starting-point
-    c/draw
     (c/material :wood)
-    (c/steps 8)
-    (c/rotate 2)
-    (c/steps 10)
-    (c/rotate 2)
-    (c/steps 8)
-    (c/rotate 2)
-    (c/steps 4)
-    (c/material :air)
-    (c/steps 2)
-    (c/material :wood)
-    (c/steps 4)
-    :blocks
-    set-blocks
-    )
+    (c/steps 8) (c/rotate 2)
+    (c/steps 11) (c/rotate 2)
+    (c/steps 7) (c/rotate 2)
+    (c/steps 5) (c/move 2) (c/steps 4)
+    (c/extrude 2 :up)
+    c/build)
 
 ;; the foundation
 (-> starting-point
-    (c/step :down)
-    (c/material :cobblestone)
-    (c/steps 8)
-    (c/rotate 2)
-    c/draw
-    (c/steps 10)
-    (c/extrude 12 :west)
-    :blocks
-    set-blocks)
+    (c/move 1 :down)
+    (c/material :gravel)
+    (c/steps 8) (c/extrude 11 :right)
+    c/build)
 
+
+(c/undo!)
+
+;; left roof
+(-> starting-point
+    (c/move 3 :up)
+    (c/move 1)
+    (->> (iterate #(-> %
+                       (c/material :acacia-stairs 1)
+                       (c/block)
+
+                       (c/move 1 :right)
+                       (c/material :acacia-stairs 4)
+                       (c/block)
+                       (c/move 1 :up))))
+    (nth 5)
+    (c/extrude 7 :forward)
+    c/build)
+
+;; right roof
+(-> starting-point
+    (c/move 3 :up)
+    (c/move 11 :right)
+    (c/move 1)
+    (->> (iterate #(-> %
+                       (c/material :acacia-stairs 0)
+                       (c/block)
+                       (c/move 1 :left)
+                       (c/material :acacia-stairs 5)
+                       (c/block)
+                       (c/move 1 :up))))
+    (nth 5)
+    (c/extrude 7 :forward)
+    c/build
+    )
+
+(wc/add-inventory (wc/player) :acacia-door 8)
+
+(c/undo!)
+
+(-> starting-point
+    (c/move 3 :up)
+    (c/move 1 :right)
+    (c/material :acacia-stairs 4)
+    (c/steps 7)
+    c/build
+    #_where-am-i)
 ;; the roof
 (loop [c (-> starting-point
              (c/draw false)

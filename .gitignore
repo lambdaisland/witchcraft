@@ -7,3 +7,4 @@ worlds
 logs
 lib
 config
+.store

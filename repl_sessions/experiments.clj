@@ -2,11 +2,12 @@
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft :as wc :refer :all]
             [lambdaisland.witchcraft.config :as config]
-            [lambdaisland.witchcraft.bukkit :as bukkit :refer [entities materials]]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
 ;; Start the server
 (wc/start! {:level-type "FLAT"})
+
+(wc/get-block (wc/map->location {:x 0 :y 0 :z 0}))
 
 ;; Best to do this before you finish, so your world doesn't get corrupted
 #_(stop!)
@@ -31,12 +32,7 @@
 ;; player to fly
 (fly!)
 
-;; Slowly look around, using the update-location! function
-(future
-  (dotimes [i 100]
-    (update-location! (wc/player) update :yaw inc)
-    (Thread/sleep 50)))
-
+(wc/add (wc/->Location {:x 1 :y 2 :z 3}) {:x 4 :y 5 :z 6})
 
 ;; Work in progress
 (defn fish-bowl [{:keys [x y z] :as locatie}

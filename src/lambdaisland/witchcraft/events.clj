@@ -248,7 +248,7 @@
                     com.destroystokyo.paper.loottable.LootableInventoryReplenishEvent])
 
 (defn class->kw [klz]
-  (-> klz
+  (-> ^Class klz
       .getName
       (str/replace #".*\." "")
       (str/replace #"Event$" "")
@@ -268,18 +268,18 @@
 (def priority (util/enum->map org.bukkit.event.EventPriority))
 
 (defn unregister-all-event-listeners [event]
-  (let [event-class (if (class? event) event (get events event))
+  (let [^Class event-class (if (class? event) event (get events event))
         getHandlerList (.getMethod event-class "getHandlerList" (into-array Class []))
-        handler-list (.invoke getHandlerList nil nil)]
-    (doseq [handler (.getRegisteredListeners handler-list)]
+        ^org.bukkit.event.HandlerList handler-list (.invoke getHandlerList nil nil)]
+    (doseq [^org.bukkit.event.Listener handler (.getRegisteredListeners handler-list)]
       (.unregister handler-list handler))))
 
 (defn unlisten! [event key]
-  (let [event-class (if (class? event) event (get events event))
+  (let [^Class event-class (if (class? event) event (get events event))
         getHandlerList (.getMethod event-class "getHandlerList" (into-array Class []))
-        handler-list (.invoke getHandlerList nil nil)]
+        ^org.bukkit.event.HandlerList handler-list (.invoke getHandlerList nil nil)]
     (doseq [handler (.getRegisteredListeners handler-list)
-            :let [listener (:listener (bean handler))]]
+            :let [^org.bukkit.event.Listener listener (:listener (bean handler))]]
       (when (= key (::key (meta listener)))
         (.unregister handler-list listener)))))
 
@@ -294,7 +294,10 @@
                     (priority :normal)
                     (reify org.bukkit.plugin.EventExecutor
                       (execute [this listener event]
-                        (f (bean event))))
+                        (try
+                          (f (bean event))
+                          (catch Throwable t
+                            (println "Error in event handler" event k t)))))
                     (proxy [org.bukkit.plugin.PluginBase] []
                       (getDescription []
                         (org.bukkit.plugin.PluginDescriptionFile. (str "Listen for " (name event)) "1.0" (str k)))
@@ -305,14 +308,14 @@
   (listen! :async-player-chat
            ::print-chat
            (fn [e]
-             (prn "heyyyya" (:message (bean e)))))
+             (prn "heyyyya" (:message e))))
 
   (unlisten! :async-player-chat ::print-chat)
 
   (listen! :block-damage
            ::show-block-dmg
            (fn [e]
-             (prn "You broke it!" (bean e))))
+             (prn "You broke it!" e)))
 
   (unlisten! :block-damage ::show-block-dmg)
 

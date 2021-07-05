@@ -2,51 +2,92 @@
   "Clojure API for Glowstone"
   (:refer-clojure :exclude [bean])
   (:require [clojure.java.io :as io]
-            [lambdaisland.witchcraft.util :as util]
             [lambdaisland.witchcraft.config :as config]
             [lambdaisland.witchcraft.events :as events]
-            [lambdaisland.witchcraft.safe-bean :refer [bean bean->]])
+            [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
+            [lambdaisland.witchcraft.util :as util])
   (:import (net.glowstone GlowWorld GlowServer GlowOfflinePlayer)
+           (net.glowstone.block.entity.state GlowDispenser)
+           (net.glowstone.chunk ChunkManager)
+           (net.glowstone.constants GlowEnchantment GlowPotionEffect)
+           (net.glowstone.io WorldStorageProvider)
+           (net.glowstone.util.config WorldConfig ServerConfig)
            (org.bukkit Bukkit Material Location World)
-           (org.bukkit.material MaterialData Directional)
-           (org.bukkit.entity Entity Player HumanEntity)
-           (org.bukkit.enchantments Enchantment)
            (org.bukkit.block Block)
-           (org.bukkit.potion Potion PotionEffectType)
+           (org.bukkit.configuration.serialization ConfigurationSerialization)
+           (org.bukkit.enchantments Enchantment)
+           (org.bukkit.entity Entity Player HumanEntity)
            (org.bukkit.inventory ItemStack Inventory)
-           (net.glowstone.util.config ServerConfig)
-           org.bukkit.configuration.serialization.ConfigurationSerialization
-           net.glowstone.constants.GlowEnchantment
-           net.glowstone.block.entity.state.GlowDispenser
-           net.glowstone.constants.GlowPotionEffect
-           net.glowstone.util.config.WorldConfig))
+           (org.bukkit.material MaterialData Directional)
+           (org.bukkit.plugin PluginManager Plugin)
+           (org.bukkit.potion Potion PotionEffectType)
+           (org.bukkit.scheduler BukkitScheduler)
+           (org.bukkit.util Vector)))
 
 (set! *warn-on-reflection* true)
 
-(defn listen!
-  "Listen for an event
+(declare in-front-of map->Location)
 
-  Event is a keyword based on the event type, like `:player-interact` or
-  `:item-spawn`, `k`` is a key this event is registered under, so you can
-  `unlisten!` with the same key afterwards. Re-registering a listener with the
-  same event and key will replace the old listener."
-  [event k f]
-  (events/listen! event k f))
+(def ^Plugin plugin
+  "For the rare API calls that really want a plugin instance"
+  (proxy [org.bukkit.plugin.PluginBase] []
+    (getDescription []
+      (org.bukkit.plugin.PluginDescriptionFile. "Witchcraft" "0.0" ""))
+    (isEnabled []
+      true)))
 
-(defn unlisten!
-  "Remove an event listener"
-  [event k]
-  (events/unlisten! event k))
+;; ================================================================================
 
-(def entities (util/enum->map org.bukkit.entity.EntityType))
-(def materials (util/enum->map org.bukkit.Material))
-(def material-names (into {} (map (juxt val key)) materials))
-(def block-faces (util/enum->map org.bukkit.block.BlockFace))
-(def tree-species (util/enum->map org.bukkit.TreeSpecies))
-(def block-actions (util/enum->map org.bukkit.event.block.Action))
+(def entities
+  "Map from keyword to EntityType value"
+  (util/enum->map org.bukkit.entity.EntityType))
+
+(def materials
+  "Map from keyword to Material value"
+  (util/enum->map org.bukkit.Material))
+
+(def material-names
+  "Map from Material to keyword"
+  (into {} (map (juxt val key)) materials))
+
+(def block-faces
+  "Map from keyword to BlockFace value"
+  (util/enum->map org.bukkit.block.BlockFace))
+
+(def tree-species
+  "Map from keyword to TreeSpecies value"
+  (util/enum->map org.bukkit.TreeSpecies))
+
+(def block-actions
+  "Map from keyword to block.Action value"
+  (util/enum->map org.bukkit.event.block.Action))
+
+;; =============================================================================
+
+;; Functions for retrieving things from objects, like the location, x/y/z
+;; values, world, etc. We also implement these for maps, where they do keyword
+;; lookups. By using these in other functions we can accept a large range of
+;; inputs, including both Glowstone/Bukkit objects and Clojure maps.
+(defprotocol PolymorphicFunctions
+  (^org.bukkit.Location location
+   [_] [_ n]
+   "Get the location of the given object, or `n` blocks in front of it.")
+  (^net.glowstone.GlowWorld world [_]
+   "Get the world for a player, by its name, by UUID, etc.")
+  (add [this that]
+    "Add locations, vectors, etc. That can also be a map of `:x`, `:y`, `:z`")
+  (^double x [_])
+  (^double y [_])
+  (^double z [_])
+  (yaw [_])
+  (pitch [_])
+  (^org.bukkit.util.Vector direction [_]))
+
+;; =============================================================================
 
 (defn init-registrations!
-  "Perform some internal wiring for Glowstone"
+  "Perform some internal wiring for Glowstone. This populates several
+  global (static) registries"
   []
   (ConfigurationSerialization/registerClass GlowOfflinePlayer)
   (GlowPotionEffect/register)
@@ -57,6 +98,36 @@
   "Get the currently active server."
   ^GlowServer []
   (Bukkit/getServer))
+
+(defn plugin-manager
+  "Get the Bukkit plugin manager"
+  ^PluginManager
+  []
+  (Bukkit/getPluginManager))
+
+(defn chunk-manager
+  "Get the world's chunk manager"
+  (^ChunkManager []
+   (chunk-manager (world (server))))
+  (^ChunkManager [^GlowWorld world]
+   (.getChunkManager world)))
+
+(defn storage
+  "Get the world's storage"
+  ^WorldStorageProvider []
+  ([]
+   (storage (world (server))))
+  ([world]
+   (.getStorage ^GlowWorld world)))
+
+(defn scheduler
+  "The Bukkit scheduler"
+  ^BukkitScheduler
+  []
+  (Bukkit/getScheduler))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Init/exit
 
 (defn create-server
   "Create a new GlowServer based on a config
@@ -74,12 +145,16 @@
   ([]
    (start! nil))
   ([opts]
-   (future
-     (try
-       (init-registrations!)
-       (.run (create-server (config/data-config opts)))
-       (finally
-         (println ::started))))))
+   (if (server)
+     (println "Server already started...")
+     (future
+       (try
+         (init-registrations!)
+         (.run (create-server (if (:config-dir opts)
+                                (config/server-config opts)
+                                (config/data-config opts))))
+         (finally
+           (println ::started)))))))
 
 (defn reset-globals!
   "Glowstone and Bukkit keep tons of globals, do our best to unset/reset them so
@@ -118,95 +193,175 @@
             %)
          (players))))
 
-(defn in-front-of [^Location loc n]
-  (let [dir (bean (.getDirection loc))]
-    (-> (bean loc)
-        (update :x + (* (:x dir) n))
-        (update :y + (* (:y dir) n))
-        (update :z + (* (:z dir) n)))))
+(defn worlds
+  "Get all worlds on the server"
+  ([]
+   (worlds (server)))
+  ([^GlowServer s]
+   (.getWorlds (server))))
 
-(defprotocol CommonProperties
-  (location [_] [_ n]))
 
-(extend-protocol CommonProperties
+(extend-protocol PolymorphicFunctions
   Entity
   (location
     ([entity]
      (.getLocation entity))
     ([entity n]
      (in-front-of (.getLocation entity) n)))
+  (world [e]
+    (.getWorld e))
+  (^double x [e] (x (location e)))
+  (^double y [e] (y (location e)))
+  (^double z [e] (z (location e)))
+  (yaw [e] (yaw (location e)))
+  (pitch [e] (pitch (location e)))
+  (^org.bukkit.util.Vector direction [e] (direction (location e)))
+
   Block
   (location
     ([entity]
      (.getLocation entity))
     ([entity n]
-     (in-front-of (.getLocation entity) n))))
+     (in-front-of (.getLocation entity) n)))
+  (world [b]
+    (.getWorld b))
+  (^double x [e] (x (location e)))
+  (^double y [e] (y (location e)))
+  (^double z [e] (z (location e)))
+  (yaw [e] (yaw (location e)))
+  (pitch [e] (pitch (location e)))
+  (^org.bukkit.util.Vector direction [e] (direction (location e)))
 
-(defn worlds []
-  (:worlds (bean (server))))
+  Location
+  (location [l] l)
+  (direction [l] (.getDirection l))
+  (world [l] (.getWorld l))
+  (x [l] (.getX l))
+  (y [l] (.getY l))
+  (z [l] (.getZ l))
+  (yaw [l] (.getYaw l))
+  (pitch [l] (.getPitch l))
+  (add ^Location [this that]
+    (Location. (world this)
+               (+ (x this)
+                  (x that))
+               (+ (y this)
+                  (y that))
+               (+ (z this)
+                  (z that))
+               (+ (yaw this)
+                  (yaw that))
+               (+ (pitch this)
+                  (pitch that))))
 
-(defn world
-  (^GlowWorld []
-   (or (:world (bean (player)))
-       (first (worlds))))
-  (^GlowWorld [name]
-   (some #(when (= name (:name (bean %)))
-            %)
-         (worlds))))
+  Vector
+  (x [v] (.getX v))
+  (y [v] (.getY v))
+  (z [v] (.getZ v))
+  (add ^Vector [this that]
+    (Vector. (+ (x this)
+                (x that))
+             (+ (y this)
+                (y that))
+             (+ (z this)
+                (z that))))
+  (yaw [v] 0)
+  (pitch [v] 0)
+
+  java.util.Map
+  (x [m] (or (.get m :x) 0))
+  (y [m] (or (.get m :y) 0))
+  (z [m] (or (.get m :z) 0))
+  (pitch [m] (or (.get m :pitch) 0))
+  (yaw [m] (or (.get m :yaw) 0))
+  (world [m] (or (.get m :world) (world (server))))
+  (location [m] (or (.get m :location)
+                    (map->Location (merge {:world (world m)} m))))
+
+  String
+  (world [s]
+    (.getWorld (server) s))
+
+  java.util.UUID
+  (world [u]
+    (.getWorld (server) u))
+
+  GlowServer
+  (world [s]
+    (first (worlds s))))
+
+(defn in-front-of
+  "Get the location `n` blocks in front of the given location, based on the
+  location's direction. Polymorphic, can work with most things that have a
+  location."
+  ([loc]
+   (in-front-of loc 1))
+  ([loc n]
+   (let [dir (direction loc)]
+     (add (location loc) {:x (Math/ceil (* n (x dir)))
+                          :y (Math/ceil (* n (y dir)))
+                          :z (Math/ceil (* n (z dir)))}))))
 
 (defn fast-forward
   "Fast forward the clock, time is given in ticks, with 20 ticks per second, or
   24000 ticks in a Minecraft day."
   [time]
-  (.setTime (world) (+ (.getTime (world)) time)))
+  (.setTime (world (server)) (+ (.getTime (world (server))) time)))
 
 (defn fly!
+  "Set a player as allowing flight and flying.
+  Note: doesn't seem to actually cause flying, but it does make flying
+  possible."
   ([]
    (fly! (player)))
-  ([player]
+  ([^Player player]
    (.setAllowFlight player true)
    (.setFlying player true)))
 
-(defn map->location
-  "Convert a map to a Location instance"
+(defn map->Location
+  "Convert a map/bean to a Location instance"
   ^Location [{:keys [x y z yaw pitch world]
-              :or {x 0 y 0 z 0 yaw 0 pitch 0 world (world)}}]
+              :or {x 0 y 0 z 0 yaw 0 pitch 0 world (world (server))}}]
   (Location. world x y z yaw pitch))
 
-(defn ->location
+(defn ->Location
   "Coerce to Location instance"
   ^Location [loc]
   (or (and (instance? Location loc) loc)
       (:location (bean loc))
-      (map->location (bean loc))))
+      (map->Location (bean loc))))
 
-(defn update-location! [entity f & args]
-  (.teleport ^Entity entity
-             (map->location (apply f  (bean (:location (bean (player)))) args))
-             org.bukkit.event.player.PlayerTeleportEvent$TeleportCause/PLUGIN))
-
-(defn player-chunk []
+(defn player-chunk
+  "Return the chunk the player is in"
+  [^Player player]
   (let [{:keys [world location]} (bean (player))]
-    (.getChunkAt ^World world ^Location location)))
+    (.getChunkAt ^World (.getWorld player) ^Location (location player))))
 
-(defn chunk-manager []
-  (:chunkManager (bean (world))))
-
-(defn storage []
-  (:storage (bean (world))))
-
-(defn get-block ^Block [loc]
-  (let  [{:keys [x y z world] :or {world (world)}} (bean loc)]
+(defn get-block
+  "Get the block at a given location"
+  ^Block [loc]
+  (let  [[world x y z] (cond
+                         (instance? Location loc)
+                         (let [^Location loc loc]
+                           [(.getWorld loc)
+                            (.getX loc)
+                            (.getY loc)
+                            (.getZ loc)])
+                         (map? loc)
+                         [(:world loc (world (server)))
+                          (:x loc)
+                          (:y loc)
+                          (:z loc)]
+                         :else
+                         (get-block (location loc)))]
     (.getBlockAt ^World world (int x) (int y) (int z))))
 
 (defn set-block-direction
-  ;; ([cursor]
-  ;;  ;; Try to get stairs to line up
-  ;;  (set-block-direction cursor (c/rotate-dir (:dir cursor) 2))
-  ;;  cursor)
+  "Set the direction of a block, takes a keyword or BlockFace,
+  see [[block-faces]]"
   ([loc dir]
    (let [block (get-block loc)
-         ^MaterialData data (bean-> block :state :data)]
+         ^MaterialData data (.getData (.getState block))]
      (try
        (.setFacingDirection ^Directional data (if (keyword? dir) (block-faces dir) dir))
        (.setData block (.getData data))
@@ -214,14 +369,24 @@
        (catch Exception e)))
    loc))
 
-(defn set-block [loc material]
-  (.setType (get-block loc)
-            (if (keyword? material)
-              (get materials material)
-              material))
-  (when (and (map? loc) (:dir loc))
-    (set-block-direction loc))
-  loc)
+(defn set-block
+  "Set the block at a specific location to a specific material"
+  ([loc material]
+   (set-block loc material nil))
+  ([loc material data]
+   (let [material (if (keyword? material)
+                    (get materials material)
+                    material)
+         block (get-block (location loc))]
+     (.setType block material)
+     (when data
+       (.setData block data)
+       (if (number? data)
+         (MaterialData. ^Material material (byte data))
+         data)))
+   (when (and (map? loc) (:dir loc))
+     (set-block-direction loc))
+   loc))
 
 (defn set-blocks
   "Optimized way to set multiple blocks, takes a sequence of maps
@@ -229,7 +394,7 @@
   [blocks]
   (let [^net.glowstone.util.BlockStateDelegate delegate (net.glowstone.util.BlockStateDelegate.)]
     (doseq [{:keys [world x y z material data]
-             :or {world (world)}} blocks
+             :or {world (world (server))}} blocks
             :let [^Material material (if (keyword? material) (get materials material) material)
                   ^MaterialData data (if (number? data) (MaterialData. material (byte data)) data)]]
       (if data
@@ -237,7 +402,9 @@
         (.setType delegate world x y z material)))
     (.updateBlockStates delegate)))
 
-(defn fill [loc [w h d] type]
+(defn box
+  "Draw a box with width, height, depth of a certain block type"
+  [loc [w h d] type]
   (let [{:keys [x y z]} (bean loc)
         range (fn [x y] (if (< x y) (range x y) (range y x)))]
     (doseq [x (range x (+ x w))
@@ -246,61 +413,64 @@
       (set-block {:x x :y y :z z} type)))
   loc)
 
-(defn offset [loc [x' y' z']]
-  (-> (bean loc)
-      (update :x + x')
-      (update :y + y')
-      (update :z + z')))
+(defn highest-block-at
+  "Retrieve the highest block at the given location"
+  [loc]
+  (.getHighestBlockAt ^World world (location loc)))
 
-(defn highest-block-at [loc]
-  (let [{:keys [x y z world] :or {world (world)}} (bean loc)]
-    (.getHighestBlockAt ^World world (map->location {:x x :y 0 :z z :world world}))))
-
-(defn spawn [loc entity]
-  (let [{:keys [x y z ^World world] :or {world (world)}} (bean loc)]
-    (.spawnEntity world
-                  (map->location {:x x :y y :z z :world world})
-                  ^Entity (if (keyword? entity)
-                            (get entities entity)
-                            entity))))
+(defn spawn
+  "Spawn a new entity"
+  [loc entity]
+  (.spawnEntity world
+                (location loc)
+                ^Entity (if (keyword? entity)
+                          (get entities entity)
+                          entity)))
 
 (defn game-mode
+  "Get the current game mode"
   ([]
    (game-mode (player)))
   ([^Player player]
    (keyword (str (.getGameMode player)))))
 
-(defn plugin-manager []
-  (Bukkit/getPluginManager))
-
 (defn teleport
+  "Teleport to a given location"
   ([loc]
    (teleport (player) loc))
   ([^Entity entity loc]
-   (let [{:keys [^World world] :or {world (world)} :as loc} (bean loc)]
-     (.teleport entity (->location (merge (bean (.getSpawnLocation world)) loc))))))
+   (let [{:keys [^World world] :or {world (world (server))} :as loc} (bean loc)]
+     (.teleport entity (->Location (merge (bean (.getSpawnLocation world)) loc))))))
 
-(defn clear-weather []
-  (doto (world)
+(defn clear-weather
+  "Get clear weather"
+  []
+  (doto (world (server))
     (.setThundering false)
     (.setStorm false)))
 
-(defn inventory ^Inventory [player]
+(defn inventory
+  "Get the player's inventory"
+  ^Inventory [player]
   (.getInventory ^Player player))
 
-(defn item-stack [material count]
+(defn item-stack
+  "Create an ItemStack object"
+  ^ItemStack [material count]
   (ItemStack. ^Material (get materials material) (int count)))
 
-(defn inventory-add
+(defn add-inventory
+  "Add the named item to the player's inventory, or n copies of it"
   ([player item]
-   (inventory-add player item 1))
+   (add-inventory player item 1))
   ([player item n]
    (.addItem (inventory player)
              (into-array ItemStack [(item-stack item n)]))))
 
-(defn inventory-remove
+(defn remove-inventory
+  "Remove the named items from the player's inventory, or n copies of it"
   ([player item]
-   (inventory-remove player item 1))
+   (remove-inventory player item 1))
   ([player item n]
    (.removeItem (inventory player)
                 (into-array ItemStack [(item-stack item n)]))))
@@ -322,3 +492,36 @@
 (defn nearby-entities
   ([^Entity entity x y z]
    (.getNearbyEntities entity x y z)))
+
+(defn listen!
+  "Listen for an event
+
+  Event is a keyword based on the event type, like `:player-interact` or
+  `:item-spawn`, `k`` is a key this event is registered under, so you can
+  `unlisten!` with the same key afterwards. Re-registering a listener with the
+  same event and key will replace the old listener.
+
+  See `(keys `[[lambdaisland.witchcraft.events/events]]`)` for all known
+  events."
+  [event k f]
+  (events/listen! event k f))
+
+(defn unlisten!
+  "Remove an event listener"
+  [event k]
+  (events/unlisten! event k))
+
+(defn send-message
+  "Send a message to a player"
+  [^Player player ^String msg]
+  (.sendMessage player msg))
+
+(defn run-task
+  "Schedule a task for the next server tick"
+  [^Runnable f]
+  (.runTask (scheduler) plugin f))
+
+(defn run-task-later
+  "Schedule a task for after n ticks"
+  [^Runnable f ^long ticks]
+  (.runTaskLater (scheduler) plugin f ticks))

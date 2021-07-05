@@ -1,11 +1,9 @@
 {:paths ["src" "test" "resources"]
- :deps  {org.clojure/clojure {:mvn/version "1.10.1"}
-
-         net.glowstone/glowstone #_{:mvn/version "2018.10.0-SNAPSHOT"}
-         {:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
-         ;;move-namespace {:local/root "/home/arne/github/lambdaisland/move-namespace"}
+ :deps  {org.clojure/clojure     {:mvn/version "1.10.3"}
+         net.glowstone/glowstone {:mvn/version "2021.7.0-SNAPSHOT"}
+         #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
          }
 
  :mvn/repos
  {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
-  "aikar" {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}}}
+  "aikar"          {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}}}

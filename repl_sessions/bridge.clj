@@ -111,6 +111,8 @@
       c/build
       ))
 
+(def c (c/start (wc/location (wc/player))))
+
 (comment
   (c/build (pillars-base c))
   (c/build (pillars-top c))

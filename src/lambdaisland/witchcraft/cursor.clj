@@ -83,7 +83,7 @@
    :left           6
    :forward-left   7})
 
-(declare step)
+(declare step move)
 
 (defn draw
   "Enable/disable drawing. Enables by default, pass false to disable."
@@ -93,24 +93,25 @@
    (assoc c :draw? draw?)))
 
 (defn start
-  "Creates a new cursor, starting one block ahead of the player."
+  "Creates a new cursor, starting at the given location, or one step in front of
+  the player's location."
   ([]
-   (start (wc/location (wc/player))))
+   (-> (wc/player)
+       start
+       move))
   ([loc]
-   (let [player-loc (bean loc)]
-     (-> {:dir (nth directions (-> player-loc
-                                   :yaw
-                                   (/ 45)
-                                   Math/round
-                                   (mod (count directions))))
-          :x (Math/round (:x player-loc))
-          :y (Math/round (:y player-loc))
-          :z (Math/round (:z player-loc))
-          :material default-material
-          :draw? false
-          :blocks #{}}
-         step
-         draw))))
+   (let [loc (wc/location loc)]
+     {:dir (nth directions (-> loc
+                               wc/yaw
+                               (/ 45)
+                               Math/round
+                               (mod (count directions))))
+      :x (Math/round (wc/x loc))
+      :y (Math/round (wc/y loc))
+      :z (Math/round (wc/z loc))
+      :material default-material
+      :draw? true
+      :blocks #{}})))
 
 (defn block-value [cursor]
   (assoc (select-keys cursor [:x :y :z :material])
@@ -225,6 +226,8 @@
 
 (defn move
   "Move the cursor as with steps, but without drawing."
+  ([cursor]
+   (move cursor 1))
   ([{:keys [draw? dir] :as cursor} n]
    (move cursor n dir))
   ([{:keys [draw?] :as cursor} n dir]
@@ -245,11 +248,10 @@
   (assoc cursor :blocks (:blocks (f cursor))))
 
 (defn extrude
-  "Take the current block list and extrude it in a given direction, by default
-  up."
+  "Take the current block list and extrude it in a given direction, by default up."
   ([cursor n]
    (extrude cursor n :up))
-  ([{:keys [material material-data] :as cursor} n dir]
+  ([cursor n dir]
    (let [dir (resolve-dir (:dir cursor) dir)]
      (update
       cursor
@@ -259,10 +261,7 @@
          (fn [res i]
            (into res
                  (map (fn [b]
-                        (nth (iterate #(step* % dir)
-                                      (assoc b
-                                             :material material
-                                             :material-data material-data)) i)))
+                        (nth (iterate #(step* % dir) b) i)))
                  blocks))
          blocks
          (range 1 (inc n))))))))

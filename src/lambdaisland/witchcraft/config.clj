@@ -37,7 +37,8 @@
                    ks)]))))
 
 (def default-params
-  (into {} (map (juxt key (comp :def val))) key-data))
+  (assoc (into {} (map (juxt key (comp :def val))) key-data)
+         ServerConfig$Key/SHUTDOWN_MESSAGE "Server shutting down."))
 
 (defn data-config
   "Creates an in-memory config based on the passed in data.
@@ -46,7 +47,10 @@
   ServerConfig, and overrides load/save to be no-ops."
   [opts]
   (let [config-map (merge default-params (config-params opts))]
-    (proxy [ServerConfig] [(io/file "") (io/file "" "") config-map]
+    (proxy [ServerConfig] [(io/file (:config-dir opts "config"))
+                           (io/file (:config-dir opts "config")
+                                    (:config-file opts "glowstone.yml"))
+                           config-map]
       (load [])
       (save []))))
 
