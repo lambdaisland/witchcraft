@@ -48,6 +48,25 @@
 
                     :else
                     :water))
+                {:x 0 :y 21 :z 0}) (create-world "stone-flats"
+                                                 (fn [x y z]
+                                                   (when (or (< y 5))
+                                                     :stone))
+                                                 {:x 0 :y 6 :z 0})
+
+  (create-world "waterworld"
+                (fn [x y z]
+                  (cond
+                    (< 20 y)
+                    nil
+
+                    (< (.distance (util/vec3 0 y 0) (util/vec3 x y z)) 30)
+                    (if (= 20 y)
+                      :grass
+                      :dirt)
+
+                    :else
+                    :water))
                 {:x 0 :y 21 :z 0})
 
 

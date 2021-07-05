@@ -76,13 +76,16 @@
    "Get the world for a player, by its name, by UUID, etc.")
   (add [this that]
     "Add locations, vectors, etc. That can also be a map of `:x`, `:y`, `:z`")
+  (distance [this that]
+    "Get the distance between locations/vectors/entities")
   (^double x [_])
   (^double y [_])
   (^double z [_])
   (yaw [_])
   (pitch [_])
   (^org.bukkit.util.Vector direction [_])
-  (^org.bukkit.Material material [_]))
+  (^org.bukkit.Material material [_])
+  (^Vector as-vec [_] "Coerce to Vector"))
 
 ;; =============================================================================
 
@@ -200,104 +203,6 @@
    (worlds (server)))
   ([^GlowServer s]
    (.getWorlds (server))))
-
-
-(extend-protocol PolymorphicFunctions
-  Entity
-  (location
-    ([entity]
-     (.getLocation entity))
-    ([entity n]
-     (in-front-of (.getLocation entity) n)))
-  (world [e]
-    (.getWorld e))
-  (^double x [e] (x (location e)))
-  (^double y [e] (y (location e)))
-  (^double z [e] (z (location e)))
-  (yaw [e] (yaw (location e)))
-  (pitch [e] (pitch (location e)))
-  (^org.bukkit.util.Vector direction [e] (direction (location e)))
-
-  Block
-  (location
-    ([entity]
-     (.getLocation entity))
-    ([entity n]
-     (in-front-of (.getLocation entity) n)))
-  (world [b]
-    (.getWorld b))
-  (^double x [e] (x (location e)))
-  (^double y [e] (y (location e)))
-  (^double z [e] (z (location e)))
-  (yaw [e] (yaw (location e)))
-  (pitch [e] (pitch (location e)))
-  (^org.bukkit.util.Vector direction [e] (direction (location e)))
-  (material [b] (.getType b))
-
-  Location
-  (location [l] l)
-  (direction [l] (.getDirection l))
-  (world [l] (.getWorld l))
-  (x [l] (.getX l))
-  (y [l] (.getY l))
-  (z [l] (.getZ l))
-  (yaw [l] (.getYaw l))
-  (pitch [l] (.getPitch l))
-  (add ^Location [this that]
-    (Location. (world this)
-               (+ (x this)
-                  (x that))
-               (+ (y this)
-                  (y that))
-               (+ (z this)
-                  (z that))
-               (+ (yaw this)
-                  (yaw that))
-               (+ (pitch this)
-                  (pitch that))))
-
-  Vector
-  (x [v] (.getX v))
-  (y [v] (.getY v))
-  (z [v] (.getZ v))
-  (add ^Vector [this that]
-    (Vector. (+ (x this)
-                (x that))
-             (+ (y this)
-                (y that))
-             (+ (z this)
-                (z that))))
-  (yaw [v] 0)
-  (pitch [v] 0)
-
-  java.util.Map
-  (x [m] (or (.get m :x) 0))
-  (y [m] (or (.get m :y) 0))
-  (z [m] (or (.get m :z) 0))
-  (pitch [m] (or (.get m :pitch) 0))
-  (yaw [m] (or (.get m :yaw) 0))
-  (world [m] (or (.get m :world) (world (server))))
-  (location [m] (or (.get m :location)
-                    (map->Location (merge {:world (world m)} m))))
-
-  String
-  (world [s]
-    (.getWorld (server) s))
-
-  java.util.UUID
-  (world [u]
-    (.getWorld (server) u))
-
-  clojure.lang.Keyword
-  (material [k]
-    (get materials k))
-
-  Material
-  (material [m] m)
-
-  GlowServer
-  (world [s]
-    (first (worlds s))))
 
 (defn in-front-of
   "Get the location `n` blocks in front of the given location, based on the
@@ -527,3 +432,128 @@
   "Schedule a task for after n ticks"
   [^Runnable f ^long ticks]
   (.runTaskLater (scheduler) plugin f ticks))
+
+(defn vec3
+  "Create a vector instance"
+  ^Vector [^double x ^double y ^double z]
+  (Vector. x y z))
+
+(extend-protocol PolymorphicFunctions
+  Entity
+  (location
+    ([entity]
+     (.getLocation entity))
+    ([entity n]
+     (in-front-of (.getLocation entity) n)))
+  (world [e]
+    (.getWorld e))
+  (as-vec [e]
+    (as-vec (location e)))
+  (^double x [e] (x (location e)))
+  (^double y [e] (y (location e)))
+  (^double z [e] (z (location e)))
+  (yaw [e] (yaw (location e)))
+  (pitch [e] (pitch (location e)))
+  (^org.bukkit.util.Vector direction [e] (direction (location e)))
+
+  Block
+  (location
+    ([entity]
+     (.getLocation entity))
+    ([entity n]
+     (in-front-of (.getLocation entity) n)))
+  (world [b]
+    (.getWorld b))
+  (as-vec [e] (as-vec (location e)))
+  (^double x [e] (x (location e)))
+  (^double y [e] (y (location e)))
+  (^double z [e] (z (location e)))
+  (yaw [e] (yaw (location e)))
+  (pitch [e] (pitch (location e)))
+  (^org.bukkit.util.Vector direction [e] (direction (location e)))
+  (material [b] (.getType b))
+
+  Location
+  (location [l] l)
+  (as-vec [l] (vec3 (x l) (y l) (z l)))
+  (direction [l] (.getDirection l))
+  (world [l] (.getWorld l))
+  (x [l] (.getX l))
+  (y [l] (.getY l))
+  (z [l] (.getZ l))
+  (yaw [l] (.getYaw l))
+  (pitch [l] (.getPitch l))
+  (add ^Location [this that]
+    (Location. (world this)
+               (+ (x this)
+                  (x that))
+               (+ (y this)
+                  (y that))
+               (+ (z this)
+                  (z that))
+               (+ (yaw this)
+                  (yaw that))
+               (+ (pitch this)
+                  (pitch that))))
+  (distance [this that]
+    (distance (as-vec this) that))
+
+  Vector
+  (vector [v] v)
+  (x [v] (.getX v))
+  (y [v] (.getY v))
+  (z [v] (.getZ v))
+  (add ^Vector [this that]
+    (Vector. (+ (x this)
+                (x that))
+             (+ (y this)
+                (y that))
+             (+ (z this)
+                (z that))))
+  (distance [this that]
+    (.distance this (as-vec that)))
+  (yaw [v] 0)
+  (pitch [v] 0)
+
+  java.util.Map
+  (x [m] (or (.get m :x) 0))
+  (y [m] (or (.get m :y) 0))
+  (z [m] (or (.get m :z) 0))
+  (pitch [m] (or (.get m :pitch) 0))
+  (yaw [m] (or (.get m :yaw) 0))
+  (world [m] (or (.get m :world) (world (server))))
+  (location [m] (or (.get m :location)
+                    (map->Location m)))
+  (as-vec [m]
+    (vec3 (x m) (y m) (z m)))
+
+  String
+  (world [s]
+    (.getWorld (server) s))
+
+  java.util.UUID
+  (world [u]
+    (.getWorld (server) u))
+
+  clojure.lang.Keyword
+  (material [k]
+    (get materials k))
+
+  clojure.lang.PersistentVector
+  (location [[m y z yaw pitch world]]
+    (map->Location (into {}
+                         (remove (comp nil? val))
+                         {:x x
+                          :y y
+                          :yaw yaw
+                          :pitch pitch
+                          :world world})))
+  (as-vec [[x y z]]
+    (vec3 x y z))
+
+  Material
+  (material [m] m)
+
+  GlowServer
+  (world [s]
+    (first (worlds s))))

@@ -18,6 +18,3 @@
 
 (defn set-static! [klz field val]
   (set-field! klz field klz val))
-
-(defn vec3 ^Vector [^double x ^double y ^double z]
-  (Vector. x y z))
