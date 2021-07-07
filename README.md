@@ -43,6 +43,23 @@ or add the following to your `project.clj` ([Leiningen](https://leiningen.org/))
 ```
 <!-- /installation -->
 
+You should also add some extra maven repos for getting Glowstone:
+
+```clojure
+;; deps.edn
+{:deps {...}
+ :mvn/repos
+ {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
+  "aikar"          {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}}
+  
+;; or project.clj
+(defproject ...
+  :repositories {"glowstone-repo" "https://repo.glowstone.net/content/repositories/snapshots/"
+                 "aikar" "https://repo.aikar.co/nexus/content/repositories/aikar-release/"})
+```
+
+We're figuring out how best to eliminate this step, but for now it seems these are necessary.
+
 ## Rationale
 
 Most Minecraft "servers" are really just modifications or extensions of the
