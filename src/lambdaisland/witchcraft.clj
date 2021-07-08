@@ -85,7 +85,8 @@
   (pitch [_])
   (^org.bukkit.util.Vector direction [_])
   (^org.bukkit.Material material [_])
-  (^Vector as-vec [_] "Coerce to Vector"))
+  (^Vector as-vec [_] "Coerce to Vector")
+  (material-name [_]))
 
 ;; =============================================================================
 
@@ -234,9 +235,9 @@
 
 (defn map->Location
   "Convert a map/bean to a Location instance"
-  ^Location [{:keys [x y z yaw pitch world]
-              :or {x 0 y 0 z 0 yaw 0 pitch 0 world (world (server))}}]
-  (Location. world x y z yaw pitch))
+  ^Location [{:keys [x y z yaw pitch wrld]
+              :or {x 0 y 0 z 0 yaw 0 pitch 0 wrld (server)}}]
+  (Location. (world wrld) x y z yaw pitch))
 
 (defn player-chunk
   "Return the chunk the player is in"
@@ -247,21 +248,7 @@
 (defn get-block
   "Get the block at a given location"
   ^Block [loc]
-  (let  [[world x y z] (cond
-                         (instance? Location loc)
-                         (let [^Location loc loc]
-                           [(.getWorld loc)
-                            (.getX loc)
-                            (.getY loc)
-                            (.getZ loc)])
-                         (map? loc)
-                         [(:world loc (world (server)))
-                          (:x loc)
-                          (:y loc)
-                          (:z loc)]
-                         :else
-                         (get-block (location loc)))]
-    (.getBlockAt ^World world (int x) (int y) (int z))))
+  (.getBlockAt ^World (world loc) (x loc) (y loc) (z loc)))
 
 (defn set-block-direction
   "Set the direction of a block, takes a keyword or BlockFace,
@@ -303,6 +290,7 @@
     (doseq [{:keys [world x y z material data]
              :or {world (world (server))}} blocks
             :let [^Material material (if (keyword? material) (get materials material) material)
+                  _ (assert material)
                   ^MaterialData data (if (number? data) (MaterialData. material (byte data)) data)]]
       (if data
         (.setTypeAndData delegate world x y z material data)
@@ -397,7 +385,7 @@
   (.getItemInHand entity))
 
 (defn item-in-hand-type [entity]
-  (get material-names (.getType (item-in-hand entity))))
+  (material-name (.getType (item-in-hand entity))))
 
 (defn item-in-hand-count [entity]
   (.getAmount (item-in-hand entity)))
@@ -478,6 +466,7 @@
   (pitch [e] (pitch (location e)))
   (^org.bukkit.util.Vector direction [e] (direction (location e)))
   (material [b] (.getType b))
+  (material-name [b] (material-name (material b)))
 
   Location
   (location [l] l)
@@ -503,6 +492,8 @@
                   (pitch that))))
   (distance [this that]
     (distance (as-vec this) that))
+  (material [l] (material (get-block l)))
+  (material-name [l] (material-name (material l)))
 
   Vector
   (vector [v] v)
@@ -522,6 +513,9 @@
   (pitch [v] 0)
   (distance [this that]
     (distance (as-vec this) that))
+  (location [l] (location [(x l) (y l) (z l)]))
+  (material [l] (material (location l)))
+  (material-name [l] (material-name (material l)))
 
   java.util.Map
   (x [m] (or (.get m :x) 0))
@@ -536,6 +530,9 @@
     (distance (as-vec this) that))
   (as-vec [m]
     (vec3 (x m) (y m) (z m)))
+  (location [l] (location [(x l) (y l) (z l)]))
+  (material [l] (material (location l)))
+  (material-name [l] (material-name (material l)))
 
   String
   (world [s]
@@ -550,20 +547,43 @@
     (get materials k))
 
   clojure.lang.PersistentVector
-  (location [[m y z yaw pitch world]]
+  (x [[x _ _]] (or x 0))
+  (y [[_ y _]] (or y 0))
+  (z [[_ _ z]] (or z 0))
+  (yaw [[_ _ _ yaw]] (or yaw 0))
+  (pitch [[_ _ _ _ pitch]] (or pitch 0))
+  (world [[_ _ _ _ _ w]] (if w (world w) (world (server))))
+  (distance [this that]
+    (distance (as-vec this) that))
+  (location [[x y z yaw pitch world]]
     (map->Location (into {}
                          (remove (comp nil? val))
                          {:x x
                           :y y
+                          :z z
                           :yaw yaw
                           :pitch pitch
                           :world world})))
+  (add [this that]
+    (into []
+          (take (count this))
+          [(+ (x this) (x that))
+           (+ (y this) (y that))
+           (+ (z this) (z that))
+           (+ (yaw this) (yaw that))
+           (+ (pitch this) (pitch that))
+           (world this)]))
   (as-vec [[x y z]]
     (vec3 x y z))
+  (material [v] (material (location v)))
+  (material-name [l] (material-name (material l)))
 
   Material
   (material [m] m)
+  (material-name [m] (get material-names m))
 
   GlowServer
   (world [s]
     (first (worlds s))))
+
+(load "witchcraft/printers")

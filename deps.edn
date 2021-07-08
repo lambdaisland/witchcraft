@@ -1,6 +1,7 @@
 {:paths ["src" "test" "resources"]
  :deps  {org.clojure/clojure     {:mvn/version "1.10.3"}
          net.glowstone/glowstone {:mvn/version "2021.7.0-SNAPSHOT"}
+         lambdaisland/data-printers {:mvn/version "0.0.22"}
          #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
          }
 

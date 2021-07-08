@@ -41,8 +41,10 @@
             [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
-#_bukkit/materials
-(def default-material :lapis-block)
+(def default-material
+  "Material used if no material is specified. This one has an arrow on it, which
+  will show the direction the cursor is moving into."
+  :magenta-glazed-terracotta)
 
 (defonce undo-history (atom ()))
 (defonce redo-history (atom ()))
@@ -83,6 +85,25 @@
    :left           6
    :forward-left   7})
 
+(def terracotta-materials
+  "These have their direction as the lower two bits of their data value"
+  #{:gray-glazed-terracotta :yellow-glazed-terracotta :blue-glazed-terracotta :light-blue-glazed-terracotta :lime-glazed-terracotta :magenta-glazed-terracotta :cyan-glazed-terracotta :green-glazed-terracotta :black-glazed-terracotta :purple-glazed-terracotta :white-glazed-terracotta :silver-glazed-terracotta :brown-glazed-terracotta :pink-glazed-terracotta :orange-glazed-terracotta :red-glazed-terracotta})
+
+(def stair-materials
+  "These also have their direction in the lower two bits, but the values differ"
+  #{:birch-wood-stairs :nether-brick-stairs :acacia-stairs :jungle-wood-stairs :cobblestone-stairs :smooth-stairs :purpur-stairs :sandstone-stairs :spruce-wood-stairs :quartz-stairs :brick-stairs :dark-oak-stairs :red-sandstone-stairs :wood-stairs})
+
+(def door-materials
+  "Regular doors"
+  #{:wood-door
+    :jungle-door
+    :iron-door
+    :dark-oak-door
+    :spruce-door
+    :birch-door
+    :wooden-door
+    :acacia-door})
+
 (declare step move)
 
 (defn draw
@@ -92,6 +113,12 @@
   ([c draw?]
    (assoc c :draw? draw?)))
 
+(def EMPTY_BLOCK_SET
+  "Make sure there is only one block for each coordinate in the set, and keep them
+  sorted by x/z/y."
+  (sorted-set-by #(compare ((juxt :x :z :y) %1)
+                           ((juxt :x :z :y) %2))))
+
 (defn start
   "Creates a new cursor, starting at the given location, or one step in front of
   the player's location."
@@ -100,27 +127,157 @@
        start
        move))
   ([loc]
-   (let [loc (wc/location loc)]
+   (let [loc (wc/location loc)
+         x (Math/round (wc/x loc))
+         y (Math/round (wc/y loc))
+         z (Math/round (wc/z loc))]
      {:dir (nth directions (-> loc
                                wc/yaw
                                (/ 45)
                                Math/round
                                (mod (count directions))))
-      :x (Math/round (wc/x loc))
-      :y (Math/round (wc/y loc))
-      :z (Math/round (wc/z loc))
       :material default-material
+      :x x :y y :z z
       :draw? true
-      :blocks #{}})))
+      :blocks EMPTY_BLOCK_SET
+      :origin {:x x :y y :z z}})))
 
-(defn block-value [cursor]
-  (assoc (select-keys cursor [:x :y :z :material])
-         :data (:material-data cursor)))
+(defn excursion
+  "Apply a function which adds blocks, then return the cursor to its orginal
+  position and state."
+  [cursor f & args]
+  (assoc cursor :blocks (:blocks (apply f cursor args))))
+
+(defn n-times
+  "Perform a function n times on the cursor"
+  [c n f & args]
+  (nth (iterate #(apply f % args) c) n))
+
+
+
+
+#_(filter #(.contains (str %) "door") (keys wc/materials))
+#_(:trap-door
+   :acacia-door-item
+   :dark-oak-door-item
+   :jungle-door-item
+   :iron-door-block
+   :spruce-door-item
+   :iron-trapdoor
+   :birch-door-item
+   )
+
+;; Banner (standing/wall)
+
+(defn data-value [material direction]
+  (cond
+    (terracotta-materials material)
+    (case direction
+      :down 0
+      :north 0
+      :north-east 0
+      :east 1
+      :south-east 1
+      :south 2
+      :south-west 2
+      :west 3
+      :north-west 3
+      :up 3
+      0)
+
+    (stair-materials material)
+    (case direction
+      :down 4
+      :north 0
+      :north-east 0
+      :east 2
+      :south-east 2
+      :south 1
+      :south-west 1
+      :west 3
+      :north-west 3
+      :up 0
+      0)
+
+    ;; Based on the wiki, but getting errors when actually trying to use banners
+    (= :standing-banner material)
+    (case direction
+      :south 0
+      :south-west 2
+      :west 4
+      :north-west 6
+      :north 8
+      :north-east 10
+      :east 12
+      :south-east 14
+      0)
+
+    (door-materials material)
+    (case direction
+      :north 0
+      :north-east 0
+      :east 1
+      :south-east 1
+      :south 2
+      :south-west 2
+      :west 3
+      :north-west 3
+      0)
+
+    :else
+    0))
+
+
+(defn block-value
+  "Get the x/y/z and material data for the current cursor, so we can use it to
+  create a block. This also resolves any palette indirection for the material.
+  If the material is a two-element vector (either explicitly or via the palette)
+  then this is taken as [material material-data], and overrides the
+  material-data in the cursor."
+  [{:keys [x y z material material-data palette dir]}]
+  (let [m (get palette material material)
+        [m md] (if (vector? m) m [m material-data])]
+    {:x x
+     :y y
+     :z z
+     :material m
+     :data (or md (data-value material dir))}))
+
+(defn apply-matrix
+  "Apply a single matrix to a single x/y/z map based on the origin."
+  [{:keys [origin dir] :as c} matrix]
+  (let [cv ((juxt :x :y :z) c)
+        ov ((juxt :x :y :z) origin)
+        v- #(mapv - %1 %2)
+        v+ #(mapv + %1 %2)
+        dot #(reduce + (map * %1 %2))
+        m*v #(mapv (partial dot %2) %1)
+        [x y z] (v+ ov (m*v matrix (v- cv ov)))
+        new-movement (m*v matrix (get movements dir))
+        new-dir (some #(when (= new-movement (val %))
+                         (key %)) movements)]
+    (assoc c
+           :x x
+           :y y
+           :z z
+           :dir (or new-dir dir))))
+
+(defn block* [c]
+  (update c :blocks conj (block-value c)))
 
 (defn block
-  "Add a block to the block list based on the cursor location."
-  [cursor]
-  (update cursor :blocks conj (block-value cursor)))
+  "Add a block to the block list based on the cursor location.
+
+  Will set multiple blocks if symmetries are defined, see [[reflect]]."
+  [{:keys [matrices block-fn] :as c
+    :or {block-fn block*}}]
+  (reduce
+   (fn [c s]
+     (excursion c
+                (fn [c]
+                  (block-fn (apply-matrix c s)))))
+   (block-fn c)
+   matrices))
 
 (defn ?block
   "Add a block to the block list based on the current cursor location and
@@ -133,10 +290,10 @@
 (defn material
   "Set the current cursor material, and optionally material-data, to be used for
   consecutive blocks."
-  ([cursor m]
-   (assoc cursor :material m :material-data nil))
-  ([cursor m md]
-   (assoc cursor :material m :material-data md)))
+  ([c m]
+   (material c m nil))
+  ([c m md]
+   (assoc c :material m :material-data md)))
 
 (defn rotate-dir
   "Given a direction keyword like :north or :south and a number, make that many
@@ -192,6 +349,7 @@
     (step-fn c dir)
     (let [[x y z] (get movements dir)]
       (-> c
+          (assoc :dir dir)
           (update :x + x)
           (update :y + y)
           (update :z + z)))))
@@ -212,7 +370,15 @@
   ([cursor]
    (step cursor (:dir cursor)))
   ([cursor dir]
-   (?block (step* cursor (resolve-dir (:dir cursor) dir)))))
+   ;; For the very first step don't move the cursor yet, just put a block where
+   ;; we are. Not 100% sure about this yet, moving the cursor first before
+   ;; putting a block down is generally the right thing to do, but when starting
+   ;; with a new cursor it is confusing that your first block is actually one
+   ;; step away from your starting position, so this tries to do the generally
+   ;; most intuitive thing.
+   (if (and (:draw? cursor) (empty? (:blocks cursor)))
+     (?block cursor)
+     (?block (step* cursor (resolve-dir (:dir cursor) dir))))))
 
 (defn steps
   "Take n steps forward as with [[step]]"
@@ -222,7 +388,11 @@
    (let [dir (resolve-dir (:dir cursor) dir)]
      (if (< n 0)
        (steps cursor (- n) (rotate-dir dir 4))
-       (nth (iterate #(step % dir) cursor) n)))))
+       (nth (iterate #(step % dir) cursor) n))))
+  ([cursor n dir & more]
+   (apply steps
+          (steps cursor n dir)
+          more)))
 
 (defn move
   "Move the cursor as with steps, but without drawing."
@@ -235,7 +405,9 @@
    (-> cursor
        (draw false)
        (steps n dir)
-       (draw draw?))))
+       (draw draw?)))
+  ([c n dir & more]
+   (apply move (move c n dir) more)))
 
 (defn move-to
   "Move the cursor to the given location, does not draw."
@@ -253,18 +425,22 @@
    (extrude cursor n :up))
   ([cursor n dir]
    (let [dir (resolve-dir (:dir cursor) dir)]
-     (update
-      cursor
-      :blocks
-      (fn [blocks]
+     (reduce
+      (fn [c b]
         (reduce
-         (fn [res i]
-           (into res
-                 (map (fn [b]
-                        (nth (iterate #(step* % dir) b) i)))
-                 blocks))
-         blocks
-         (range 1 (inc n))))))))
+         (fn [c i]
+           (excursion
+            c
+            (fn [c]
+              (n-times
+               (merge c b)
+               i
+               (fn [c]
+                 (step c dir))))))
+         c
+         (range 1 (inc n))))
+      cursor
+      (:blocks cursor)))))
 
 (def material->keyword (into {} (map (juxt val key)) wc/materials))
 
@@ -302,6 +478,90 @@
                           (swap! undo-history conj blocks))
                         rest))
   :redo)
+
+(defn undo-all!
+  "Undo the complete undo history"
+  []
+  (while (seq @undo-history)
+    (undo!)))
+
+(defn flash!
+  "Like build, but shortly after undoes the build again
+
+  This is meant for REPL use where you can rapidly try out changes before
+  committing to them."
+  ([c]
+   (flash! c 2000))
+  ([c timeout]
+   (future
+     (Thread/sleep timeout)
+     (undo!))
+   (build c)))
+
+(defn palette
+  "Add items to the palette. Takes a single map."
+  [c m]
+  (update c :palette (fnil into {}) m))
+
+(defn pattern
+  "Draw a number of steps in a line, based on a sequence of materials. Note that
+  in combination with palette this can also take a string, assuming you've added
+  palette entries for the given characters."
+  [c pattern]
+  (assoc (reduce (fn [c m] (-> c (material m) (step))) c pattern)
+         :material (:material c)
+         :material-data (:material-data c)))
+
+(defn translate
+  "Move all blocks in the block set, as well as the cursor, by a given offset."
+  [c offset]
+  (let [x (wc/x offset)
+        y (wc/y offset)
+        z (wc/z offset)
+        f #(-> %
+               (update :x + x)
+               (update :y + y)
+               (update :z + z))]
+    (update (f c) :blocks #(into EMPTY_BLOCK_SET (map f) %))))
+
+(defn origin
+  "Set the origin around which matrix operations are performed"
+  [c & a]
+  (assoc c :origin {:x (wc/x a)
+                    :y (wc/y a)
+                    :z (wc/z a)}))
+
+(defn matrices
+  "Set matrices"
+  [c & matrices]
+  (assoc c :matrices matrices))
+
+;; TODO: we need to come up with a better API for specifying these, but this
+;; already nicely illustrates what you can do with it
+(defn symmetry-xz [c]
+  (matrices c
+            [[0 0 1]
+             [0 1 0]
+             [1 0 0]]
+            [[0 0 -1]
+             [0 1 0]
+             [1 0 0]]
+            [[0 0 1]
+             [0 1 0]
+             [-1 0 0]]
+            [[0 0 -1]
+             [0 1 0]
+             [-1 0 0]]
+            [[-1 0 0]
+             [0 1 0]
+             [0 0 1]]
+            [[1 0 0]
+             [0 1 0]
+             [0 0 -1]]
+            [[-1 0 0]
+             [0 1 0]
+             [0 0 -1]]
+            ))
 
 (comment
   (-> {:x 1 :y 1 :z 1 :dir :east}
