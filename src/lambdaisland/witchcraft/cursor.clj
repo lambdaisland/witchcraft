@@ -131,16 +131,42 @@
          x (Math/round (wc/x loc))
          y (Math/round (wc/y loc))
          z (Math/round (wc/z loc))]
-     {:dir (nth directions (-> loc
+     {;; The cursor position
+      :x x :y y :z z
+      ;; The direction the cursor is facing (keyword), each step will move in
+      ;; this direction
+      :dir (nth directions (-> loc
                                wc/yaw
                                (/ 45)
                                Math/round
                                (mod (count directions))))
+      ;; The material and material-data we are drawing with
       :material default-material
-      :x x :y y :z z
+      :data 0
+      ;; Wether the "pen" is down, when this to false steps will move the cursor
+      ;; but not add blocks
       :draw? true
+      ;; The set of blocks that have been created, as maps with
+      ;; `{:x :y :z :material :data}`, pass this
+      ;; to [[lambdaisland.witchcraft/set-blocks]] (or use [[build]] on the
+      ;; cursor)
       :blocks EMPTY_BLOCK_SET
-      :origin {:x x :y y :z z}})))
+      ;; The center point for linear transformations like reflections,
+      ;; see [[matrices]] and [[apply-matrix]]
+      :origin {:x x :y y :z z}
+      ;; Whether or not we should adjust the direction each block is facing
+      ;; based on the direction on the cursor?
+      :face-direction? true
+      ;; 3x3 matrices that are applied to each block that is placed. When this
+      ;; is set each step causes multiple blocks to be set. Coordinates are
+      ;; shifted before/after each transformation based on the `:origin`
+      :matrices nil
+      ;; Drawing palette, this acts as a lookup table for materials, so you can
+      ;; give aliases to materials, or use abstract/semantic names for them.
+      ;; Values need to be keywords or [keyword byte] pairs (material+data).
+      ;; Keys can be anything. You can use characters as keys and pass strings
+      ;; to [[pattern]] for instance.
+      :palette {}})))
 
 (defn excursion
   "Apply a function which adds blocks, then return the cursor to its orginal
@@ -148,13 +174,10 @@
   [cursor f & args]
   (assoc cursor :blocks (:blocks (apply f cursor args))))
 
-(defn n-times
+(defn reps
   "Perform a function n times on the cursor"
   [c n f & args]
   (nth (iterate #(apply f % args) c) n))
-
-
-
 
 #_(filter #(.contains (str %) "door") (keys wc/materials))
 #_(:trap-door
@@ -169,64 +192,84 @@
 
 ;; Banner (standing/wall)
 
-(defn data-value [material direction]
+(defn direction-data [material direction data]
   (cond
     (terracotta-materials material)
-    (case direction
-      :down 0
-      :north 0
-      :north-east 0
-      :east 1
-      :south-east 1
-      :south 2
-      :south-west 2
-      :west 3
-      :north-west 3
-      :up 3
-      0)
+    (bit-or
+     (bit-and data 2r11111100)
+     (case direction
+       :down 0
+       :north 0
+       :north-east 0
+       :east 1
+       :south-east 1
+       :south 2
+       :south-west 2
+       :west 3
+       :north-west 3
+       :up 3
+       0))
 
     (stair-materials material)
-    (case direction
-      :down 4
-      :north 0
-      :north-east 0
-      :east 2
-      :south-east 2
-      :south 1
-      :south-west 1
-      :west 3
-      :north-west 3
-      :up 0
-      0)
+    (bit-or
+     (bit-and data 2r11111100)
+     (case direction
+       :down 4
+       :north 0
+       :north-east 0
+       :east 2
+       :south-east 2
+       :south 1
+       :south-west 1
+       :west 3
+       :north-west 3
+       :up 0
+       0))
 
     ;; Based on the wiki, but getting errors when actually trying to use banners
     (= :standing-banner material)
-    (case direction
-      :south 0
-      :south-west 2
-      :west 4
-      :north-west 6
-      :north 8
-      :north-east 10
-      :east 12
-      :south-east 14
-      0)
+    (bit-or
+     (bit-and data 2r11110001)
+     (case direction
+       :south 0
+       :south-west 2
+       :west 4
+       :north-west 6
+       :north 8
+       :north-east 10
+       :east 12
+       :south-east 14
+       0))
 
     (door-materials material)
-    (case direction
-      :north 0
-      :north-east 0
-      :east 1
-      :south-east 1
-      :south 2
-      :south-west 2
-      :west 3
-      :north-west 3
-      0)
+    (bit-or
+     (bit-and data 2r11111100)
+     (case direction
+       :north 0
+       :north-east 0
+       :east 1
+       :south-east 1
+       :south 2
+       :south-west 2
+       :west 3
+       :north-west 3
+       0))
 
+    (= :log material)
+    (bit-or
+     (bit-and data 2r11110011)
+     (case direction
+       :north 8
+       :north-east 8
+       :east 4
+       :south-east 4
+       :south 8
+       :south-west 8
+       :west 4
+       :north-west 4
+       0))
     :else
     0))
-
 
 (defn block-value
   "Get the x/y/z and material data for the current cursor, so we can use it to
@@ -234,14 +277,17 @@
   If the material is a two-element vector (either explicitly or via the palette)
   then this is taken as [material material-data], and overrides the
   material-data in the cursor."
-  [{:keys [x y z material material-data palette dir]}]
+  [{:keys [x y z material data palette dir face-direction?]}]
   (let [m (get palette material material)
-        [m md] (if (vector? m) m [m material-data])]
+        [m md] (if (vector? m) m [m data])
+        md (or md 0)]
     {:x x
      :y y
      :z z
      :material m
-     :data (or md (data-value material dir))}))
+     :data (if face-direction?
+             (direction-data material dir md)
+             md)}))
 
 (defn apply-matrix
   "Apply a single matrix to a single x/y/z map based on the origin."
@@ -293,7 +339,7 @@
   ([c m]
    (material c m nil))
   ([c m md]
-   (assoc c :material m :material-data md)))
+   (assoc c :material m :data md)))
 
 (defn rotate-dir
   "Given a direction keyword like :north or :south and a number, make that many
@@ -510,7 +556,7 @@
   [c pattern]
   (assoc (reduce (fn [c m] (-> c (material m) (step))) c pattern)
          :material (:material c)
-         :material-data (:material-data c)))
+         :data (:data c)))
 
 (defn translate
   "Move all blocks in the block set, as well as the cursor, by a given offset."
