@@ -217,21 +217,22 @@
                           :y (Math/ceil (* n (y dir)))
                           :z (Math/ceil (* n (z dir)))}))))
 
+(defn set-time
+  "Set the time in a world, or the first world on the current server.
+  Time is given in ticks, with 20 ticks per second, or 24000 ticks in a
+  Minecraft day."
+  ([time]
+   (set-time (world (server)) time))
+  ([^World world time]
+   (.setTime world time)))
+
 (defn fast-forward
   "Fast forward the clock, time is given in ticks, with 20 ticks per second, or
   24000 ticks in a Minecraft day."
-  [time]
-  (.setTime (world (server)) (+ (.getTime (world (server))) time)))
-
-(defn fly!
-  "Set a player as allowing flight and flying.
-  Note: doesn't seem to actually cause flying, but it does make flying
-  possible."
-  ([]
-   (fly! (player)))
-  ([^Player player]
-   (.setAllowFlight player true)
-   (.setFlying player true)))
+  ([time]
+   (fast-forward (world (server)) time))
+  ([^World world time]
+   (.setTime world (+ (.getTime world) time))))
 
 (defn map->Location
   "Convert a map/bean to a Location instance"
@@ -343,6 +344,17 @@
                         loc)
                  loc)))))
 
+(defn fly!
+  "Set a player as allowing flight and flying.
+  Note: doesn't seem to actually cause flying, but it does make flying
+  possible."
+  ([]
+   (fly! (player)))
+  ([^Player player]
+   (.setAllowFlight player true)
+   (.setFlying player true)
+   (teleport player [(x player) (inc (y player)) (z player)])))
+
 (defn clear-weather
   "Get clear weather"
   []
@@ -358,7 +370,14 @@
 (defn item-stack
   "Create an ItemStack object"
   ^ItemStack [material count]
-  (ItemStack. ^Material (get materials material) (int count)))
+  (let [[material data] (if (vector? material)
+                          material
+                          [material])
+        material ^Material (get materials material)
+        stack (ItemStack. material (int count))]
+    (when data
+      (.setData stack (.getNewData material (byte data))))
+    stack))
 
 (defn add-inventory
   "Add the named item to the player's inventory, or n copies of it"
@@ -467,6 +486,8 @@
   (^org.bukkit.util.Vector direction [e] (direction (location e)))
   (material [b] (.getType b))
   (material-name [b] (material-name (material b)))
+  (add [this that]
+    (add (location this) that))
 
   Location
   (location [l] l)
