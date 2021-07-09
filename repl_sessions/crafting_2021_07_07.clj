@@ -3,8 +3,8 @@
             [lambdaisland.witchcraft.cursor :as c]))
 
 (wc/start! {:level-seed "apple"})
-
 (def me (wc/player "sunnyplexus"))
+
 (wc/location me)
 [181.39333147179173 77.0 352.38498570989907 282.0 9.2999935 "world"]
 
@@ -222,6 +222,7 @@ fort-walls
 
 (-> (c/start [184 77 355])
     (c/face :east)
+    (c/palette {:wood :air :jungle-door :})
     (c/n-times 4
                #(-> %
                     (c/material :wood)
@@ -234,42 +235,240 @@ fort-walls
     (c/build)
     )
 
-(-> (c/start [186 94 421] #_[184 85 355])
-    (assoc :cnt 1)
-    (c/move 1 :north 1 :east)
-    (c/material :jungle-wood-stairs)
-    (c/symmetry-xz)
-    (c/n-times 6 #(-> %
-                      (c/steps 1 :east)
-                      (c/steps (:cnt %) :north)
-                      (c/move (:cnt %) :south)
-                      (c/steps (:cnt %) :south)
-                      (c/move (:cnt %) :north)
-                      (c/move 1 :down)
-                      (update :cnt inc)))
-    (c/build)
-    )
-(-> (c/start [186 88 421] #_[184 85 355])
-    (c/move 5 :east)
-    (c/face :north)
-    (c/material :cobblestone)
-    (assoc :block-fn
-           (fn [c]
-             (let [v (c/block-value c)
-                   v (if (#{:cobblestone :mossy-cobblestone} (:material c))
-                       (assoc v :material
-                              (if (< (rand-int 100) 20)
-                                :mossy-cobblestone
-                                :cobblestone))
-                       v)]
-               (update c :blocks conj v))))
-    (c/symmetry-xz)
-    (c/excursion #(c/steps % 2 :east 1 :north))
-    (c/steps 4)
-    (c/material :wood)
-    (c/step)
-    (c/matrices)
-    (c/extrude 8 :down)
+(defn neighbours [loc]
+  (for [dx [-1 0 1]
+        dy [0 #_ 1]
+        dz [-1 0 1]
+        nloc [(wc/add loc [dx dy dz])]
+        :when (not= (wc/location loc) nloc)
+        block [(wc/get-block nloc)]
+        :when (not= (wc/material-name block) :air)]
+    block))
 
-    (c/build)
-    )
+(defn fill [start]
+  (loop [search #{start}
+         result #{start}]
+    (let [new-blocks (reduce
+                      (fn [res loc]
+                        (into res (remove result) (neighbours loc)))
+                      #{}
+                      search)]
+      (if (seq new-blocks)
+        (recur new-blocks (into result new-blocks))
+        result))))
+
+(def B (atom nil))
+(wc/listen! :player-interact ::capture-block
+            (fn [e]
+              (when (:clickedBlock e)
+                (reset! B (:clickedBlock e)))
+              #_(wc/set-blocks
+                 (for [b (fill (:clickedBlock e))]
+                   {:x (wc/x b)
+                    :y (wc/y b)
+                    :z (wc/z b)
+                    :material :air}))))
+
+(defn top-of-hill []
+  (wc/teleport me [178.84480673629506
+                   80.0
+                   418.11598518100806
+                   351.14935
+                   23.999983
+                   "world"]))
+
+(wc/set-blocks (for [b (fill @B)]
+                 (let [n (rand-int 100)
+                       [m d]
+                       (cond
+                         (<= 0 n 50) [:stone 0]
+                         (<= 51 n 77) [:cobblestone 0]
+                         (<= 78 n 80) [:stone 4]
+                         (<= 81 n 93) [:stone 6]
+                         (<= 93 n 95) [:stone 3]
+                         (<= 96 n 100) [:gravel])]
+                   {:x (wc/x b)
+                    :y (wc/y b)
+                    :z (wc/z b)
+                    :material m
+                    :data d})))
+
+(def edges
+  )
+
+
+(wc/set-blocks
+ (for [b (fill @B)]
+   {:x (wc/x b)
+    :y (wc/y b)
+    :z (wc/z b)
+    :material :air}))
+
+(let [floor (fill @B)]
+  (wc/set-blocks
+   (for [edge (filter #(not= 8 (count (neighbours %))) floor)]
+     {:x (wc/x edge)
+      :y (inc (wc/y edge))
+      :z (wc/z edge)
+      :material :jungle-fence})))
+
+(wc/fly!)
+
+(wc/add-inventory me :cooked-chicken)
+
+(defn locv [l]
+  [(wc/x l) (wc/y l) (wc/z l)])
+
+(def temple-loc [163.0 77.0 430.0])
+
+;; roof
+(defn temple-roof [c size]
+  (-> c
+      (assoc :cnt 1)
+      (c/move 1 :north 1 :east)
+      (c/material :acacia-stairs)
+      (c/symmetry-xz)
+      (c/n-times size #(-> %
+                           (c/steps 1 :east)
+                           (c/steps (:cnt %) :north)
+                           (c/move (:cnt %) :south)
+                           (c/steps (:cnt %) :south)
+                           (c/move (:cnt %) :north)
+                           (c/move 1 :down)
+                           (update :cnt inc)))))
+
+(defn temple-walls [c width height]
+  (-> c
+      (c/move width :east 1 :north)
+      (c/face :north)
+      (c/material :cobblestone)
+      (assoc :block-fn
+             (fn [c]
+               (let [v (c/block-value c)
+                     v (if (#{:cobblestone :mossy-cobblestone} (:material c))
+                         (assoc v :material
+                                (if (< (rand-int 100) 20)
+                                  :mossy-cobblestone
+                                  :cobblestone))
+                         v)]
+                 (update c :blocks conj v))))
+      (c/symmetry-xz)
+      (c/excursion #(c/steps % 2 :east 1 :north))
+      (c/steps (dec width))
+      (c/move 1 :east 1 :up 1 :north)
+      (c/face :down)
+      (c/material :log 1)
+      (c/step)
+      (c/matrices)
+      (c/extrude height :down)))
+
+(defn beams [c inner outer]
+  (-> c
+      (c/move inner :east)
+      (c/face :north)
+      (c/material :log 1)
+      (c/symmetry-xz)
+      (c/steps outer)))
+
+(defn stair-square [c size]
+  (-> c
+      (c/move (/ size 2) :east)
+      (c/face :south)
+      (c/steps (inc (/ size 2)))
+      (c/rotate 2)
+      (c/steps size)
+      (c/rotate 2)
+      (c/steps size)
+      (c/rotate 2)
+      (c/steps size)
+      (c/rotate 2)
+      (c/steps (dec (/ size 2)))))
+
+;; walls
+(-> (c/start temple-loc)
+    (c/move 5 :up)
+    (temple-walls 5 4)
+    c/build)
+
+;; inner beams
+(-> (c/start temple-loc)
+    (c/move 4 :up)
+    (beams 4 6)
+    c/build)
+
+;; beams
+(-> (c/start temple-loc)
+    (c/move 6 :up)
+    (beams 6 12)
+    c/build)
+
+;; roofing
+(-> (c/start temple-loc)
+    (c/move 7 :up)
+    (c/material :dark-oak-stairs)
+    (stair-square 16)
+    c/build)
+
+;; beams cutting through
+(-> (c/start temple-loc)
+    (c/move 7 :up)
+    (beams 3 11)
+    c/build)
+
+;; more roofing
+(-> (c/start temple-loc)
+    (c/move 8 :up)
+    (c/material :dark-oak-stairs)
+    (stair-square 12)
+    c/build)
+(-> (c/start temple-loc)
+    (c/move 8 :up)
+    (c/material :dark-)
+    (stair-square 12)
+    c/build)
+
+(:slab wc/materials)
+
+;; beams cutting through
+(-> (c/start temple-loc)
+    (c/move 8 :up)
+    (beams 2 8)
+    c/build)
+
+;; more roofing
+(-> (c/start temple-loc)
+    (c/move 9 :up)
+    (c/material :dark-oak-stairs)
+    (stair-square 8)
+    c/build)
+
+;; clear out the fire pit
+(wc/set-blocks
+ (let [[x y z] temple-loc]
+   (for [dx [-2 -1 0 1 2]
+         dz [-2 -1 0 1 2]]
+     {:x (+ x dx)
+      :y y
+      :z (+ z dz)
+      :material :air})))
+
+;; put down the fire
+(-> (c/start temple-loc)
+    (c/move 1 :down)
+    (c/face :east)
+    (c/material :netherrack)
+    (c/symmetry-xz)
+    (c/steps 2)
+    (c/material :fire)
+    (c/step :up)
+    (c/build))
+
+(wc/fly!)
+
+(keys wc/materials)
+
+(wc/add-inventory me :diamond-axe)
+(wc/set-time 0)
+
+(.getData (.getData (second (seq (wc/inventory me)))))
+@B
