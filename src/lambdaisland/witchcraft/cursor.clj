@@ -272,6 +272,8 @@
     :else
     0))
 
+(declare rotate-dir)
+
 (defn block-value
   "Get the x/y/z and material data for the current cursor, so we can use it to
   create a block. This also resolves any palette indirection for the material.
