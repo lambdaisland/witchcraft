@@ -1,6 +1,6 @@
 (ns lambdaisland.witchcraft
   "Clojure API for Glowstone"
-  (:refer-clojure :exclude [bean])
+  (:refer-clojure :exclude [bean time])
   (:require [clojure.java.io :as io]
             [lambdaisland.witchcraft.config :as config]
             [lambdaisland.witchcraft.events :as events]
@@ -35,6 +35,23 @@
       (org.bukkit.plugin.PluginDescriptionFile. "Witchcraft" "0.0" ""))
     (isEnabled []
       true)))
+
+(defonce undo-history (atom ()))
+(defonce redo-history (atom ()))
+
+(def EMPTY_BLOCK_SET
+  "Make sure there is only one block for each coordinate in the set, and keep them
+  sorted by x/z/y."
+  (sorted-set-by #(compare ((juxt :x :z :y) %1)
+                           ((juxt :x :z :y) %2))))
+
+(defn block-set
+  "Create a block set, a set of maps where every :x/:y/:z value can only occur
+  once."
+  ([coll]
+   (into EMPTY_BLOCK_SET coll))
+  ([xform coll]
+   (into EMPTY_BLOCK_SET xform coll)))
 
 ;; ================================================================================
 
@@ -86,7 +103,8 @@
   (^org.bukkit.util.Vector direction [_])
   (^org.bukkit.Material material [_])
   (^Vector as-vec [_] "Coerce to Vector")
-  (material-name [_]))
+  (material-name [_])
+  (material-data [_]))
 
 ;; =============================================================================
 
@@ -217,6 +235,13 @@
                           :y (Math/ceil (* n (y dir)))
                           :z (Math/ceil (* n (z dir)))}))))
 
+(defn time
+  "Get the current time in the world in ticks."
+  ([]
+   (time (world (server))))
+  ([world]
+   (.getTime ^World world)))
+
 (defn set-time
   "Set the time in a world, or the first world on the current server.
   Time is given in ticks, with 20 ticks per second, or 24000 ticks in a
@@ -251,6 +276,17 @@
   ^Block [loc]
   (.getBlockAt ^World (world loc) (x loc) (y loc) (z loc)))
 
+(defn block
+  "Get the block at the given location, returns a Clojure map. See [[get-block]]
+  if you need the actual block object."
+  [loc]
+  (let [block (get-block loc)]
+    {:x (long (x block))
+     :y (long (y block))
+     :z (long (z block))
+     :material (material-name block)
+     :data (.getData (.getData (.getState block)))}))
+
 (defn set-block-direction
   "Set the direction of a block, takes a keyword or BlockFace,
   see [[block-faces]]"
@@ -266,19 +302,27 @@
 
 (defn set-block
   "Set the block at a specific location to a specific material"
+  ([loc]
+   (set-block loc (material loc) (material-data loc)))
   ([loc material]
-   (set-block loc material nil))
+   (if (vector? material)
+     (set-block loc (first material) (second material))
+     (set-block loc material nil)))
   ([loc material data]
+   (swap! undo-history conj [(block loc)])
    (let [material (if (keyword? material)
                     (get materials material)
                     material)
          block (get-block (location loc))]
-     (.setType block material)
-     (when data
-       (.setData block data)
-       (if (number? data)
-         (MaterialData. ^Material material (byte data))
-         data)))
+     (prn [material data])
+     (if data
+       (.setTypeIdAndData block
+                          (.getId ^Material material)
+                          (if (number? data)
+                            (byte data)
+                            (.getData ^MaterialData data))
+                          true)
+       (.setType block material)))
    (when (and (map? loc) (:dir loc))
      (set-block-direction loc))
    loc))
@@ -286,17 +330,23 @@
 (defn set-blocks
   "Optimized way to set multiple blocks, takes a sequence of maps
   with :x, :y, :z, :material, and optionally :world and :data."
-  [blocks]
-  (let [^net.glowstone.util.BlockStateDelegate delegate (net.glowstone.util.BlockStateDelegate.)]
-    (doseq [{:keys [world x y z material data]
-             :or {world (world (server))}} blocks
-            :let [^Material material (if (keyword? material) (get materials material) material)
-                  _ (assert material)
-                  ^MaterialData data (if (number? data) (MaterialData. material (byte data)) data)]]
-      (if data
-        (.setTypeAndData delegate world x y z material data)
-        (.setType delegate world x y z material)))
-    (.updateBlockStates delegate)))
+  ([blocks]
+   (set-blocks blocks {:keep-history? true}))
+  ([blocks {:keys [keep-history?]}]
+   (let [^net.glowstone.util.BlockStateDelegate delegate (net.glowstone.util.BlockStateDelegate.)
+         blocks (remove nil? blocks)]
+     (when keep-history?
+       (swap! undo-history conj (doall (map block blocks))))
+     (doseq [{:keys [world x y z data]
+              :or {world (world (server))}
+              :as block} blocks
+             :let [^Material material (material (:material block))
+                   _ (assert material)
+                   ^MaterialData data (if (number? data) (MaterialData. material (byte data)) data)]]
+       (if data
+         (.setTypeAndData delegate world x y z material data)
+         (.setType delegate world x y z material)))
+     (.updateBlockStates delegate))))
 
 (defn box
   "Draw a box with width, height, depth of a certain block type"
@@ -478,14 +528,15 @@
   (world [b]
     (.getWorld b))
   (as-vec [e] (as-vec (location e)))
-  (^double x [e] (x (location e)))
-  (^double y [e] (y (location e)))
-  (^double z [e] (z (location e)))
+  (x [e] (x (location e)))
+  (y [e] (y (location e)))
+  (z [e] (z (location e)))
   (yaw [e] (yaw (location e)))
   (pitch [e] (pitch (location e)))
   (^org.bukkit.util.Vector direction [e] (direction (location e)))
   (material [b] (.getType b))
   (material-name [b] (material-name (material b)))
+  (material-data [b] (.getData (.getData (.getState b))))
   (add [this that]
     (add (location this) that))
 
@@ -515,9 +566,10 @@
     (distance (as-vec this) that))
   (material [l] (material (get-block l)))
   (material-name [l] (material-name (material l)))
+  (material-data [l] (material-data (get-block l)))
 
   Vector
-  (vector [v] v)
+  (as-vec [v] v)
   (x [v] (.getX v))
   (y [v] (.getY v))
   (z [v] (.getZ v))
@@ -532,11 +584,10 @@
     (.distance this (as-vec that)))
   (yaw [v] 0)
   (pitch [v] 0)
-  (distance [this that]
-    (distance (as-vec this) that))
   (location [l] (location [(x l) (y l) (z l)]))
   (material [l] (material (location l)))
   (material-name [l] (material-name (material l)))
+  (material-data [l] (material-data (get-block l)))
 
   java.util.Map
   (x [m] (or (.get m :x) 0))
@@ -552,8 +603,17 @@
   (as-vec [m]
     (vec3 (x m) (y m) (z m)))
   (location [l] (location [(x l) (y l) (z l)]))
-  (material [l] (material (location l)))
-  (material-name [l] (material-name (material l)))
+  (material [m] (material (or (.get m :material)
+                              (location m))))
+  (material-name [m] (or (.get m :material)
+                         (material-name (material m))))
+  (material-data [m] (or (.get m :data)
+                         (material-data (get-block m))))
+  (add [this that]
+    (-> this
+        (update :x + (x that))
+        (update :y + (y that))
+        (update :z + (z that))))
 
   String
   (world [s]
@@ -598,6 +658,7 @@
     (vec3 x y z))
   (material [v] (material (location v)))
   (material-name [l] (material-name (material l)))
+  (material-data [l] (material-data (get-block l)))
 
   Material
   (material [m] m)
@@ -606,5 +667,25 @@
   GlowServer
   (world [s]
     (first (worlds s))))
+
+(defn undo!
+  "Undo the last build. Can be repeated to undo multiple builds."
+  []
+  (swap! undo-history (fn [[blocks & rest]]
+                        (when blocks
+                          (set-blocks blocks {:keep-history? false})
+                          (swap! redo-history conj blocks))
+                        rest))
+  :undo)
+
+(defn redo!
+  "Redo the last build that was undone with [[undo!]]"
+  []
+  (swap! redo-history (fn [[blocks & rest]]
+                        (when blocks
+                          (set-blocks blocks {:keep-history? false})
+                          (swap! undo-history conj blocks))
+                        rest))
+  :redo)
 
 (load "witchcraft/printers")

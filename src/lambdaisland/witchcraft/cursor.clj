@@ -46,9 +46,6 @@
   will show the direction the cursor is moving into."
   :magenta-glazed-terracotta)
 
-(defonce undo-history (atom ()))
-(defonce redo-history (atom ()))
-
 (def directions
   [:south
    :south-west
@@ -113,12 +110,6 @@
   ([c draw?]
    (assoc c :draw? draw?)))
 
-(def EMPTY_BLOCK_SET
-  "Make sure there is only one block for each coordinate in the set, and keep them
-  sorted by x/z/y."
-  (sorted-set-by #(compare ((juxt :x :z :y) %1)
-                           ((juxt :x :z :y) %2))))
-
 (defn start
   "Creates a new cursor, starting at the given location, or one step in front of
   the player's location."
@@ -127,19 +118,22 @@
        start
        move))
   ([loc]
-   (let [loc (wc/location loc)
-         x (Math/round (wc/x loc))
-         y (Math/round (wc/y loc))
-         z (Math/round (wc/z loc))]
+   (start loc (:dir loc (nth directions (-> loc
+                                            wc/yaw
+                                            (/ 45)
+                                            double
+                                            Math/round
+                                            (mod (count directions)))))))
+  ([loc dir]
+   (let [l (wc/location loc)
+         x (Math/round (wc/x l))
+         y (Math/round (wc/y l))
+         z (Math/round (wc/z l))]
      {;; The cursor position
       :x x :y y :z z
       ;; The direction the cursor is facing (keyword), each step will move in
       ;; this direction
-      :dir (nth directions (-> loc
-                               wc/yaw
-                               (/ 45)
-                               Math/round
-                               (mod (count directions))))
+      :dir dir
       ;; The material and material-data we are drawing with
       :material default-material
       :data 0
@@ -150,7 +144,7 @@
       ;; `{:x :y :z :material :data}`, pass this
       ;; to [[lambdaisland.witchcraft/set-blocks]] (or use [[build]] on the
       ;; cursor)
-      :blocks EMPTY_BLOCK_SET
+      :blocks wc/EMPTY_BLOCK_SET
       ;; The center point for linear transformations like reflections,
       ;; see [[matrices]] and [[apply-matrix]]
       :origin {:x x :y y :z z}
@@ -166,7 +160,14 @@
       ;; Values need to be keywords or [keyword byte] pairs (material+data).
       ;; Keys can be anything. You can use characters as keys and pass strings
       ;; to [[pattern]] for instance.
-      :palette {}})))
+      :palette {}
+      ;; By default the first "step" isn't a step at all, it just sets a block
+      ;; at the cursor's starting position. This tends to be the most intuitive
+      ;; thing in most cases, but if it's not working for your case you can turn
+      ;; it off.
+      :first-step? (:first-step? loc true)
+      ;; Relatively change the rotation of blocks based on the cursor direction
+      :rotate-block 0})))
 
 (defn excursion
   "Apply a function which adds blocks, then return the cursor to its orginal
@@ -277,7 +278,7 @@
   If the material is a two-element vector (either explicitly or via the palette)
   then this is taken as [material material-data], and overrides the
   material-data in the cursor."
-  [{:keys [x y z material data palette dir face-direction?]}]
+  [{:keys [x y z material data palette dir face-direction? rotate-block]}]
   (let [m (get palette material material)
         [m md] (if (vector? m) m [m data])
         md (or md 0)]
@@ -286,7 +287,7 @@
      :z z
      :material m
      :data (if face-direction?
-             (direction-data material dir md)
+             (direction-data material (rotate-dir dir rotate-block) md)
              md)}))
 
 (defn apply-matrix
@@ -308,7 +309,7 @@
            :z z
            :dir (or new-dir dir))))
 
-(defn block* [c]
+(defn block-fn [c]
   (update c :blocks conj (block-value c)))
 
 (defn block
@@ -316,13 +317,13 @@
 
   Will set multiple blocks if symmetries are defined, see [[reflect]]."
   [{:keys [matrices block-fn] :as c
-    :or {block-fn block*}}]
+    :or {block-fn block-fn}}]
   (reduce
    (fn [c s]
      (excursion c
                 (fn [c]
                   (block-fn (apply-matrix c s)))))
-   (block-fn c)
+   (block-fn (dissoc c :first-step?))
    matrices))
 
 (defn ?block
@@ -387,18 +388,13 @@
                      (= :down dir) (rotate-dir (:dir cursor) 4)))
     cursor))
 
-(defn- step* [c dir]
-  (assert (keyword? dir) (str "Direction must be a keyword, got " dir))
-  (assert (contains? movements dir) (str "Unknown direction " dir ", should be one-of "
-                                         (keys movements)))
-  (if-let [step-fn (:step-fn c)]
-    (step-fn c dir)
-    (let [[x y z] (get movements dir)]
-      (-> c
-          (assoc :dir dir)
-          (update :x + x)
-          (update :y + y)
-          (update :z + z)))))
+(defn step-fn [c dir]
+  (let [[x y z] (get movements dir)]
+    (-> c
+        (assoc :dir dir)
+        (update :x + x)
+        (update :y + y)
+        (update :z + z))))
 
 (defn resolve-dir
   "Helper for dealing with forward/left/right type of directions, instead of
@@ -415,16 +411,23 @@
   corresponding with the new location."
   ([cursor]
    (step cursor (:dir cursor)))
-  ([cursor dir]
+  ([{:keys [step-fn]
+     :or {step-fn step-fn}
+     :as cursor} dir]
    ;; For the very first step don't move the cursor yet, just put a block where
    ;; we are. Not 100% sure about this yet, moving the cursor first before
    ;; putting a block down is generally the right thing to do, but when starting
    ;; with a new cursor it is confusing that your first block is actually one
    ;; step away from your starting position, so this tries to do the generally
    ;; most intuitive thing.
-   (if (and (:draw? cursor) (empty? (:blocks cursor)))
+   (assert (keyword? dir) (str "Direction must be a keyword, got " dir))
+   (assert (contains? movements dir) (str "Unknown direction " dir ", should be one-of "
+                                          (keys movements)))
+   (if (and (:draw? cursor) (:first-step? cursor))
      (?block cursor)
-     (?block (step* cursor (resolve-dir (:dir cursor) dir))))))
+     (?block (step-fn cursor (resolve-dir (:dir cursor) dir)))))
+  ([cursor dir & dirs]
+   (apply step (step cursor dir) dirs)))
 
 (defn steps
   "Take n steps forward as with [[step]]"
@@ -478,7 +481,7 @@
            (excursion
             c
             (fn [c]
-              (n-times
+              (reps
                (merge c b)
                i
                (fn [c]
@@ -490,46 +493,13 @@
 
 (def material->keyword (into {} (map (juxt val key)) wc/materials))
 
-(defn- lookup-block [block]
-  (let [{:keys [x y z type state]} (bean (wc/get-block block))]
-    {:x x
-     :y y
-     :z z
-     :material (material->keyword type)
-     :data (.getData (.getData state))}))
-
-(defn build
+(defn build!
   "Apply the list of blocks in the cursor to the world."
   [{:keys [blocks] :as cursor}]
-  (swap! undo-history conj (doall (map lookup-block blocks)))
   (wc/set-blocks blocks)
   (assoc cursor :blocks #{}))
 
-(defn undo!
-  "Undo the last build. Can be repeated to undo multiple builds."
-  []
-  (swap! undo-history (fn [[blocks & rest]]
-                        (when blocks
-                          (wc/set-blocks blocks)
-                          (swap! redo-history conj blocks))
-                        rest))
-  :undo)
-
-(defn redo!
-  "Redo the last build that was undone with [[undo!]]"
-  []
-  (swap! redo-history (fn [[blocks & rest]]
-                        (when blocks
-                          (wc/set-blocks blocks)
-                          (swap! undo-history conj blocks))
-                        rest))
-  :redo)
-
-(defn undo-all!
-  "Undo the complete undo history"
-  []
-  (while (seq @undo-history)
-    (undo!)))
+(def build ^{:deprecated "Use build!"} build!)
 
 (defn flash!
   "Like build, but shortly after undoes the build again
@@ -541,8 +511,8 @@
   ([c timeout]
    (future
      (Thread/sleep timeout)
-     (undo!))
-   (build c)))
+     (wc/undo!))
+   (build! c)))
 
 (defn palette
   "Add items to the palette. Takes a single map."
@@ -568,7 +538,7 @@
                (update :x + x)
                (update :y + y)
                (update :z + z))]
-    (update (f c) :blocks #(into EMPTY_BLOCK_SET (map f) %))))
+    (update (f c) :blocks #(wc/block-set (map f) %))))
 
 (defn origin
   "Set the origin around which matrix operations are performed"
