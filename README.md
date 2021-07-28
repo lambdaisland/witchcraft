@@ -6,7 +6,9 @@
 
 Clojure API for Minecraft/Glowstone/Bukkit
 
-This project uses the [GlowstoneMC](https://github.com/GlowstoneMC/Glowstone) open source minecraft server and wraps the [Bukkit](https://github.com/Bukkit/Bukkit) modding API.
+Under the hood this project uses the
+[GlowstoneMC](https://github.com/GlowstoneMC/Glowstone) open source minecraft
+server and wraps the [Bukkit](https://github.com/Bukkit/Bukkit) modding API.
 
 Note that the API is not meant to be exhaustive, it will likely still grow, as
 well as evolve. We are growing this library literally by playing with it, trying
@@ -58,7 +60,9 @@ You should also add some extra maven repos for getting Glowstone:
                  "aikar" "https://repo.aikar.co/nexus/content/repositories/aikar-release/"})
 ```
 
-We're figuring out how best to eliminate this step, but for now it seems these are necessary.
+With that you can now start Witchcraft. Note that you **should not download and
+run Glowstone itself**, the above is all you need. We'll run the Glowstone
+server directly inside the Clojure REPL process.
 
 ## Rationale
 
@@ -97,9 +101,25 @@ Glowstone currently only supports minecraft version 1.12.2 (this may change
 soon). To install the 1.12.2 MC Client version, open the Minecraft launcher ->
 Installations -> New -> 1.12.2.
 
-After launching Minecraft, select Multiplayer and enter `localhost:25565` to join the server we just started.
+After launching Minecraft, select Multiplayer and enter `localhost:25565` to
+join the server we just started.
 
 Hold `F3` and press `p` so you can tab out without the game pausing.
+
+### Next steps
+
+At this point you should have a Clojure REPL and Minecraft running side-by-side,
+and it's time to have some fun. There are a bunch of things you can do. Create,
+destroy, or modify blocks, generate landscapes and buildings, move player and
+non-player characters in the world, create entirely new worlds from scratch, add
+interactivity and custom behaviors through event handlers, and more. There is
+hardly an aspect of the game you can't manipulate.
+
+We'll start with some basics though, inspecting the world, and manipulating
+blocks.
+
+Let's first get a sense of where you are.
+
 
 <!-- opencollective -->
 ## Lambda Island Open Source
