@@ -2,8 +2,25 @@
   (:require [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.cursor :as c]))
 
+(load "terraform")
+
 (wc/start! {:level-seed "apple"})
 (def me (wc/player "sunnyplexus"))
+(def B (atom nil))
+(wc/listen! :player-interact ::capture-block
+            (fn [e]
+              (when (:clickedBlock e)
+                (reset! B (:clickedBlock e)))
+              (wc/set-blocks
+               (for [b (fill (:clickedBlock e))]
+                 {:x (wc/x b)
+                  :y (wc/y b)
+                  :z (wc/z b)
+                  :material :air}))))
+(defn bvec []
+  [(wc/x @B) (wc/y @B) (wc/z @B)])
+(defn bmap []
+  {:x (wc/x @B) :y (wc/y @B) :z (wc/z @B)})
 
 (wc/location me)
 [181.39333147179173 77.0 352.38498570989907 282.0 9.2999935 "world"]
@@ -223,7 +240,7 @@ fort-walls
 (-> (c/start [184 77 355])
     (c/face :east)
     (c/palette {:wood :air :jungle-door :})
-    (c/n-times 4
+    (c/reps 4
                #(-> %
                     (c/material :wood)
                     (c/step)
@@ -234,40 +251,6 @@ fort-walls
                     (c/rotate 2)))
     (c/build)
     )
-
-(defn neighbours [loc]
-  (for [dx [-1 0 1]
-        dy [0 #_ 1]
-        dz [-1 0 1]
-        nloc [(wc/add loc [dx dy dz])]
-        :when (not= (wc/location loc) nloc)
-        block [(wc/get-block nloc)]
-        :when (not= (wc/material-name block) :air)]
-    block))
-
-(defn fill [start]
-  (loop [search #{start}
-         result #{start}]
-    (let [new-blocks (reduce
-                      (fn [res loc]
-                        (into res (remove result) (neighbours loc)))
-                      #{}
-                      search)]
-      (if (seq new-blocks)
-        (recur new-blocks (into result new-blocks))
-        result))))
-
-(def B (atom nil))
-(wc/listen! :player-interact ::capture-block
-            (fn [e]
-              (when (:clickedBlock e)
-                (reset! B (:clickedBlock e)))
-              #_(wc/set-blocks
-                 (for [b (fill (:clickedBlock e))]
-                   {:x (wc/x b)
-                    :y (wc/y b)
-                    :z (wc/z b)
-                    :material :air}))))
 
 (defn top-of-hill []
   (wc/teleport me [178.84480673629506
@@ -328,7 +311,7 @@ fort-walls
       (c/move 1 :north 1 :east)
       (c/material :acacia-stairs)
       (c/symmetry-xz)
-      (c/n-times size #(-> %
+      (c/reps size #(-> %
                            (c/steps 1 :east)
                            (c/steps (:cnt %) :north)
                            (c/move (:cnt %) :south)
@@ -467,8 +450,19 @@ fort-walls
 
 (keys wc/materials)
 
-(wc/add-inventory me :diamond-axe)
+(wc/add-inventory me :cooked-beef)
 (wc/set-time 0)
 
 (.getData (.getData (second (seq (wc/inventory me)))))
 @B
+
+
+(c/build
+ {:blocks
+  (for [dx (range 50)
+        dy [0 1]
+        dz [0 1]]
+    {:x (+ (wc/x @B) dx)
+     :y (+ (wc/y @B) dy)
+     :z (+ (wc/z @B) dz)
+     :material :air})})

@@ -42,7 +42,7 @@
       (c/rotate r)
       (c/steps n)))
 
-(defn n-times [c n f]
+(defn reps [c n f]
   (nth (iterate f c) n))
 
 (defn circle
@@ -54,18 +54,18 @@
                               (even? n))
                         n
                         (inc n)))]
-     (n-times c 8 #(let [size (dir-adjust % size)]
+     (reps c 8 #(let [size (dir-adjust % size)]
                      (rsteps % 1 size))))))
 
 (defn circle-ish [c]
-  (n-times c 4 #(-> %
+  (reps c 4 #(-> %
                     (c/rotate 1)
                     c/step
                     (c/rotate 1)
                     (c/steps 2))))
 
 (defn four-by-four [c]
-  (n-times c 4 #(rsteps % 2 1)))
+  (reps c 4 #(rsteps % 2 1)))
 
 (defn pillars-base [c]
   (-> c
@@ -151,7 +151,7 @@
                          into
                          (-> (assoc c :blocks #{})
                              four-by-four
-                             (n-times (dec size) grow)
+                             (reps (dec size) grow)
                              :blocks)))
          factor (/ height size)]
      (reduce (fn [c s]
@@ -161,7 +161,7 @@
                                     end (Math/round (double (* factor (inc s))))]
                                 (-> c
                                     (c/move start dir)
-                                    (n-times (inc (- end start))
+                                    (reps (inc (- end start))
                                              #(-> %
                                                   (c/move 1 dir)
                                                   (layer (- size s)))))))))
@@ -192,7 +192,7 @@
                                 (assoc :y (+ y-base pillar-height platform-height))
                                 (pillar platform-height platform-width :down)
                                 (c/move distance)))]
-    (n-times c pillars next-pillar)))
+    (reps c pillars next-pillar)))
 
 (defn build-bridge [pos params]
   ;; bridge pillars
