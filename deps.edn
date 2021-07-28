@@ -5,6 +5,10 @@
          #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
          }
 
+ :aliases
+ {:dev
+  {:extra-paths ["experimental" "repl_sessions"]}}
+
  :mvn/repos
  {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
   "aikar"          {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}}}
