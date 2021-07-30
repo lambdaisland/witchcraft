@@ -155,5 +155,14 @@
    matrix
    (translation-matrix origin)))
 
+(defn transform
+  "Transform a collection by applying a matrix to each element"
+  ([coll m & rest]
+   (transform coll (apply m*m m rest)))
+  ([coll m]
+   (into (empty coll)
+         (map (partial m*v m))
+         coll)))
+
 #_
 (with-origin (rotation-matrix Math/PI :x :z) [100 100 100])
