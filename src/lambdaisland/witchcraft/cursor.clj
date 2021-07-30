@@ -6,7 +6,7 @@
 
   A cursor contains a current location (x/y/z), a
   directions (:north, :north-east, :east, etc.), and a current building
-  material, e.g :lapis-block (see [[lambdaisland.witchcraft.bukkit/materials]]).
+  material, e.g :lapis-block (see [[lambdaisland.witchcraft/materials]]).
 
   It also contains a drawing flag `:draw?` and a list of blocks `:blocks`. When
   drawing is on, then any step will add a block to the list. [[build]] creates
@@ -37,8 +37,7 @@
   ```
   "
   (:refer-clojure :exclude [bean])
-  (:require [lambdaisland.witchcraft.bukkit :as bukkit]
-            [lambdaisland.witchcraft :as wc]
+  (:require [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
 (def default-material
@@ -558,6 +557,7 @@
 ;; already nicely illustrates what you can do with it
 (defn symmetry-xz [c]
   (matrices c
+
             [[0 0 1]
              [0 1 0]
              [1 0 0]]

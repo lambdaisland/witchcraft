@@ -1,5 +1,5 @@
 (ns lambdaisland.witchcraft
-  "Clojure API for Glowstone"
+  "Clojure API for Minecraft/Glowstone"
   (:refer-clojure :exclude [bean time])
   (:require [clojure.java.io :as io]
             [lambdaisland.witchcraft.config :as config]
@@ -104,7 +104,8 @@
   (^org.bukkit.Material material [_])
   (^Vector as-vec [_] "Coerce to Vector")
   (material-name [_])
-  (material-data [_]))
+  (material-data [_])
+  (with-xyz [_ xyz] "Return the same type, but with x/y/z updated"))
 
 ;; =============================================================================
 
@@ -501,6 +502,18 @@
   ^Vector [^double x ^double y ^double z]
   (Vector. x y z))
 
+(defn xyz
+  "Get the x/y/z values of an object as a vector, can work with maps containing
+  `:x`/`:y`/`:z` keys, or virtually any Glowstone object that encodes or has a
+  location."
+  [o]
+  [(x o) (y o) (z o)])
+
+(defn xyz1
+  "Like [[xyz]], but add an extra `1` at the end, for affine transformations"
+  [o]
+  [(x o) (y o) (z o) 1])
+
 (extend-protocol PolymorphicFunctions
   Entity
   (location
@@ -567,6 +580,13 @@
   (material [l] (material (get-block l)))
   (material-name [l] (material-name (material l)))
   (material-data [l] (material-data (get-block l)))
+  (with-xyz [this [x y z]]
+    (Location. (world this)
+               x
+               y
+               z
+               (yaw this)
+               (pitch this)))
 
   Vector
   (as-vec [v] v)
@@ -588,6 +608,7 @@
   (material [l] (material (location l)))
   (material-name [l] (material-name (material l)))
   (material-data [l] (material-data (get-block l)))
+  (with-xyz [_ [x y z]] (vec3 x y z))
 
   java.util.Map
   (x [m] (or (.get m :x) 0))
@@ -614,6 +635,8 @@
         (update :x + (x that))
         (update :y + (y that))
         (update :z + (z that))))
+  (with-xyz [m [x y z]]
+    (assoc m :x x :y y :z z))
 
   String
   (world [s]
@@ -659,6 +682,8 @@
   (material [v] (material (location v)))
   (material-name [l] (material-name (material l)))
   (material-data [l] (material-data (get-block l)))
+  (with-xyz [m [x y z]]
+    (assoc m 0 x 1 y 2 z))
 
   Material
   (material [m] m)
