@@ -431,7 +431,9 @@
    (apply step (step cursor dir) dirs)))
 
 (defn steps
-  "Take n steps forward as with [[step]]"
+  "Take n steps forward as with [[step]], or in the direction specified. Can take
+  multiple number/direction pairs to do a full walk. Will change the direction
+  of the cursor to the direction of the final step."
   ([cursor n]
    (steps cursor n (:dir cursor)))
   ([cursor n dir]
@@ -445,7 +447,8 @@
           more)))
 
 (defn move
-  "Move the cursor as with steps, but without drawing."
+  "Move the cursor as with steps, but without drawing. Retains the cursor
+  direction."
   ([cursor]
    (move cursor 1))
   ([{:keys [draw? dir] :as cursor} n]
@@ -455,7 +458,8 @@
    (-> cursor
        (draw false)
        (steps n dir)
-       (draw draw?)))
+       (draw draw?)
+       (assoc :dir (:dir cursor))))
   ([c n dir & more]
    (apply move (move c n dir) more)))
 
