@@ -310,7 +310,8 @@
      (set-block loc (first material) (second material))
      (set-block loc material nil)))
   ([loc material data]
-   (swap! undo-history conj [(block loc)])
+   (swap! undo-history conj {:before [(block loc)]
+                             :after [loc]})
    (let [material (if (keyword? material)
                     (get materials material)
                     material)
@@ -337,7 +338,8 @@
    (let [^net.glowstone.util.BlockStateDelegate delegate (net.glowstone.util.BlockStateDelegate.)
          blocks (remove nil? blocks)]
      (when keep-history?
-       (swap! undo-history conj (doall (map block blocks))))
+       (swap! undo-history conj {:before (doall (map block blocks))
+                                 :after blocks}))
      (doseq [{:keys [world x y z data]
               :or {world (world (server))}
               :as block} blocks
@@ -696,20 +698,20 @@
 (defn undo!
   "Undo the last build. Can be repeated to undo multiple builds."
   []
-  (swap! undo-history (fn [[blocks & rest]]
-                        (when blocks
-                          (set-blocks blocks {:keep-history? false})
-                          (swap! redo-history conj blocks))
+  (swap! undo-history (fn [[{:keys [before after] :as op} & rest]]
+                        (when op
+                          (set-blocks before {:keep-history? false})
+                          (swap! redo-history conj op))
                         rest))
   :undo)
 
 (defn redo!
   "Redo the last build that was undone with [[undo!]]"
   []
-  (swap! redo-history (fn [[blocks & rest]]
-                        (when blocks
-                          (set-blocks blocks {:keep-history? false})
-                          (swap! undo-history conj blocks))
+  (swap! redo-history (fn [[{:keys [before after] :as op} & rest]]
+                        (when op
+                          (set-blocks after {:keep-history? false})
+                          (swap! undo-history conj op))
                         rest))
   :redo)
 
