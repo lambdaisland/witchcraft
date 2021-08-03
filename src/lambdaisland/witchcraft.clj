@@ -6,7 +6,7 @@
             [lambdaisland.witchcraft.events :as events]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util])
-  (:import (net.glowstone GlowWorld GlowServer GlowOfflinePlayer)
+  (:import (net.glowstone GlowWorld GlowServer GlowOfflinePlayer ConsoleManager)
            (net.glowstone.block.entity.state GlowDispenser)
            (net.glowstone.chunk ChunkManager)
            (net.glowstone.constants GlowEnchantment GlowPotionEffect)
@@ -162,7 +162,10 @@
   ^GlowServer
   [^ServerConfig config]
   (util/set-static! GlowServer "worldConfig" (WorldConfig. (.getFile config "") (.getFile config "worlds.yml")))
-  (GlowServer. config))
+  (let [server (GlowServer. config)
+        console-manager (.get (util/accessible-field GlowServer "consoleManager") server)]
+    (.set (util/accessible-field ConsoleManager "running") console-manager false)
+    server))
 
 (defn start!
   "Start a server, optionally provided with a map of config options. See [[lambdaisland.witchcraft.config/key-values]]"
