@@ -288,7 +288,7 @@
      :z z
      :material m
      :data (if face-direction?
-             (direction-data material (rotate-dir dir rotate-block) md)
+             (direction-data m (rotate-dir dir rotate-block) md)
              md)}))
 
 (defn apply-matrix
