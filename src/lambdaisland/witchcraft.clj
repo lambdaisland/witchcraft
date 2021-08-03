@@ -511,10 +511,38 @@
   [o]
   [(x o) (y o) (z o)])
 
+(defn set-bed-spawn-location
+  "Set the location where the player will respawn, set `force?` to true to update
+  the spawn location even if there is no valid bed available."
+  ([^Player player loc]
+   (.setBedSpawnLocation player (location loc)))
+  ([^Player player loc force?]
+   (.setBedSpawnLocation player (location loc) force)))
+
 (defn xyz1
   "Like [[xyz]], but add an extra `1` at the end, for affine transformations"
   [o]
   [(x o) (y o) (z o) 1])
+
+(defn health
+  "Get the player's health, a number between 0 and 20"
+  [^Player player]
+  (.getHealth player))
+
+(defn set-health
+  "Set the player's health, a number between 0 and 20"
+  [^Player player health]
+  (.setHealth player health))
+
+(defn food-level
+  "Get the player's food level, a number between 0 and 20"
+  [^Player player]
+  (.getFoodLevel player))
+
+(defn set-food-level
+  "Set the player's food level, a number between 0 and 20"
+  [^Player player food-level]
+  (.setFoodLevel player health))
 
 (extend-protocol PolymorphicFunctions
   Entity
