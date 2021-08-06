@@ -1,18 +1,12 @@
 (ns lambdaisland.witchcraft
-  "Clojure API for Minecraft/Glowstone"
+  "Clojure API for Minecraft/Bukkit"
   (:refer-clojure :exclude [bean time])
   (:require [clojure.java.io :as io]
             [lambdaisland.witchcraft.config :as config]
             [lambdaisland.witchcraft.events :as events]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util])
-  (:import (net.glowstone GlowWorld GlowServer GlowOfflinePlayer ConsoleManager)
-           (net.glowstone.block.entity.state GlowDispenser)
-           (net.glowstone.chunk ChunkManager)
-           (net.glowstone.constants GlowEnchantment GlowPotionEffect)
-           (net.glowstone.io WorldStorageProvider)
-           (net.glowstone.util.config WorldConfig ServerConfig)
-           (org.bukkit Bukkit Material Location World)
+  (:import (org.bukkit Bukkit Material Location World Server)
            (org.bukkit.block Block)
            (org.bukkit.configuration.serialization ConfigurationSerialization)
            (org.bukkit.enchantments Enchantment)
@@ -25,6 +19,19 @@
            (org.bukkit.util Vector)))
 
 (set! *warn-on-reflection* true)
+
+(defn start!
+  "Start an embedded Glowstone server
+
+  Optionally provided with a map of config options.
+  See [[lambdaisland.witchcraft.config/key-values]]"
+  [& args]
+  (apply @(requiring-resolve 'lambdaisland.witchcraft.glowstone/start!) args))
+
+(defn stop!
+  "Stop the embedded Glowstone server"
+  []
+  (@(requiring-resolve 'lambdaisland.witchcraft.glowstone/stop!)))
 
 (declare in-front-of map->Location)
 
@@ -89,7 +96,7 @@
   (^org.bukkit.Location location
    [_] [_ n]
    "Get the location of the given object, or `n` blocks in front of it.")
-  (^net.glowstone.GlowWorld world [_]
+  (^org.bukkit.World world [_]
    "Get the world for a player, by its name, by UUID, etc.")
   (add [this that]
     "Add locations, vectors, etc. That can also be a map of `:x`, `:y`, `:z`")
@@ -107,20 +114,9 @@
   (material-data [_])
   (with-xyz [_ xyz] "Return the same type, but with x/y/z updated"))
 
-;; =============================================================================
-
-(defn init-registrations!
-  "Perform some internal wiring for Glowstone. This populates several
-  global (static) registries"
-  []
-  (ConfigurationSerialization/registerClass GlowOfflinePlayer)
-  (GlowPotionEffect/register)
-  (GlowEnchantment/register)
-  (GlowDispenser/register))
-
 (defn server
   "Get the currently active server."
-  ^GlowServer []
+  ^Server []
   (Bukkit/getServer))
 
 (defn plugin-manager
@@ -129,87 +125,16 @@
   []
   (Bukkit/getPluginManager))
 
-(defn chunk-manager
-  "Get the world's chunk manager"
-  (^ChunkManager []
-   (chunk-manager (world (server))))
-  (^ChunkManager [^GlowWorld world]
-   (.getChunkManager world)))
-
-(defn storage
-  "Get the world's storage"
-  ^WorldStorageProvider []
-  ([]
-   (storage (world (server))))
-  ([world]
-   (.getStorage ^GlowWorld world)))
-
 (defn scheduler
   "The Bukkit scheduler"
   ^BukkitScheduler
   []
   (Bukkit/getScheduler))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Init/exit
-
-(defn create-server
-  "Create a new GlowServer based on a config
-
-  This also sets the static worldConfig field via reflection. When creating a
-  server directly like this (instead of via `createFromArguments`) this
-  otherwise doesn't get set."
-  ^GlowServer
-  [^ServerConfig config]
-  (util/set-static! GlowServer "worldConfig" (WorldConfig. (.getFile config "") (.getFile config "worlds.yml")))
-  (let [server (GlowServer. config)
-        console-manager (.get (util/accessible-field GlowServer "consoleManager") server)]
-    (.set (util/accessible-field ConsoleManager "running") console-manager false)
-    server))
-
-(defn start!
-  "Start a server, optionally provided with a map of config options. See [[lambdaisland.witchcraft.config/key-values]]"
-  ([]
-   (start! nil))
-  ([opts]
-   (if (server)
-     (println "Server already started...")
-     (future
-       (try
-         (init-registrations!)
-         (.run (create-server (if (:config-dir opts)
-                                (config/server-config opts)
-                                (config/data-config opts))))
-         (finally
-           (println ::started)))))))
-
-(defn reset-globals!
-  "Glowstone and Bukkit keep tons of globals, do our best to unset/reset them so
-  it's possible to restart a server without restarting the process."
-  []
-  (util/set-static! Potion "brewer" nil)
-  (util/set-static! Bukkit "server" nil)
-  (util/set-static! GlowServer "worldConfig" nil)
-  (util/set-static! PotionEffectType "acceptingNew" true)
-  (util/set-static! Enchantment "acceptingNew" true)
-  (let [byId (.get (util/accessible-field PotionEffectType "byId") PotionEffectType)
-        byName (.get (util/accessible-field PotionEffectType "byName") PotionEffectType)]
-    (dotimes [i (count byId)]
-      (aset ^"[Lorg.bukkit.potion.PotionEffectType;" byId i nil))
-    (.clear ^java.util.Map byName))
-  (let [byId (.get (util/accessible-field Enchantment "byId") Enchantment)
-        byName (.get (util/accessible-field Enchantment "byName") Enchantment)]
-    (.clear ^java.util.Map byId)
-    (.clear ^java.util.Map byName)))
-
-(defn stop! []
-  (.shutdown ^GlowServer (server))
-  (reset-globals!))
-
 (defn players
   "List all online players"
   []
-  (.getOnlinePlayers ^GlowServer (server)))
+  (.getOnlinePlayers (server)))
 
 (defn player
   "Get a player by name, or simply the first player found."
@@ -224,13 +149,13 @@
   "Get all worlds on the server"
   ([]
    (worlds (server)))
-  ([^GlowServer s]
+  ([^Server s]
    (.getWorlds (server))))
 
 (defn in-front-of
   "Get the location `n` blocks in front of the given location, based on the
   location's direction. Polymorphic, can work with most things that have a
-  location."
+  location. Returns plain data."
   ([loc]
    (in-front-of loc 1))
   ([loc n]
@@ -637,6 +562,7 @@
     (.distance this (as-vec that)))
   (yaw [v] 0)
   (pitch [v] 0)
+  (world [v] )
   (location [l] (location [(x l) (y l) (z l)]))
   (material [l] (material (location l)))
   (material-name [l] (material-name (material l)))
@@ -722,7 +648,7 @@
   (material [m] m)
   (material-name [m] (get material-names m))
 
-  GlowServer
+  Server
   (world [s]
     (first (worlds s))))
 
