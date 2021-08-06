@@ -23,3 +23,9 @@
   (dp/register-pprint type tag to-edn))
 
 (defprint Location 'bukkit/Location #(do [(x %) (y %) (z %) (yaw %) (pitch %) (.getName (world %))]))
+(defprint Block 'bukkit/Block #(do {:x (x %)
+                                    :y (y %)
+                                    :z (z %)
+                                    :world (.getName (world %))
+                                    :material (material-name %)
+                                    :data (material-data %)}))
