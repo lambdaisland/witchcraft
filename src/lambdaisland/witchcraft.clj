@@ -188,6 +188,20 @@
   ([^World world time]
    (.setTime world (+ (.getTime world) time))))
 
+(defn loc
+  "Get the location of a thing, as a clojure map. Can take most objects that have
+  some kind of location, e.g. Location, Player, Vector, Block, Entity. Can also
+  take Clojure maps or vectors, so you can use it to coerce input of unknown
+  type."
+  [obj]
+  (cond-> {:x (x obj)
+           :y (y obj)
+           :z (z obj)
+           :pitch (pitch obj)
+           :yaw (yaw obj)}
+    (world obj)
+    (assoc :world (.getName (world obj)))))
+
 (defn map->Location
   "Convert a map/bean to a Location instance"
   ^Location [{:keys [x y z yaw pitch wrld]
