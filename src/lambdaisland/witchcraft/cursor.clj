@@ -269,7 +269,7 @@
        :north-west 4
        0))
     :else
-    0))
+    data))
 
 (declare rotate-dir)
 
