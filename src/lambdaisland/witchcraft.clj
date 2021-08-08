@@ -1,13 +1,13 @@
 (ns lambdaisland.witchcraft
   "Clojure API for Minecraft/Bukkit"
   (:refer-clojure :exclude [bean time])
-  (:require [clojure.java.io :as io]
-            [lambdaisland.witchcraft.config :as config]
-            [lambdaisland.witchcraft.events :as events]
+  (:require [lambdaisland.witchcraft.events :as events]
+            [clojure.java.io :as io]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util])
-  (:import (org.bukkit Bukkit Material Location World Server)
-           (org.bukkit.block Block)
+  (:import (com.cryptomorin.xseries XMaterial XBlock)
+           (org.bukkit Bukkit Material Location World Server)
+           (org.bukkit.block Block BlockFace)
            (org.bukkit.configuration.serialization ConfigurationSerialization)
            (org.bukkit.enchantments Enchantment)
            (org.bukkit.entity Entity Player HumanEntity)
@@ -20,18 +20,34 @@
 
 (set! *warn-on-reflection* true)
 
-(defn start!
+(defonce server-type nil)
+
+(defn pre-flattening? []
+  (not (XMaterial/supports 13)))
+
+(defn start-glowstone!
   "Start an embedded Glowstone server
 
   Optionally provided with a map of config options.
   See [[lambdaisland.witchcraft.config/key-values]]"
   [& args]
+  (alter-var-root #'server-type (constantly :glowstone))
   (apply @(requiring-resolve 'lambdaisland.witchcraft.glowstone/start!) args))
 
+(defn start-paper!
+  "Start an embedded PaperMC server"
+  [& [gui?]]
+  (alter-var-root #'server-type (constantly :paper))
+  (@(requiring-resolve 'lambdaisland.witchcraft.paper/start!) gui?))
+
 (defn stop!
-  "Stop the embedded Glowstone server"
+  "Stop the embedded server"
   []
-  (@(requiring-resolve 'lambdaisland.witchcraft.glowstone/stop!)))
+  (case server-type
+    :glowstone
+    (@(requiring-resolve 'lambdaisland.witchcraft.glowstone/stop!))
+    :paper
+    (throw (ex-info "stop! not implemented for PaperMC" {}))))
 
 (declare in-front-of map->Location)
 
@@ -41,7 +57,9 @@
     (getDescription []
       (org.bukkit.plugin.PluginDescriptionFile. "Witchcraft" "0.0" ""))
     (isEnabled []
-      true)))
+      true)
+    (getLogger []
+      (java.util.logging.Logger/getLogger "witchcraft"))))
 
 (defonce undo-history (atom ()))
 (defonce redo-history (atom ()))
@@ -66,17 +84,16 @@
   "Map from keyword to EntityType value"
   (util/enum->map org.bukkit.entity.EntityType))
 
-(def materials
-  "Map from keyword to Material value"
-  (util/enum->map org.bukkit.Material))
-
-(def material-names
-  "Map from Material to keyword"
-  (into {} (map (juxt val key)) materials))
+(defonce ^{:doc "Map from keyword to XMaterial value"} materials {})
+(defonce ^{:doc "Map from XMaterial value to keyword"} material-names {})
 
 (def block-faces
   "Map from keyword to BlockFace value"
   (util/enum->map org.bukkit.block.BlockFace))
+
+(def block-face-names
+  "Map from BlockFace value to keyword"
+  (into {} (map (juxt val key)) block-faces))
 
 (def tree-species
   "Map from keyword to TreeSpecies value"
@@ -107,7 +124,7 @@
   (^double z [_])
   (yaw [_])
   (pitch [_])
-  (^org.bukkit.util.Vector direction [_])
+  (^org.bukkit.util.Vector direction-vec [_])
   (^org.bukkit.Material material [_])
   (^Vector as-vec [_] "Coerce to Vector")
   (material-name [_])
@@ -131,7 +148,7 @@
   []
   (Bukkit/getScheduler))
 
-(defn players
+(defn online-players
   "List all online players"
   []
   (.getOnlinePlayers (server)))
@@ -139,11 +156,11 @@
 (defn player
   "Get a player by name, or simply the first player found."
   (^Player []
-   (first (players)))
+   (first (online-players)))
   (^Player [name]
    (some #(when (= name (:name (bean %)))
             %)
-         (players))))
+         (online-players))))
 
 (defn worlds
   "Get all worlds on the server"
@@ -159,7 +176,7 @@
   ([loc]
    (in-front-of loc 1))
   ([loc n]
-   (let [dir (direction loc)]
+   (let [dir (direction-vec loc)]
      (add (location loc) {:x (Math/ceil (* n (x dir)))
                           :y (Math/ceil (* n (y dir)))
                           :z (Math/ceil (* n (z dir)))}))))
@@ -215,84 +232,130 @@
     (.getChunkAt ^World (.getWorld player) ^Location (location player))))
 
 (defn get-block
-  "Get the block at a given location"
+  "Get the block at a given location. Idempotent."
   ^Block [loc]
-  (.getBlockAt ^World (world loc) (x loc) (y loc) (z loc)))
+  (if (instance? Block loc)
+    loc
+    (.getBlockAt ^World (world loc) (x loc) (y loc) (z loc))))
+
+(defn direction
+  "Get the direction of a Block, or of the block at a certain location."
+  [block-or-loc]
+  (let [block (get-block block-or-loc)]
+    (get block-face-names (XBlock/getDirection block))))
+
+(defn block-face
+  "Coerce to BlockFace
+
+  Use to convert keywords like :east/:west/:self to BlockFace instances. Idempotent."
+  ^BlockFace [kw]
+  (if (keyword? kw)
+    (get block-faces kw)
+    kw))
 
 (defn block
   "Get the block at the given location, returns a Clojure map. See [[get-block]]
   if you need the actual block object."
-  [loc]
-  (let [block (get-block loc)]
-    {:x (long (x block))
-     :y (long (y block))
-     :z (long (z block))
-     :material (material-name block)
-     :data (.getData (.getData (.getState block)))}))
+  [block-or-loc]
+  (let [block (get-block block-or-loc)
+        direction (direction block)]
+    (cond-> {:x (long (x block))
+             :y (long (y block))
+             :z (long (z block))
+             :material (material-name block)}
+      (pre-flattening?)
+      (assoc :data (.getData (.getData (.getState block))))
+      (not= :self direction)
+      (assoc :direction direction))))
 
-(defn set-block-direction
+(defmulti -set-direction (fn [server block face] server))
+
+(defmethod -set-direction :default [_ block face]
+  (XBlock/setDirection block face))
+
+(defn set-direction
   "Set the direction of a block, takes a keyword or BlockFace,
   see [[block-faces]]"
-  ([loc dir]
-   (let [block (get-block loc)
-         ^MaterialData data (.getData (.getState block))]
-     (try
-       (.setFacingDirection ^Directional data (if (keyword? dir) (block-faces dir) dir))
-       (.setData block (.getData data))
-       ;; Not all blocks have a direction
-       (catch Exception e)))
-   loc))
+  [loc dir]
+  (prn [loc dir])
+  (let [block (get-block loc)]
+    (-set-direction server-type block (block-face dir)))
+   loc)
+
+(defn xmaterial
+  "Get an XMaterial instance from a keyword, string, Material, or ItemStack, or
+  anything else for which the polymorphic [[material]] method is implemented.
+
+  This is a shim class which provides version-independent material handling."
+  ^XMaterial [m]
+  (cond
+    (keyword? m)
+    (get materials m)
+
+    (instance? Block m)
+    (xmaterial (.getType ^Block m))
+
+    ;; The nonsense we pull to prevent a few reflection warnings...
+    (string? m)
+    (XMaterial/matchXMaterial ^String m)
+
+    (instance? Material m)
+    (XMaterial/matchXMaterial ^Material m)
+
+    (instance? ItemStack m)
+    (XMaterial/matchXMaterial ^ItemStack m)
+
+    :else
+    (XMaterial/matchXMaterial ^Material (material m))))
+
+(defmulti -set-block "Server-specific set-block implementation"
+  (fn [server block material direction] server))
+
+(defmethod -set-block :default [_ block material direction]
+  (let [xmaterial (xmaterial material)]
+    (XBlock/setType block xmaterial))
+  (when direction
+    (set-direction block direction)))
 
 (defn set-block
-  "Set the block at a specific location to a specific material"
+  "Set the block at a specific location to a specific material
+
+  `material` can be a keyword (see [[materials]]), a String like `RED_WOOL` or
+  `WOOL:14`, a bukkit Material, a Bukkit ItemStack, or an xseries XMaterial."
   ([loc]
-   (set-block loc (material loc) (material-data loc)))
+   (set-block loc (material loc)))
   ([loc material]
-   (if (vector? material)
-     (set-block loc (first material) (second material))
-     (set-block loc material nil)))
-  ([loc material data]
-   (swap! undo-history conj {:before [(block loc)]
-                             :after [loc]})
-   (let [material (if (keyword? material)
-                    (get materials material)
-                    material)
-         block (get-block (location loc))]
-     (prn [material data])
-     (if data
-       (.setTypeIdAndData block
-                          (.getId ^Material material)
-                          (if (number? data)
-                            (byte data)
-                            (.getData ^MaterialData data))
-                          true)
-       (.setType block material)))
-   (when (and (map? loc) (:dir loc))
-     (set-block-direction loc))
+   (let [b (get-block loc)]
+     (swap! undo-history conj {:before [(block b)]
+                               :after [loc]})
+     (-set-block server-type b material (when (map? loc) (:direction loc))))
    loc))
 
+(defmulti -set-blocks (fn [server blocks] server))
+
+(defmethod -set-blocks :default [_ blocks]
+  (doseq [{:keys [direction material] :as loc} blocks
+          :let [block (get-block loc)]]
+    (-set-block server-type block material direction)))
+
 (defn set-blocks
-  "Optimized way to set multiple blocks, takes a sequence of maps
-  with :x, :y, :z, :material, and optionally :world and :data."
+  "Set blocks in bulk
+
+  Takes a sequence of maps with :x, :y, :z, :material, and optionally :world
+  and :data.
+
+  Currently only optimized on Glowstone, elsewhere it repeatedly calls [[set-block]]"
   ([blocks]
    (set-blocks blocks {:keep-history? true}))
   ([blocks {:keys [keep-history?]}]
-   (let [^net.glowstone.util.BlockStateDelegate delegate (net.glowstone.util.BlockStateDelegate.)
-         blocks (remove nil? blocks)]
+   (let [blocks (remove nil? blocks)]
      (when keep-history?
        (swap! undo-history conj {:before (doall (map block blocks))
                                  :after blocks}))
-     (doseq [{:keys [world x y z data]
-              :or {world (world (server))}
-              :as block} blocks
-             :let [^Material material (material (:material block))
-                   _ (assert material)
-                   ^MaterialData data (if (number? data) (MaterialData. material (byte data)) data)]]
-       (if data
-         (.setTypeAndData delegate world x y z material data)
-         (.setType delegate world x y z material)))
-     (.updateBlockStates delegate))))
+     (-set-blocks server-type blocks))))
 
+;; TODO: move this elsewhere
+#_
 (defn box
   "Draw a box with width, height, depth of a certain block type"
   [loc [w h d] type]
@@ -365,14 +428,8 @@
 (defn item-stack
   "Create an ItemStack object"
   ^ItemStack [material count]
-  (let [[material data] (if (vector? material)
-                          material
-                          [material])
-        material ^Material (get materials material)
-        stack (ItemStack. material (int count))]
-    (when data
-      (.setData stack (.getNewData material (byte data))))
-    stack))
+  (doto (.parseItem (xmaterial material))
+    (.setAmount count)))
 
 (defn add-inventory
   "Add the named item to the player's inventory, or n copies of it"
@@ -502,7 +559,7 @@
   (^double z [e] (z (location e)))
   (yaw [e] (yaw (location e)))
   (pitch [e] (pitch (location e)))
-  (^org.bukkit.util.Vector direction [e] (direction (location e)))
+  (^org.bukkit.util.Vector direction-vec [e] (direction-vec (location e)))
 
   Block
   (location
@@ -518,17 +575,18 @@
   (z [e] (z (location e)))
   (yaw [e] (yaw (location e)))
   (pitch [e] (pitch (location e)))
-  (^org.bukkit.util.Vector direction [e] (direction (location e)))
+  (^org.bukkit.util.Vector direction-vec [e] (direction-vec (location e)))
   (material [b] (.getType b))
-  (material-name [b] (material-name (material b)))
-  (material-data [b] (.getData (.getData (.getState b))))
+  (material-name [b] (material-name (xmaterial b)))
+  (material-data [b] (when (pre-flattening?)
+                       (.getData (.getData (.getState b)))))
   (add [this that]
     (add (location this) that))
 
   Location
   (location [l] l)
   (as-vec [l] (vec3 (x l) (y l) (z l)))
-  (direction [l] (.getDirection l))
+  (direction-vec [l] (.getDirection l))
   (world [l] (.getWorld l))
   (x [l] (.getX l))
   (y [l] (.getY l))
@@ -550,7 +608,7 @@
   (distance [this that]
     (distance (as-vec this) that))
   (material [l] (material (get-block l)))
-  (material-name [l] (material-name (material l)))
+  (material-name [l] (material-name (xmaterial l)))
   (material-data [l] (material-data (get-block l)))
   (with-xyz [this [x y z]]
     (Location. (world this)
@@ -579,7 +637,7 @@
   (world [v] )
   (location [l] (location [(x l) (y l) (z l)]))
   (material [l] (material (location l)))
-  (material-name [l] (material-name (material l)))
+  (material-name [l] (material-name (xmaterial l)))
   (material-data [l] (material-data (get-block l)))
   (with-xyz [_ [x y z]] (vec3 x y z))
 
@@ -599,10 +657,13 @@
   (location [l] (location [(x l) (y l) (z l)]))
   (material [m] (material (or (.get m :material)
                               (location m))))
-  (material-name [m] (or (.get m :material)
-                         (material-name (material m))))
-  (material-data [m] (or (.get m :data)
-                         (material-data (get-block m))))
+  (material-name [m]
+    (or (.get m :material)
+        (material-name (xmaterial m))))
+  (material-data [m]
+    (when (pre-flattening?)
+      (or (.get m :data)
+          (material-data (get-block m)))))
   (add [this that]
     (-> this
         (update :x + (x that))
@@ -621,7 +682,7 @@
 
   clojure.lang.Keyword
   (material [k]
-    (get materials k))
+    (.parseMaterial (xmaterial k)))
 
   clojure.lang.PersistentVector
   (x [[x _ _]] (or x 0))
@@ -653,14 +714,10 @@
   (as-vec [[x y z]]
     (vec3 x y z))
   (material [v] (material (location v)))
-  (material-name [l] (material-name (material l)))
+  (material-name [l] (material-name (xmaterial l)))
   (material-data [l] (material-data (get-block l)))
   (with-xyz [m [x y z]]
     (assoc m 0 x 1 y 2 z))
-
-  Material
-  (material [m] m)
-  (material-name [m] (get material-names m))
 
   Server
   (world [s]
@@ -669,11 +726,12 @@
 (defn undo!
   "Undo the last build. Can be repeated to undo multiple builds."
   []
-  (swap! undo-history (fn [[{:keys [before after] :as op} & rest]]
-                        (when op
-                          (set-blocks before {:keep-history? false})
-                          (swap! redo-history conj op))
-                        rest))
+  (swap! undo-history
+         (fn [[{:keys [before after] :as op} & rest]]
+           (when op
+             (set-blocks before {:keep-history? false})
+             (swap! redo-history conj op))
+           rest))
   :undo)
 
 (defn redo!
@@ -685,5 +743,25 @@
                           (swap! undo-history conj op))
                         rest))
   :redo)
+
+(defn init-xmaterial!
+  "We can only access the XMaterial class once a Bukkit server is available"
+  []
+  ;; Make sure the clojure compiler doesn't try to access the class either
+  (eval
+   `(when (server)
+     (alter-var-root
+      #'materials
+      (constantly (util/enum->map XMaterial)))
+
+     (alter-var-root
+      #'material-names
+      (constantly
+       (into {} (map (juxt val key)) materials)))
+
+     (extend-type XMaterial
+       PolymorphicFunctions
+       (material [m#] (.parseMaterial m#))
+       (material-name [m#] (get material-names m#))))))
 
 (load "witchcraft/printers")

@@ -1,6 +1,5 @@
 (ns lambdaisland.witchcraft.util
-  (:require [clojure.string :as str])
-  (:import (org.bukkit.util Vector)))
+  (:require [clojure.string :as str]))
 
 (set! *warn-on-reflection* true)
 

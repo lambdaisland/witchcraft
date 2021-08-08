@@ -23,9 +23,13 @@
   (dp/register-pprint type tag to-edn))
 
 (defprint Location 'bukkit/Location #(do [(x %) (y %) (z %) (yaw %) (pitch %) (.getName (world %))]))
-(defprint Block 'bukkit/Block #(do {:x (x %)
-                                    :y (y %)
-                                    :z (z %)
-                                    :world (.getName (world %))
-                                    :material (material-name %)
-                                    :data (material-data %)}))
+(defprint Block 'bukkit/Block #(let [direction (get block-face-names (XBlock/getDirection %))]
+                                 (cond-> {:x (x %)
+                                          :y (y %)
+                                          :z (z %)
+                                          :world (.getName (world %))
+                                          :material (material-name %)}
+                                   (pre-flattening?)
+                                   (assoc :data (material-data %))
+                                   (not= :self direction)
+                                   (assoc :direction direction))))

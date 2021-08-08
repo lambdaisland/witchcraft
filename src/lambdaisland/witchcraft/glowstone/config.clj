@@ -1,4 +1,4 @@
-(ns lambdaisland.witchcraft.config
+(ns lambdaisland.witchcraft.glowstone.config
   "Create and handle Glowstone ServerConfig instances
 
   Generally to configure Glowstone you edit YAML files, but that's not very

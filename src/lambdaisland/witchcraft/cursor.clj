@@ -81,25 +81,6 @@
    :left           6
    :forward-left   7})
 
-(def terracotta-materials
-  "These have their direction as the lower two bits of their data value"
-  #{:gray-glazed-terracotta :yellow-glazed-terracotta :blue-glazed-terracotta :light-blue-glazed-terracotta :lime-glazed-terracotta :magenta-glazed-terracotta :cyan-glazed-terracotta :green-glazed-terracotta :black-glazed-terracotta :purple-glazed-terracotta :white-glazed-terracotta :silver-glazed-terracotta :brown-glazed-terracotta :pink-glazed-terracotta :orange-glazed-terracotta :red-glazed-terracotta})
-
-(def stair-materials
-  "These also have their direction in the lower two bits, but the values differ"
-  #{:birch-wood-stairs :nether-brick-stairs :acacia-stairs :jungle-wood-stairs :cobblestone-stairs :smooth-stairs :purpur-stairs :sandstone-stairs :spruce-wood-stairs :quartz-stairs :brick-stairs :dark-oak-stairs :red-sandstone-stairs :wood-stairs})
-
-(def door-materials
-  "Regular doors"
-  #{:wood-door
-    :jungle-door
-    :iron-door
-    :dark-oak-door
-    :spruce-door
-    :birch-door
-    :wooden-door
-    :acacia-door})
-
 (declare step move)
 
 (defn draw
@@ -128,45 +109,47 @@
          x (Math/round (wc/x l))
          y (Math/round (wc/y l))
          z (Math/round (wc/z l))]
-     {;; The cursor position
-      :x x :y y :z z
-      ;; The direction the cursor is facing (keyword), each step will move in
-      ;; this direction
-      :dir dir
-      ;; The material and material-data we are drawing with
-      :material default-material
-      :data 0
-      ;; Wether the "pen" is down, when this to false steps will move the cursor
-      ;; but not add blocks
-      :draw? true
-      ;; The set of blocks that have been created, as maps with
-      ;; `{:x :y :z :material :data}`, pass this
-      ;; to [[lambdaisland.witchcraft/set-blocks]] (or use [[build]] on the
-      ;; cursor)
-      :blocks wc/EMPTY_BLOCK_SET
-      ;; The center point for linear transformations like reflections,
-      ;; see [[matrices]] and [[apply-matrix]]
-      :origin {:x x :y y :z z}
-      ;; Whether or not we should adjust the direction each block is facing
-      ;; based on the direction on the cursor?
-      :face-direction? true
-      ;; 3x3 matrices that are applied to each block that is placed. When this
-      ;; is set each step causes multiple blocks to be set. Coordinates are
-      ;; shifted before/after each transformation based on the `:origin`
-      :matrices nil
-      ;; Drawing palette, this acts as a lookup table for materials, so you can
-      ;; give aliases to materials, or use abstract/semantic names for them.
-      ;; Values need to be keywords or [keyword byte] pairs (material+data).
-      ;; Keys can be anything. You can use characters as keys and pass strings
-      ;; to [[pattern]] for instance.
-      :palette {}
-      ;; By default the first "step" isn't a step at all, it just sets a block
-      ;; at the cursor's starting position. This tends to be the most intuitive
-      ;; thing in most cases, but if it's not working for your case you can turn
-      ;; it off.
-      :first-step? (:first-step? loc true)
-      ;; Relatively change the rotation of blocks based on the cursor direction
-      :rotate-block 0})))
+     (cond->
+         {;; The cursor position
+          :x x :y y :z z
+          ;; The direction the cursor is facing (keyword), each step will move in
+          ;; this direction
+          :dir dir
+          ;; The material we are drawing with
+          :material default-material
+          ;; Wether the "pen" is down, when this to false steps will move the cursor
+          ;; but not add blocks
+          :draw? true
+          ;; The set of blocks that have been created, as maps with
+          ;; `{:x :y :z :material :data}`, pass this
+          ;; to [[lambdaisland.witchcraft/set-blocks]] (or use [[build]] on the
+          ;; cursor)
+          :blocks wc/EMPTY_BLOCK_SET
+          ;; The center point for linear transformations like reflections,
+          ;; see [[matrices]] and [[apply-matrix]]
+          :origin {:x x :y y :z z}
+          ;; Whether or not we should adjust the direction each block is facing
+          ;; based on the direction on the cursor?
+          :face-direction? true
+          ;; 3x3 matrices that are applied to each block that is placed. When this
+          ;; is set each step causes multiple blocks to be set. Coordinates are
+          ;; shifted before/after each transformation based on the `:origin`
+          :matrices nil
+          ;; Drawing palette, this acts as a lookup table for materials, so you can
+          ;; give aliases to materials, or use abstract/semantic names for them.
+          ;; Values need to be keywords or [keyword byte] pairs (material+data).
+          ;; Keys can be anything. You can use characters as keys and pass strings
+          ;; to [[pattern]] for instance.
+          :palette {}
+          ;; By default the first "step" isn't a step at all, it just sets a block
+          ;; at the cursor's starting position. This tends to be the most intuitive
+          ;; thing in most cases, but if it's not working for your case you can turn
+          ;; it off.
+          :first-step? (:first-step? loc true)
+          ;; Relatively change the rotation of blocks based on the cursor direction
+          :rotate-block 0}
+       (wc/pre-flattening?)
+       (assoc :data 0)))))
 
 (defn excursion
   "Apply a function which adds blocks, then return the cursor to its orginal
@@ -178,98 +161,6 @@
   "Perform a function n times on the cursor"
   [c n f & args]
   (nth (iterate #(apply f % args) c) n))
-
-#_(filter #(.contains (str %) "door") (keys wc/materials))
-#_(:trap-door
-   :acacia-door-item
-   :dark-oak-door-item
-   :jungle-door-item
-   :iron-door-block
-   :spruce-door-item
-   :iron-trapdoor
-   :birch-door-item
-   )
-
-;; Banner (standing/wall)
-
-(defn direction-data [material direction data]
-  (cond
-    (terracotta-materials material)
-    (bit-or
-     (bit-and data 2r11111100)
-     (case direction
-       :down 0
-       :north 0
-       :north-east 0
-       :east 1
-       :south-east 1
-       :south 2
-       :south-west 2
-       :west 3
-       :north-west 3
-       :up 3
-       0))
-
-    (stair-materials material)
-    (bit-or
-     (bit-and data 2r11111100)
-     (case direction
-       :down 4
-       :north 0
-       :north-east 0
-       :east 2
-       :south-east 2
-       :south 1
-       :south-west 1
-       :west 3
-       :north-west 3
-       :up 0
-       0))
-
-    ;; Based on the wiki, but getting errors when actually trying to use banners
-    (= :standing-banner material)
-    (bit-or
-     (bit-and data 2r11110001)
-     (case direction
-       :south 0
-       :south-west 2
-       :west 4
-       :north-west 6
-       :north 8
-       :north-east 10
-       :east 12
-       :south-east 14
-       0))
-
-    (door-materials material)
-    (bit-or
-     (bit-and data 2r11111100)
-     (case direction
-       :north 0
-       :north-east 0
-       :east 1
-       :south-east 1
-       :south 2
-       :south-west 2
-       :west 3
-       :north-west 3
-       0))
-
-    (= :log material)
-    (bit-or
-     (bit-and data 2r11110011)
-     (case direction
-       :north 8
-       :north-east 8
-       :east 4
-       :south-east 4
-       :south 8
-       :south-west 8
-       :west 4
-       :north-west 4
-       0))
-    :else
-    data))
 
 (declare rotate-dir)
 
@@ -283,13 +174,15 @@
   (let [m (get palette material material)
         [m md] (if (vector? m) m [m data])
         md (or md 0)]
-    {:x x
-     :y y
-     :z z
-     :material m
-     :data (if face-direction?
-             (direction-data m (rotate-dir dir rotate-block) md)
-             md)}))
+    (cond->
+        {:x x
+         :y y
+         :z z
+         :material m}
+      face-direction?
+      (assoc :direction (rotate-dir dir rotate-block))
+      data
+      (assoc :data data))))
 
 (defn apply-matrix
   "Apply a single matrix to a single x/y/z map based on the origin."
@@ -529,9 +422,8 @@
   in combination with palette this can also take a string, assuming you've added
   palette entries for the given characters."
   [c pattern]
-  (assoc (reduce (fn [c m] (-> c (material m) (step))) c pattern)
-         :material (:material c)
-         :data (:data c)))
+  (merge (reduce (fn [c m] (-> c (material m) (step))) c pattern)
+         (select-keys c [:material :data])))
 
 (defn translate
   "Move all blocks in the block set, as well as the cursor, by a given offset."

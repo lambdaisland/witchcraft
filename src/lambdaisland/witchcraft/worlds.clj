@@ -1,4 +1,7 @@
 (ns lambdaisland.witchcraft.worlds
+  "Generate new worlds based on simple xyz->material functions
+
+  Quite naive, more a proof of concept."
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft :as wc :refer :all]
             [lambdaisland.witchcraft.util :as util]

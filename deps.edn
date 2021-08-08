@@ -1,14 +1,25 @@
 {:paths ["src" "test" "resources"]
- :deps  {org.clojure/clojure     {:mvn/version "1.10.3"}
-         net.glowstone/glowstone {:mvn/version "2021.7.0-SNAPSHOT"}
-         lambdaisland/data-printers {:mvn/version "0.0.22"}
-         #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
-         }
+ :deps  {org.clojure/clojure            {:mvn/version "1.10.3"}
+         org.clojure/java.classpath     {:mvn/version "1.0.0"}
+         lambdaisland/data-printers     {:mvn/version "0.0.22"}
+         com.github.cryptomorin/XSeries {:mvn/version "8.3.0"}}
 
  :aliases
  {:dev
-  {:extra-paths ["experimental" "repl_sessions"]}}
+  {:extra-paths ["dev" "repl_sessions"]}
+
+  :glowstone
+  {:extra-deps {net.glowstone/glowstone {:mvn/version "2021.7.0-SNAPSHOT"}
+                #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
+                }}
+
+  :papermc
+  {:extra-deps
+   {io.papermc/paper           {:local/root "/home/arne/Downloads/paper-1.17.1-157.jar"}
+    io.papermc.paper/paper-api {:mvn/version "1.17.1-R0.1-SNAPSHOT"}}
+   #_{io.papermc/paperclip {:mvn/version "2.0.1"}}}}
 
  :mvn/repos
  {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
-  "aikar"          {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}}}
+  "aikar"          {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}
+  "papermc"        {:url "https://papermc.io/repo/repository/maven-public/"}}}
