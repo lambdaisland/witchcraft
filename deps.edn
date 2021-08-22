@@ -9,15 +9,17 @@
   {:extra-paths ["dev" "repl_sessions"]}
 
   :glowstone
-  {:extra-deps {net.glowstone/glowstone {:mvn/version "2021.7.0-SNAPSHOT"}
-                #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
-                }}
+  {:extra-deps {net.glowstone/glowstone {:mvn/version "2021.7.0-SNAPSHOT"}}}
+  #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
 
   :papermc
-  {:extra-deps
-   {io.papermc/paper           {:local/root "/home/arne/Downloads/paper-1.17.1-157.jar"}
-    io.papermc.paper/paper-api {:mvn/version "1.17.1-R0.1-SNAPSHOT"}}
-   #_{io.papermc/paperclip {:mvn/version "2.0.1"}}}}
+  {:extra-deps {io.papermc/paper {:local/root "/home/arne/Downloads/paper-1.17.1-157.jar"}}}
+
+  :paperclip
+  {:extra-deps {io.papermc/paperclip {:mvn/version "2.0.1"}}}
+
+  :paper-api
+  {:extra-deps {io.papermc.paper/paper-api {:mvn/version "1.17.1-R0.1-SNAPSHOT"}}}}
 
  :mvn/repos
  {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}

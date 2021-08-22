@@ -1,1 +1,1 @@
-((nil . ((cider-clojure-cli-global-options . "-A:dev:glowstone"))))
+((nil . ((cider-clojure-cli-global-options . "-A:dev:paper-api:build-plugin"))))
