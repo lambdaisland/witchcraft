@@ -541,7 +541,7 @@
 (defn set-food-level
   "Set the player's food level, a number between 0 and 20"
   [^Player player food-level]
-  (.setFoodLevel player health))
+  (.setFoodLevel player food-level))
 
 (extend-protocol PolymorphicFunctions
   Entity
