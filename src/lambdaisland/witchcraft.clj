@@ -1,12 +1,12 @@
 (ns lambdaisland.witchcraft
   "Clojure API for Minecraft/Bukkit"
   (:refer-clojure :exclude [bean time])
-  (:require [lambdaisland.witchcraft.events :as events]
-            [clojure.java.io :as io]
+  (:require [clojure.java.io :as io]
+            [lambdaisland.witchcraft.events :as events]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util])
   (:import (com.cryptomorin.xseries XMaterial XBlock)
-           (org.bukkit Bukkit Material Location World Server)
+           (org.bukkit Bukkit Material Location World Server WorldCreator)
            (org.bukkit.block Block BlockFace)
            (org.bukkit.configuration.serialization ConfigurationSerialization)
            (org.bukkit.enchantments Enchantment)
@@ -21,6 +21,8 @@
 (set! *warn-on-reflection* true)
 
 (defonce server-type nil)
+
+(def ^:dynamic *default-world* nil)
 
 (defn pre-flattening? []
   (not (XMaterial/supports 13)))
@@ -169,6 +171,14 @@
   ([^Server s]
    (.getWorlds (server))))
 
+(defn default-world
+  "World used for commands when no explicit world is given.
+  Uses [[*default-world*]], or the first world on the server."
+  []
+  (if *default-world*
+    (world *default-world*)
+    (world (server))))
+
 (defn in-front-of
   "Get the location `n` blocks in front of the given location, based on the
   location's direction. Polymorphic, can work with most things that have a
@@ -184,16 +194,16 @@
 (defn time
   "Get the current time in the world in ticks."
   ([]
-   (time (world (server))))
+   (time (default-world)))
   ([world]
    (.getTime ^World world)))
 
-(defn set-time
+(defn ^:scheduled set-time
   "Set the time in a world, or the first world on the current server.
   Time is given in ticks, with 20 ticks per second, or 24000 ticks in a
   Minecraft day."
   ([time]
-   (set-time (world (server)) time))
+   (set-time (default-world) time))
   ([^World world time]
    (.setTime world time)))
 
@@ -201,7 +211,7 @@
   "Fast forward the clock, time is given in ticks, with 20 ticks per second, or
   24000 ticks in a Minecraft day."
   ([time]
-   (fast-forward (world (server)) time))
+   (fast-forward (default-world) time))
   ([^World world time]
    (.setTime world (+ (.getTime world) time))))
 
@@ -221,9 +231,14 @@
 
 (defn map->Location
   "Convert a map/bean to a Location instance"
-  ^Location [{:keys [x y z yaw pitch wrld]
-              :or {x 0 y 0 z 0 yaw 0 pitch 0 wrld (server)}}]
-  (Location. (world wrld) x y z yaw pitch))
+  ^Location [{:keys [x y z yaw pitch]
+              :or {x 0 y 0 z 0 yaw 0 pitch 0}
+              :as opts}]
+  (Location. (if-let [w (:world opts)]
+               (world w)
+               (default-world))
+             x y z
+             yaw pitch))
 
 (defn player-chunk
   "Return the chunk the player is in"
@@ -394,13 +409,13 @@
   "Teleport to a given location"
   ([loc]
    (teleport (player) loc))
-  ([^Entity entity loc]
+  ([^Entity entity l]
    (.teleport entity
               (location
-               (if (map? loc)
-                 (merge (bean (.getSpawnLocation (world loc)))
-                        loc)
-                 loc)))))
+               (if (map? l)
+                 (merge (loc entity)
+                        l)
+                 l)))))
 
 (defn fly!
   "Set a player as allowing flight and flying.
@@ -415,10 +430,12 @@
 
 (defn clear-weather
   "Get clear weather"
-  []
-  (doto (world (server))
-    (.setThundering false)
-    (.setStorm false)))
+  ([]
+   (clear-weather (default-world)))
+  ([^World world]
+   (doto world
+     (.setThundering false)
+     (.setStorm false))))
 
 (defn inventory
   "Get the player's inventory"
@@ -618,6 +635,9 @@
                (yaw this)
                (pitch this)))
 
+  World
+  (world [this] this)
+
   Vector
   (as-vec [v] v)
   (x [v] (.getX v))
@@ -654,7 +674,6 @@
     (distance (as-vec this) that))
   (as-vec [m]
     (vec3 (x m) (y m) (z m)))
-  (location [l] (location [(x l) (y l) (z l)]))
   (material [m] (material (or (.get m :material)
                               (location m))))
   (material-name [m]
@@ -690,7 +709,7 @@
   (z [[_ _ z]] (or z 0))
   (yaw [[_ _ _ yaw]] (or yaw 0))
   (pitch [[_ _ _ _ pitch]] (or pitch 0))
-  (world [[_ _ _ _ _ w]] (if w (world w) (world (server))))
+  (world [[_ _ _ _ _ w]] (if w (world w) (default-world)))
   (distance [this that]
     (distance (as-vec this) that))
   (location [[x y z yaw pitch world]]
@@ -750,18 +769,45 @@
   ;; Make sure the clojure compiler doesn't try to access the class either
   (eval
    `(when (server)
-     (alter-var-root
-      #'materials
-      (constantly (util/enum->map XMaterial)))
+      (alter-var-root
+       #'materials
+       (constantly (util/enum->map XMaterial)))
 
-     (alter-var-root
-      #'material-names
-      (constantly
-       (into {} (map (juxt val key)) materials)))
+      (alter-var-root
+       #'material-names
+       (constantly
+        (into {} (map (juxt val key)) materials)))
 
-     (extend-type XMaterial
-       PolymorphicFunctions
-       (material [m#] (.parseMaterial m#))
-       (material-name [m#] (get material-names m#))))))
+      (extend-type XMaterial
+        PolymorphicFunctions
+        (material [m#] (.parseMaterial m#))
+        (material-name [m#] (get material-names m#))))))
+
+(defn world-creator [^String name opts]
+  (reduce
+   (fn [^WorldCreator wc [k v]]
+     (case k
+       ;; TODO: most of these are polymorphic, add type dispatch. For now only
+       ;; supporting most basic/primitive version
+       :biome-provider (.biomeProvider wc ^String v)
+       :copy (.copy wc ^World v)
+       :environment (.environment wc v)
+       :seed (.seed wc v)
+       :structures? (.generateStructures wc v)
+       :generator (.generator wc ^String v)
+       :generator-settings (.generatorSettings wc v)
+       :hardcore? (.hardcore wc v)
+       :type (.type wc v)))
+   (WorldCreator. name)
+   opts))
+
+(defn create-world
+  "Create a new world with a given name and options
+
+  - :seed long
+  - :structures? boolean
+  - :hardcore? boolean"
+  [name opts]
+  (.createWorld (server) (world-creator name opts)))
 
 (load "witchcraft/printers")

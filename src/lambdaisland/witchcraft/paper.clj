@@ -1,5 +1,5 @@
 (ns lambdaisland.witchcraft.paper
-  "Start an embedded Paper server
+  "Start an embedded Paper server, and paper-specific extensions.
 
   To use this you need to download Paper yourself, and start Clojure/JVM with the right args.
 
