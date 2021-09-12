@@ -810,4 +810,16 @@
   [name opts]
   (.createWorld (server) (world-creator name opts)))
 
+(defn fly-speed [^Player player]
+  (.getFlySpeed player))
+
+(defn set-fly-speed [^Player player speed]
+  (.setFlySpeed player speed))
+
+(defn active-potion-effects [^Player player]
+  (.getActivePotionEffects player))
+
+(defn active-item [^Player player]
+  (.getActiveItem player))
+
 (load "witchcraft/printers")
