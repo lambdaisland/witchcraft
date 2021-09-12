@@ -5,10 +5,13 @@
 - Support for PaperMC, see `start-paper!` and `lambdaisland.witchcraft.paper`.
   This means you have now the option to use Witchcraft with a fully up-to-date
   1.17.1 version of Minecraft
+- A cross-server/cross-version plugin for easier getting started, see [https://github.com/lambdaisland/witchcraft-plugin](lambdaisland/witchcraft-plugin)
 - Support for flattened blocks/materials, using XSeries
 - `loc`, like `location`, but returns a Clojure map instead of a bukkit `Location`
 - `xmaterial` to coerce to an XSeries `XMaterial` instance
 - added a printer implementation for `bukkit/Block`
+- Palette/gradient helpers (see `lambdaisland.witchcraft.palette`
+- nREPL middleware to dispatch evaluations on the main server thread
 
 ## Fixed
 
