@@ -108,4 +108,4 @@
                                         (inc (Math/abs (- i layer)))
                                         3))])
                              palette)]
-      (rand-pallette probs))))
+      (rand-palette probs))))
