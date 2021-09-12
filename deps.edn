@@ -1,6 +1,7 @@
 {:paths ["src" "test" "resources"]
  :deps  {org.clojure/clojure            {:mvn/version "1.10.3"}
-         org.clojure/java.classpath     {:mvn/version "1.0.0"}
+         lambdaisland/classpath     {:git/url "https://github.com/lambdaisland/classpath"
+                                     :git/sha "d80cfc0e3955fc3f1b79da8d49524ae32d2e7865"}
          lambdaisland/data-printers     {:mvn/version "0.0.22"}
          com.github.cryptomorin/XSeries {:mvn/version "8.3.0"}
          clojure2d/clojure2d            {:mvn/version "1.4.3"}}

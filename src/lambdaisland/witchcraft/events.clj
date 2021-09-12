@@ -2,18 +2,42 @@
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util]
-            [clojure.java.classpath :as cp]
+            [lambdaisland.classpath :as licp]
             [clojure.string :as str])
   (:import (java.util.jar JarFile JarEntry)
-           (org.bukkit Bukkit)))
+           (org.bukkit Bukkit)
+           (org.bukkit.event.block Action)))
 
-(def event-classes (sequence
-                    (comp
-                     (mapcat #(iterator-seq (.entries ^JarFile %)))
-                     (map #(.getName ^JarEntry %))
-                     (filter #(re-find #"(bukkit|paper|spigot).*event.*Event\.class" %))
-                     (map #(-> % (str/replace #"/" ".") (str/replace #".class$" ""))))
-                    (cp/classpath-jarfiles)))
+(defn inject-bukkit-jar!
+  "Needed for paper (possibly others). Paper uses Java Agent voodoo to put the
+  patched mojang jar on the classpath, but that means we have no accessible way
+  to \"see\" it on the classpath. ApplicationClassLoader does not expose its
+  urls, and Paperclip does not update the property which we check instead. So we
+  add it to \"our\" classloader (Clojure's dynamicclassloader), so
+  licp/find-resource can do its work."
+  []
+  (.addURL (licp/root-loader)
+           (java.net.URL.
+            (str/replace
+             (str/replace
+              (str (.getResource
+                    (.getClassLoader (Class/forName "org.bukkit.Bukkit"))
+                    "org/bukkit/Bukkit.class"))
+              #"!/.*" "")
+             #"^jar:" ""))))
+
+(defn find-event-classes []
+  (licp/find-resources #"(bukkit|paper|spigot).*event.*Event\.class"))
+
+(def event-classes
+  (let [classes (find-event-classes)
+        classes (if (empty? classes)
+                  (do
+                    (inject-bukkit-jar!)
+                    (find-event-classes))
+                  classes)]
+    (map #(-> % (str/replace #"/" ".") (str/replace #".class$" ""))
+         classes)))
 
 (defn class->kw [name]
   (-> name
@@ -35,6 +59,8 @@
      (if (class? event)
        event
        (Class/forName (get events event))))))
+
+(def actions (into {} (map (juxt val key)) (util/enum->map Action)))
 
 (def priority (util/enum->map org.bukkit.event.EventPriority))
 
@@ -66,7 +92,10 @@
                     (reify org.bukkit.plugin.EventExecutor
                       (execute [this listener event]
                         (try
-                          (f (bean event))
+                          (let [e (bean event)]
+                            (f (cond-> e
+                                 (:action e)
+                                 (update :action actions))))
                           (catch Throwable t
                             (println "Error in event handler" event k t)))))
                     (proxy [org.bukkit.plugin.PluginBase] []

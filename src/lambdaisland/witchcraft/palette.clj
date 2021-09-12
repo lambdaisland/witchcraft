@@ -53,6 +53,20 @@
                  (c/delta-e-cie c2 color1))))
            (select-keys @material-colors (block-materials))))))
 
+(defn distance [m1 m2]
+  (let [[s1 s2] (get @material-colors m1)
+        [e1 e2] (get @material-colors m2)
+        d1 (+ (c/delta-e-cie s1 e1)
+              (c/delta-e-cie s2 e2))
+        d2 (+ (c/delta-e-cie s1 e2)
+              (c/delta-e-cie s2 e1))]
+    (if (< d2 d1) d2 d1)))
+
+(comment
+  (distance :cobblestone :stone) ;; 15.108876181814015
+  (distance :red-glazed-terracotta :emerald-block) ;; 214.6447281120871
+  )
+
 (defn material-gradient
   "Given a start material, an end material, and a number of steps, generate a
   sequence of block materials that form a gradient."
@@ -109,3 +123,16 @@
                                         3))])
                              palette)]
       (rand-palette probs))))
+
+(defn neighbors
+  "Get materials that are close in color to the given material.
+  Returns a seq of all materials with their score, sorted from best match to
+  worst."
+  [material]
+  (sort-by last
+           (map (juxt identity #(distance material %))
+                (remove #{material}
+                        (block-materials)))))
+
+(comment
+  (neighbors :deepslate))

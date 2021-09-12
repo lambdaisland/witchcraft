@@ -292,10 +292,9 @@
   "Set the direction of a block, takes a keyword or BlockFace,
   see [[block-faces]]"
   [loc dir]
-  (prn [loc dir])
   (let [block (get-block loc)]
     (-set-direction server-type block (block-face dir)))
-   loc)
+  loc)
 
 (defn xmaterial
   "Get an XMaterial instance from a keyword, string, Material, or ItemStack, or
