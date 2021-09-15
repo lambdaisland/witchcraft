@@ -1,12 +1,12 @@
 (ns lambdaisland.witchcraft
   "Clojure API for Minecraft/Bukkit"
-  (:refer-clojure :exclude [bean time])
+  (:refer-clojure :exclude [bean time chunk])
   (:require [clojure.java.io :as io]
             [lambdaisland.witchcraft.events :as events]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util])
   (:import (com.cryptomorin.xseries XMaterial XBlock)
-           (org.bukkit Bukkit Material Location World Server WorldCreator)
+           (org.bukkit Bukkit Chunk Material Location World Server WorldCreator)
            (org.bukkit.block Block BlockFace)
            (org.bukkit.configuration.serialization ConfigurationSerialization)
            (org.bukkit.enchantments Enchantment)
@@ -82,7 +82,7 @@
 
 ;; ================================================================================
 
-(def entities
+(def entity-types
   "Map from keyword to EntityType value"
   (util/enum->map org.bukkit.entity.EntityType))
 
@@ -117,10 +117,8 @@
    "Get the location of the given object, or `n` blocks in front of it.")
   (^org.bukkit.World world [_]
    "Get the world for a player, by its name, by UUID, etc.")
-  (add [this that]
+  (-add [this that]
     "Add locations, vectors, etc. That can also be a map of `:x`, `:y`, `:z`")
-  (distance [this that]
-    "Get the distance between locations/vectors/entities")
   (^double x [_])
   (^double y [_])
   (^double z [_])
@@ -128,10 +126,12 @@
   (pitch [_])
   (^org.bukkit.util.Vector direction-vec [_])
   (^org.bukkit.Material material [_])
-  (^Vector as-vec [_] "Coerce to Vector")
+  (^Vector as-vec [_] "Coerce to org.bukkit.util.Vector")
   (material-name [_])
   (material-data [_])
-  (with-xyz [_ xyz] "Return the same type, but with x/y/z updated"))
+  (with-xyz [_ xyz] "Return the same type, but with x/y/z updated")
+  (^Chunk chunk [_] "Retrieve the chunk for a location, entity, etc.")
+  (entities [_] "Get the chunk's entities"))
 
 (defn server
   "Get the currently active server."
@@ -187,7 +187,7 @@
    (in-front-of loc 1))
   ([loc n]
    (let [dir (direction-vec loc)]
-     (add (location loc) {:x (Math/ceil (* n (x dir)))
+     (-add (location loc) {:x (Math/ceil (* n (x dir)))
                           :y (Math/ceil (* n (y dir)))
                           :z (Math/ceil (* n (z dir)))}))))
 
@@ -362,7 +362,15 @@
   ([blocks]
    (set-blocks blocks {:keep-history? true}))
   ([blocks {:keys [keep-history?]}]
-   (let [blocks (remove nil? blocks)]
+   (let [blocks (->> blocks
+                     (remove nil?)
+                     (map (fn [b]
+                            (if (map? b)
+                              b
+                              {:x (x b)
+                               :y (y b)
+                               :z (z b)
+                               :material (material-name b)}))))]
      (when keep-history?
        (swap! undo-history conj {:before (doall (map block blocks))
                                  :after blocks}))
@@ -394,7 +402,7 @@
     (.spawnEntity (world loc)
                   loc
                   ^Entity (if (keyword? entity)
-                            (get entities entity)
+                            (get entity-types entity)
                             entity))))
 
 (defn game-mode
@@ -515,7 +523,7 @@
   (.runTaskLater (scheduler) plugin f ticks))
 
 (defn vec3
-  "Create a vector instance"
+  "Create a org.bukkit.util.Vector instance"
   ^Vector [^double x ^double y ^double z]
   (Vector. x y z))
 
@@ -526,6 +534,23 @@
   [o]
   [(x o) (y o) (z o)])
 
+(defn xyz1
+  "Like [[xyz]], but add an extra `1` at the end, for affine transformations"
+  [o]
+  [(x o) (y o) (z o) 1])
+
+(defn distance
+  "Get the euclidian distance between two locations. Can take various bukkit
+  objects (Location, Block, Vector), as well as Clojure vectors `[x y z]` or
+  maps `{:x x :y y :z z}`, and any combination thereof."
+  [this that]
+  (let [[^double x1 ^double y1 ^double z1] (xyz this)
+        [^double x2 ^double y2 ^double z2] (xyz that)]
+    (Math/sqrt
+     (+ (Math/pow (- x2 x1) 2)
+        (Math/pow (- y2 y1) 2)
+        (Math/pow (- z2 z1) 2)))))
+
 (defn set-bed-spawn-location
   "Set the location where the player will respawn, set `force?` to true to update
   the spawn location even if there is no valid bed available."
@@ -533,11 +558,6 @@
    (.setBedSpawnLocation player (location loc)))
   ([^Player player loc force?]
    (.setBedSpawnLocation player (location loc) force)))
-
-(defn xyz1
-  "Like [[xyz]], but add an extra `1` at the end, for affine transformations"
-  [o]
-  [(x o) (y o) (z o) 1])
 
 (defn health
   "Get the player's health, a number between 0 and 20"
@@ -596,8 +616,8 @@
   (material-name [b] (material-name (xmaterial b)))
   (material-data [b] (when (pre-flattening?)
                        (.getData (.getData (.getState b)))))
-  (add [this that]
-    (add (location this) that))
+  (-add [this that]
+    (-add (location this) that))
 
   Location
   (location [l] l)
@@ -609,7 +629,7 @@
   (z [l] (.getZ l))
   (yaw [l] (.getYaw l))
   (pitch [l] (.getPitch l))
-  (add ^Location [this that]
+  (-add ^Location [this that]
     (Location. (world this)
                (+ (x this)
                   (x that))
@@ -621,8 +641,6 @@
                   (yaw that))
                (+ (pitch this)
                   (pitch that))))
-  (distance [this that]
-    (distance (as-vec this) that))
   (material [l] (material (get-block l)))
   (material-name [l] (material-name (xmaterial l)))
   (material-data [l] (material-data (get-block l)))
@@ -633,6 +651,8 @@
                z
                (yaw this)
                (pitch this)))
+  (chunk [this]
+    (.getChunk this))
 
   World
   (world [this] this)
@@ -642,15 +662,13 @@
   (x [v] (.getX v))
   (y [v] (.getY v))
   (z [v] (.getZ v))
-  (add ^Vector [this that]
+  (-add ^Vector [this that]
     (Vector. (+ (x this)
                 (x that))
              (+ (y this)
                 (y that))
              (+ (z this)
                 (z that))))
-  (distance [this that]
-    (.distance this (as-vec that)))
   (yaw [v] 0)
   (pitch [v] 0)
   (world [v] )
@@ -669,8 +687,6 @@
   (world [m] (world (location m)))
   (location [m] (or (.get m :location)
                     (map->Location m)))
-  (distance [this that]
-    (distance (as-vec this) that))
   (as-vec [m]
     (vec3 (x m) (y m) (z m)))
   (material [m] (material (or (.get m :material)
@@ -682,13 +698,15 @@
     (when (pre-flattening?)
       (or (.get m :data)
           (material-data (get-block m)))))
-  (add [this that]
+  (-add [this that]
     (-> this
         (update :x + (x that))
         (update :y + (y that))
         (update :z + (z that))))
   (with-xyz [m [x y z]]
     (assoc m :x x :y y :z z))
+  (chunk [this]
+    (chunk (location this)))
 
   String
   (world [s]
@@ -702,25 +720,29 @@
   (material [k]
     (.parseMaterial (xmaterial k)))
 
+  ;; Vectors can be used in two ways
+  ;; [x y z yaw pitch world]
+  ;; [x y z material]
+  ;; Elements at the end can be omitted. If the fourth element
+  ;; is a number it's considered a yaw, if it's a keyword it's considered a
+  ;; material-name
   clojure.lang.PersistentVector
   (x [[x _ _]] (or x 0))
   (y [[_ y _]] (or y 0))
   (z [[_ _ z]] (or z 0))
-  (yaw [[_ _ _ yaw]] (or yaw 0))
+  (yaw [[_ _ _ yaw]] (if (number? yaw) yaw 0) 0)
   (pitch [[_ _ _ _ pitch]] (or pitch 0))
   (world [[_ _ _ _ _ w]] (if w (world w) (default-world)))
-  (distance [this that]
-    (distance (as-vec this) that))
   (location [[x y z yaw pitch world]]
     (map->Location (into {}
                          (remove (comp nil? val))
                          {:x x
                           :y y
                           :z z
-                          :yaw yaw
+                          :yaw (when (number? yaw) yaw)
                           :pitch pitch
                           :world world})))
-  (add [this that]
+  (-add [this that]
     (into []
           (take (count this))
           [(+ (x this) (x that))
@@ -731,15 +753,27 @@
            (world this)]))
   (as-vec [[x y z]]
     (vec3 x y z))
-  (material [v] (material (location v)))
-  (material-name [l] (material-name (xmaterial l)))
-  (material-data [l] (material-data (get-block l)))
+  (material-name [[_ _ _ m]] (when (keyword? m) m))
+  (material [[_ _ _ m]] (when (keyword? m) (material m)))
   (with-xyz [m [x y z]]
     (assoc m 0 x 1 y 2 z))
+  (chunk [this]
+    (chunk (location this)))
 
   Server
   (world [s]
-    (first (worlds s))))
+    (first (worlds s)))
+
+  Chunk
+  (entities [c]
+    (seq (.getEntities c)))
+  (x [c]
+    (.getX c))
+  (y [c])
+  (z [c]
+    (.getZ c))
+  (world [c]
+    (.getWorld c)))
 
 (defn undo!
   "Undo the last build. Can be repeated to undo multiple builds."
@@ -820,5 +854,13 @@
 
 (defn active-item [^Player player]
   (.getActiveItem player))
+
+(defn add
+  "Add multiple vector/location-like things together.
+  Returns a value with the same type of the first argument."
+  ([this that]
+   (-add this that))
+  ([this that & more]
+   (reduce -add (-add this that) more)))
 
 (load "witchcraft/printers")

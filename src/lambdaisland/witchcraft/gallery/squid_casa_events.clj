@@ -7,7 +7,8 @@
 (e/listen! :player-interact
            ::beam-me-up
            (fn [{:keys [clickedBlock player action]}]
-             (when (and (= :stone-button
+             (when (and clickedBlock
+                        (= :stone-button
                            (wc/material-name clickedBlock))
                         (= :right-click-block action))
                (case (wc/xyz clickedBlock)

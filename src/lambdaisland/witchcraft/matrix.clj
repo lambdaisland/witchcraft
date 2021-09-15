@@ -21,8 +21,10 @@
   Arguments can be Clojure maps (:x/:y/:z), vectors, or Glowstone Location or
   Vector instances. The return type is the type of `a`.
   "
-  [a b]
-  (wc/with-xyz a (mapv - (wc/xyz a) (wc/xyz b))))
+  ([a]
+   (wc/with-xyz a (mapv - (wc/xyz a))))
+  ([a b]
+   (wc/with-xyz a (mapv - (wc/xyz a) (wc/xyz b)))))
 
 (defn v+
   "Vector addition
@@ -41,6 +43,16 @@
   instance. Returns the same type as `v`."
   [v s]
   (wc/with-xyz v (map (partial * s) v)))
+
+(defn vlength
+  "Vector length"
+  [v]
+  (wc/distance [0 0 0] v))
+
+(defn vnorm
+  "Normalize a vector to be length=1"
+  [v]
+  (v* v (/ 1 (vlength v))))
 
 (defn m*
   "Multiply a matrix with a scalar"
