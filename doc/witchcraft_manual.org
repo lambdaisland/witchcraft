@@ -393,20 +393,78 @@ You spawn on a tiny island in the sky with nothing but a single tree and a few
 random resources, and need to survive, eventually building up shelter and food
 production.
 
-*** Build wars
+*** Build Wars
 
 Groups of players are tasked with building a specific item or structure within a
 set time limit. Once time is up players rate each other's creations.
 
-* Tutorial
+*** Bed Wars
 
-* API overview
+Popular game where groups of players need to try to destroy the bed of another
+group, while protecting their own
 
-| Class                  | Clojure                       | Java      |
-|------------------------+-------------------------------+-----------|
-| org.bukkit.Location    | loc                           | location  |
-| org.bukkit.Material    | material-name / material-data | material  |
-| org.bukkit.block.Block | block                         | get-block |
+* Learning to code with Witchcraft
+
+The ~lambdaisland.witchcraft~ namespace provides the main API. It's a lot like
+~clojure.core~ in that it contains lots and lots of different utility functions
+which are fairly low level.
+
+Other namespaces provide higher level APIs to do specific things.
+
+- ~lambdaisland.witchcraft.cursor~ Use cursor/turtle style movements to draw.
+- ~lambdaisland.witchcraft.shapes~ Build predefined shapes like rectangles, circles, or cylinders.
+- ~lambdaisland.witchcraft.palette~ Helpers for constructing your block/color palette.
+- ~lambdaisland.witchcraft.matrix~ Matrix manipulations, to rotate, scale, etc.
+- ~lambdaisland.witchcraft.events~ Register event handler to add custom behavior.
+
+Witchcraft tries its best to be convenient and forgiving, and to make the
+interop between Clojure and the Java classes provided by Bukkit as seemless as
+possible. This means that functions can generally accept multiple types of
+input. For instance, if a function expects you to provide a location (x/y/z
+coordinates), then you can generally pass in
+
+- a Clojure vector: ~[x y z]~
+- a Clojure map: ~{:x x :y y :z z}~
+- a ~org.bukkit.Location~ object
+- a ~org.bukkit.util.Vector~ object
+- a ~org.bukkit.block.Block~ object
+
+The return value of a function on the other hand is always of a fixed type. If
+you want to use the return value in Clojure then you call the function that
+returns a Clojure value, if you want to use the return value to do interop then
+you ask for the specific Bukkit object you need.
+
+For example:
+
+#+begin_src clojure
+(wc/block [0 0 0])
+;;=> {:x 0, :y 0, :z 0, :material :bedrock}
+
+(wc/get-block [0 0 0])
+;;=> #bukkit/Block {:x 0.0, :y 0.0, :z 0.0, :world "world", :material :bedrock}
+#+end_src
+
+As another example take the ~material~ function, which converts its argument to
+a ~org.bukkit.Material~. It can handle these cases:
+
+- ~Block~ object: get the block's material 
+- keyword: get the material with that name
+- map: get the ~:material~ key and convert it to a ~Material~
+- vector: take the fourth element (~[x y z material]~) and convert it to a ~Material~
+- ~Material~: return the argument
+
+This may seem like a lot to remember, but luckily you don't have to. All you
+need to remember is that if you a ~Material~ then you call the ~material~
+function to get it, and it will generally do the right thing.
+
+| Class                    | Returns Clojure Value         | Returns Bukkit Object |
+|--------------------------+-------------------------------+-----------------------|
+| org.bukkit.Location      | loc / xyz                     | location              |
+| org.bukkit.Material      | material-name / material-data | material              |
+| org.bukkit.block.Block   | block                         | get-block             |
+| org.bukkit.util.Vector   | loc / xyz                     | as-vec                |
+| org.bukkit.entity.Entity |                               |                       |
+| org.bukkit.entity.Player |                               | player                |
 
 * Topics
 
