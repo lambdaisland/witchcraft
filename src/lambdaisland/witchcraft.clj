@@ -118,10 +118,12 @@
 ;; lookups. By using these in other functions we can accept a large range of
 ;; inputs, including both Glowstone/Bukkit objects and Clojure maps.
 (defprotocol PolymorphicFunctions
+  ;; Keep these classnames fully qualified, Clojure doesn't like it otherwise
+  ;; when called from namespaces where these are not imported.
   (^org.bukkit.Location location
    [_] [_ n]
    "Get the location of the given object, or `n` blocks in front of it.")
-  (^World world [_]
+  (^org.bukkit.World world [_]
    "Get the world for a player, by its name, by UUID, etc.")
   (-add [this that]
     "Add locations, vectors, etc. That can also be a map of `:x`, `:y`, `:z`")
@@ -130,13 +132,13 @@
   (^double z [_])
   (yaw [_])
   (pitch [_])
-  (^Vector direction-vec [_])
-  (^Material material [_])
-  (^Vector as-vec [_] "Coerce to org.bukkit.util.Vector")
+  (^org.bukkit.util.Vector direction-vec [_])
+  (^org.bukkit.Material material [_])
+  (^org.bukkit.util.Vector as-vec [_] "Coerce to org.bukkit.util.Vector")
   (material-name [_])
   (material-data [_])
   (with-xyz [_ xyz] "Return the same type, but with x/y/z updated")
-  (^Chunk chunk [_] "Retrieve the chunk for a location, entity, etc.")
+  (^org.bukkit.Chunk chunk [_] "Retrieve the chunk for a location, entity, etc.")
   (entities [_] "Get the chunk's entities"))
 
 (defn server
