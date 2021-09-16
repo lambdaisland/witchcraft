@@ -49,6 +49,16 @@
   [v]
   (wc/distance [0 0 0] v))
 
+(defn manhatten
+  "Manhatten distance"
+  [x y]
+  (reduce + (map #(Math/abs (- %1 %2)) (wc/xyz x) (wc/xyz y))))
+
+(defn chebyshev
+  "Chebyshev (maximum metric) distance"
+  [x y]
+  (apply max (map #(Math/abs (- %1 %2)) (wc/xyz x) (wc/xyz y))))
+
 (defn vnorm
   "Normalize a vector to be length=1"
   [v]

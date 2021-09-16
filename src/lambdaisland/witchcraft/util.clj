@@ -17,3 +17,16 @@
 
 (defn set-static! [klz field val]
   (set-field! klz field klz val))
+
+(defn dasherize
+  "Converts an underscored or camelized string
+  into an dasherized one."
+  [s]
+  (when s
+    (-> s
+        (str/replace #"([A-Z][a-z]+)" (fn [[match c]]
+                                        (if c (str "-" (str/lower-case c)) "")))
+        (str/replace #"([A-Z]+)" "-$1")
+        (str/replace #"[-_\s]+" "-")
+        (str/replace #"^-" "")
+        (str/replace #"-$" ""))))

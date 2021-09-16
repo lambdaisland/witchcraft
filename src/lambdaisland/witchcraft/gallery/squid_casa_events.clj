@@ -8,8 +8,7 @@
            ::beam-me-up
            (fn [{:keys [clickedBlock player action]}]
              (when (and clickedBlock
-                        (= :stone-button
-                           (wc/material-name clickedBlock))
+                        (= :stone-button (wc/material-name clickedBlock))
                         (= :right-click-block action))
                (case (wc/xyz clickedBlock)
                  ;; up
@@ -21,10 +20,9 @@
                                       :yaw -179})
                  ;; down
                  [695.0 105.0 -834.0]
-                 (wc/teleport player {:x 690.4144080426516,
-                                      :y 65.5,
-                                      :z -844.6999999880791,
-                                      :pitch -2.6994934,
-                                      :yaw 176.85172,
-                                      :world "world"})
+                 (wc/teleport player {:x 690.4144080426516
+                                      :y 65.5
+                                      :z -844.6999999880791
+                                      :pitch -2.6994934
+                                      :yaw 176.85172})
                  nil))))
