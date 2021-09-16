@@ -5,7 +5,7 @@
 (defn ball-fn
   "Return a predicate that checks if the location is part of the ball."
   [{:keys [radius center inner-radius]
-    :or {inner-radius (- radius 1.5)
+    :or {inner-radius (- radius 1)
          center [0 0 0]}}]
   (let [[cx cy cz] (wc/xyz center)]
     (fn self
@@ -55,18 +55,25 @@
 
   Returns a sequence of `[x y z]` or `[x y z material]`, to be passed
   to [[wc/set-blocks]]."
-  [{:keys [radius center inner-radius material]
+  [{:keys [radius center inner-radius material fill]
     :as opts}]
   (let [pred (ball-fn opts)]
-    (for [loc (map #(wc/add %
-                            center
-                            [(- radius) (- radius) (- radius)])
-                   (box {:east-west-length (inc (* radius 2))
-                         :north-south-length (inc (* radius 2))
-                         :height (inc (* radius 2))
-                         :material material}))
-          :when (pred loc)]
-      loc)))
+    (concat
+     (for [loc (map #(wc/add %
+                             center
+                             [(- radius) (- radius) (- radius)])
+                    (box {:east-west-length (inc (* radius 2))
+                          :north-south-length (inc (* radius 2))
+                          :height (inc (* radius 2))
+                          :material material}))
+           :when (pred loc)]
+       loc)
+     (when fill
+       (ball (assoc opts
+                    :radius (or inner-radius (- radius 1))
+                    :inner-radius 0
+                    :material fill
+                    :fill nil))) )))
 
 (defn line
   "Draw a straight line between two points.
