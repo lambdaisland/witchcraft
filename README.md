@@ -4,121 +4,72 @@
 [![cljdoc badge](https://cljdoc.org/badge/com.lambdaisland/witchcraft)](https://cljdoc.org/d/com.lambdaisland/witchcraft) [![Clojars Project](https://img.shields.io/clojars/v/com.lambdaisland/witchcraft.svg)](https://clojars.org/com.lambdaisland/witchcraft)
 <!-- /badges -->
 
-Clojure API for Minecraft/Glowstone/Bukkit
-
-Under the hood this project uses the
-[GlowstoneMC](https://github.com/GlowstoneMC/Glowstone) open source minecraft
-server and wraps the [Bukkit](https://github.com/Bukkit/Bukkit) modding API.
-
-Note that the API is not meant to be exhaustive, it will likely still grow, as
-well as evolve. We are growing this library literally by playing with it, trying
-to bend Glowstone to our will, following our fancy. That means we aren't
-committed to quite the same level of backwards compatibility as we are with our
-"serious" projects. That said once Witchcraft reaches a certain degree of
-adoption we'll think twice about making breaking changes.
-
-As we go on we experiment with different approaches and try to make things
-better. When in doubt just pin yourself to a specific version and have fun with
-that! With cljdoc you should be able to find the docs for the version you are
-running.
+Clojure API for [Bukkit](https://github.com/Bukkit/Bukkit)-based Minecraft
+servers (Spigot/Paper/Glowstone)
 
 ## Features
 
-- Start a Minecraft server from your Clojure REPL
 - Create and control world, blocks, creatures, players, etc
 - Handle events and create custom interactions
-- Generate landscape and buildings with a cursor/turtle style API
+- Cursor/turtle API
+- Shapes API
+- Vector/Matrix transformation API
+- Palette/Color API
 
 <!-- installation -->
 ## Installation
 
-To use the latest release, add the following to your `deps.edn` ([Clojure CLI](https://clojure.org/guides/deps_and_cli))
+There are two ways to use Witchcraft, for most cases the best option is using
+the [Witchcraft Plugin](https://github.com/lambdaisland/witchcraft-plugin). This
+provides a REPL connection, and the ability to load Clojure libraries. Download
+the plugin jar for your server and start playing.
 
-```
-com.lambdaisland/witchcraft {:mvn/version "0.0.28"}
-```
+You can also start a Clojure REPL yourself, and then start a Minecraft server
+from there. If you are already familiar with a Clojure workflow then maybe this
+is the more convenient way to get started. This works best with Glowstone, since
+then you don't have to worry about patching proprietary code or agreeing to the
+EULA.
 
-or add the following to your `project.clj` ([Leiningen](https://leiningen.org/))
-
-```
-[com.lambdaisland/witchcraft "0.0.28"]
-```
-<!-- /installation -->
-
-You should also add some extra maven repos for getting Glowstone:
-
-```clojure
-;; deps.edn
-{:deps {...}
- :mvn/repos
- {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
-  "aikar"          {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}}
-  
-;; or project.clj
-(defproject ...
-  :repositories {"glowstone-repo" "https://repo.glowstone.net/content/repositories/snapshots/"
-                 "aikar" "https://repo.aikar.co/nexus/content/repositories/aikar-release/"})
-```
-
-With that you can now start Witchcraft. Note that you **should not download and
-run Glowstone itself**, the above is all you need. We'll run the Glowstone
-server directly inside the Clojure REPL process.
 
 ## Rationale
 
-Most Minecraft "servers" are really just modifications or extensions of the
-proprietary server software from Mojang. This means no source of developer docs
-are available, and writing extensions often involves using reflection and using
-obfuscated, cryptic method names. It also means elaborate hacks are involved in
-launching the server, and patching the software.
+<!-- Most Minecraft "servers" are really just modifications or extensions of the -->
+<!-- proprietary server software from Mojang. This means no source of developer docs -->
+<!-- are available, and writing extensions often involves using reflection and using -->
+<!-- obfuscated, cryptic method names. It also means elaborate hacks are involved in -->
+<!-- launching the server, and patching the software. -->
 
-Glowstone on the other hand is a truly open source Minecraft server written from
-scratch, making it much easier to deal with. We can simply add it to a project
-as another dependency, and start and control the server from the REPL.
+<!-- Glowstone on the other hand is a truly open source Minecraft server written from -->
+<!-- scratch, making it much easier to deal with. We can simply add it to a project -->
+<!-- as another dependency, and start and control the server from the REPL. -->
 
-Note that you still need Minecraft itself (Minecraft Java Edition in particular,
-aka "the client"), to connect to this server.
+<!-- Note that you still need Minecraft itself (Minecraft Java Edition in particular, -->
+<!-- aka "the client"), to connect to this server. -->
 
-What you do with Witchcraft is up to you. You can simply use it as a voxel
-engine, a place to render your 3D block based creations, or you can create a
-completely novel space for you and your friends to hang out in, filled with your
-own creations, and flavored with custom behaviors, systems and mechanisms.
+<!-- What you do with Witchcraft is up to you. You can simply use it as a voxel -->
+<!-- engine, a place to render your 3D block based creations, or you can create a -->
+<!-- completely novel space for you and your friends to hang out in, filled with your -->
+<!-- own creations, and flavored with custom behaviors, systems and mechanisms. -->
+
+Clojure's interactive programming make it perfect for creative coding. We try to
+provide convenient APIs so you can go and develop your ideas.
 
 ## Usage
 
-Start by starting the server:
+There is a work-in-progress [manual](doc/witchcraft_manual.org).
 
-```clojure
-(require '[lambdaisland.witchcraft :as wc])
-(wc/start!)
-```
-
-And connecting to it from Minecraft Java Edition.
 
 ### Minecraft Client Setup
 
-Glowstone currently only supports minecraft version 1.12.2 (this may change
-soon). To install the 1.12.2 MC Client version, open the Minecraft launcher ->
-Installations -> New -> 1.12.2.
+<!-- Glowstone currently only supports minecraft version 1.12.2 (this may change -->
+<!-- soon). To install the 1.12.2 MC Client version, open the Minecraft launcher -> -->
+<!-- Installations -> New -> 1.12.2. -->
 
-After launching Minecraft, select Multiplayer and enter `localhost:25565` to
-join the server we just started.
+<!-- After launching Minecraft, select Multiplayer and enter `localhost:25565` to -->
+<!-- join the server we just started. -->
 
-Hold `F3` and press `p` so you can tab out without the game pausing.
+<!-- Hold `F3` and press `p` so you can tab out without the game pausing. -->
 
-### Next steps
-
-At this point you should have a Clojure REPL and Minecraft running side-by-side,
-and it's time to have some fun. There are a bunch of things you can do. Create,
-destroy, or modify blocks, generate landscapes and buildings, move player and
-non-player characters in the world, create entirely new worlds from scratch, add
-interactivity and custom behaviors through event handlers, and more. There is
-hardly an aspect of the game you can't manipulate.
-
-We'll start with some basics though, inspecting the world, and manipulating
-blocks.
-
-Let's first get a sense of where you are.
 
 
 <!-- opencollective -->

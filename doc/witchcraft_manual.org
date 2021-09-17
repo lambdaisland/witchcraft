@@ -403,6 +403,70 @@ set time limit. Once time is up players rate each other's creations.
 Popular game where groups of players need to try to destroy the bed of another
 group, while protecting their own
 
+* Getting started with Witchcraft
+
+** Running the plugin
+
+Find the latest release [[https://github.com/lambdaisland/witchcraft-plugin/releases/tag/v0.0.14][here]], and download the plugin that matches the server
+type and version you are using. If there is no matching plugin then open an
+issue and we'll make one.
+
+Drop the ~.jar~ file into your server's plugin directory. Now after starting you
+can connect via nREPL to port 25555.
+
+The first time this runs it will create a ~deps.edn~ file and a
+~plugins/witchcraft.edn~ file. You can use the first to configure dependencies,
+including the Witchcraft library/API version, and the second to configure the
+plugin, and the Clojure code it should run at startup.
+
+** Running from the REPL
+
+You can also start a Clojure REPL yourself, and start Minecraft from there. This
+works best with Glowstone, and can be a convenient way to get started *if you
+are already familiar with how to start a Clojure REPL*.
+
+
+To use the latest release, add the following to your `deps.edn` ([Clojure CLI](https://clojure.org/guides/deps_and_cli)) 
+
+#+begin_src clojure
+com.lambdaisland/witchcraft {:mvn/version "<find version in README>"} 
+#+end_src
+
+or add the following to your `project.clj` ([Leiningen](https://leiningen.org/)) 
+
+#+begin_src clojure
+[com.lambdaisland/witchcraft "<find version in README>"] 
+#+end_src
+
+You should also add some extra maven repos for getting Glowstone: 
+
+#+begin_src 
+;; deps.edn 
+{:deps {...} 
+ :mvn/repos 
+ {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"} 
+  "aikar"          {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}} 
+  
+;; or project.clj 
+(defproject ... 
+  :repositories {"glowstone-repo" "https://repo.glowstone.net/content/repositories/snapshots/" 
+                 "aikar" "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}) 
+#+end_src
+
+With that you can now start Witchcraft. Note that you **should not download and 
+run Glowstone itself**, the above is all you need. We'll run the Glowstone 
+server directly inside the Clojure REPL process. 
+
+Start by starting the server:
+
+#+begin_src 
+(require '[lambdaisland.witchcraft :as wc]) 
+(wc/start!) 
+#+end_src
+
+And connect to it from Minecraft Java Edition. Glowstone at the time of writing
+requires Minecraft 1.12.
+
 * Learning to code with Witchcraft
 
 The ~lambdaisland.witchcraft~ namespace provides the main API. It's a lot like
