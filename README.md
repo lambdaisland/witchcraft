@@ -59,18 +59,6 @@ provide convenient APIs so you can go and develop your ideas.
 There is a work-in-progress [manual](doc/witchcraft_manual.org).
 
 
-### Minecraft Client Setup
-
-<!-- Glowstone currently only supports minecraft version 1.12.2 (this may change -->
-<!-- soon). To install the 1.12.2 MC Client version, open the Minecraft launcher -> -->
-<!-- Installations -> New -> 1.12.2. -->
-
-<!-- After launching Minecraft, select Multiplayer and enter `localhost:25565` to -->
-<!-- join the server we just started. -->
-
-<!-- Hold `F3` and press `p` so you can tab out without the game pausing. -->
-
-
 
 <!-- opencollective -->
 ## Lambda Island Open Source

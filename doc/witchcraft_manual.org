@@ -467,6 +467,15 @@ Start by starting the server:
 And connect to it from Minecraft Java Edition. Glowstone at the time of writing
 requires Minecraft 1.12.
 
+Glowstone currently only supports minecraft version 1.12.2 (this may change 
+soon). To install the 1.12.2 MC Client version, open the Minecraft launcher -> 
+Installations -> New -> 1.12.2. 
+
+After launching Minecraft, select Multiplayer and enter `localhost:25565` to 
+join the server we just started. 
+
+Hold `F3` and press `p` so you can tab out without the game pausing. 
+
 * Learning to code with Witchcraft
 
 The ~lambdaisland.witchcraft~ namespace provides the main API. It's a lot like
