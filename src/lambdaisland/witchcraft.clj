@@ -10,7 +10,7 @@
            (org.bukkit.block Block BlockFace)
            (org.bukkit.configuration.serialization ConfigurationSerialization)
            (org.bukkit.enchantments Enchantment)
-           (org.bukkit.entity Entity Player HumanEntity)
+           (org.bukkit.entity Entity Player HumanEntity LivingEntity)
            (org.bukkit.inventory ItemStack Inventory)
            (org.bukkit.material MaterialData Directional)
            (org.bukkit.plugin PluginManager Plugin)
@@ -881,5 +881,11 @@
   bool."
   [world m]
   (run! #(set-game-rule world (key %) (val %)) m))
+
+(defn eye-height [^LivingEntity e]
+  (.getEyeHeight e))
+
+(defn eye-location [^LivingEntity e]
+  (loc (.getEyeLocation e)))
 
 (load "witchcraft/printers")
