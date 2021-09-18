@@ -182,9 +182,14 @@
                          (distance-fn [x y z] axis-loc)
                          inner-radius)]
           :when (or (and fill inside?) block?)]
-      (if block?
-        [x y z (if (fn? material) (material [x y z]) material)]
-        [x y z (if (fn? fill) (fill [x y z]) fill)]))))
+      (let [material (cond
+                       (and block? (fn? material)) (material [x y z])
+                       block?     material
+                       (fn? fill) (fill [x y z])
+                       :else      fill)]
+        (cond-> [x y z]
+          material
+          (conj material))))))
 
 
 (defn torus
