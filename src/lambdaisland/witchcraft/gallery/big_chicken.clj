@@ -54,3 +54,11 @@
     ;; feet
     [[1 -4 1 :orange-wool]
      [3 -4 1 :orange-wool]])))
+
+(comment
+  (wc/set-blocks
+   (chicken-shape
+    (wc/in-front-of (wc/player "sunnyplexus") 5)
+    ))
+
+  (wc/undo!))
