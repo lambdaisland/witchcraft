@@ -92,16 +92,17 @@
       steps))))
 
 (defn rand-palette
-  "Takes a palette probability map (keyword to material), and return a random
+  "Takes a palette probability map (keyword to number), and return a random
   material, honoring the probabilities."
   [probs]
-  (reduce
-   (fn [rem [m i]]
-     (if (< rem i)
-       (reduced m)
-       (- rem i)))
-   (rand (apply + (map second probs)))
-   probs))
+  (let [probs (remove (fn [[m i]] (<= i 0)) probs)]
+    (reduce
+     (fn [rem [m i]]
+       (if (< rem i)
+         (reduced m)
+         (- rem i)))
+     (rand (apply + (map second probs)))
+     probs)))
 
 (comment
   (rand-palette
@@ -109,20 +110,46 @@
     :blue-terracotta 2
     :black-stained-glass 1}))
 
-(defn palette-generator
+(defn gradient-gen
   "Given a palette (sequence of keywords), return a function which takes an
   index (number), and returns a material that is either the material at that
   entry in the palette, or a neighboring material, with further off materials
   increasingly unlikely to be picked. This allows using a palette with somewhat
   gradual transitions."
-  [palette]
-  (fn [layer]
-    (let [probs (map-indexed (fn [i m]
-                               [m (/ 1 (Math/pow
-                                        (inc (Math/abs (- i layer)))
-                                        3))])
-                             palette)]
-      (rand-palette probs))))
+  [{:keys [palette spread bleed bleed-distance]
+    :or {palette [:bedrock
+                  :deepslate-bricks
+                  :deepslate
+                  :stone-bricks
+                  :cracked-stone-bricks
+                  :stone]
+         spread 3
+         bleed 0.2
+         bleed-distance 2}}]
+  (fn [x]
+    (let [pos (quot x spread)
+          midx (min (dec (count palette))
+                    (quot x spread))]
+      (rand-palette
+       (into {}
+             (map-indexed (fn [idx m]
+                            [m
+                             (let [dist (long (Math/abs (- (* spread idx) x)))]
+                               (cond
+                                 (and (= idx 0) (< x 0))
+                                 1
+                                 (and (= (dec (count palette)) idx)
+                                      (<= (* spread (count palette))
+                                          (Math/ceil x)))
+                                 1
+                                 (<= dist (/ spread 2))
+                                 1
+                                 (<= dist (+ (/ spread 2) bleed-distance))
+                                 (nth (iterate #(/ % 2) bleed) (dec dist))
+                                 :else
+                                 0
+                                 ))])
+                          palette))))))
 
 (defn neighbors
   "Get materials that are close in color to the given material.

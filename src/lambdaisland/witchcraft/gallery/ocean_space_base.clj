@@ -15,15 +15,16 @@
    (repeat 11 :white-terracotta)
    (repeat 23 :white-concrete)))
 
-(defn sloped-pillar [loc]
+(defn sloped-pillar [loc & [{:keys [height]
+                             :or {height (count palette)}}]]
   (let [gen (p/palette-generator palette)]
     (wc/set-blocks
      (for [x (range -18 19)
-           y (range (count palette))
+           y (range height)
            z (range -18 19)
-           :when (< (- 16.5 (Math/sqrt y) (Math/sqrt y))
+           :when (< (- 16.5 (Math/sqrt y) )
                     (Math/sqrt (+ (* x x) (* z z)))
-                    (- 18.5 (Math/sqrt y) (Math/sqrt y)))]
+                    (- 18.5 (Math/sqrt y) ))]
        {:x (+ x (wc/x loc))
         :y (+ y (wc/y loc))
         :z (+ z (wc/z loc))
@@ -63,19 +64,25 @@
                                      ])]
     (wc/set-blocks
      (m/transform
-      (torus {:R 70
-              :r 11
-              :material-fn
-              (fn [{:keys [x y z]}]
-                (if (< -3 y 3)
-                  :green-stained-glass
-                  (if (< (rand-int 100) 5)
-                    :shroomlight
-                    (gen-fn (Math/abs y)))))})
+      (torus-shape {:R 70
+                    :r 11
+                    :material-fn
+                    (fn [{:keys [x y z]}]
+                      (if (< -3 y 3)
+                        :green-stained-glass
+                        (if (< (rand-int 100) 5)
+                          :shroomlight
+                          (gen-fn (Math/abs y)))))})
       (m/translation-matrix (wc/xyz loc))))))
 
 (comment
   ;; built in the squid.casa world at these locations
+
+  (torus [733 120 -680])
+  (wc/undo!)
   (torus [723 112 -764])
+
+  (sloped-pillar [733 52 -680] {:height (+ (count palette) 120)})
+  (wc/undo!)
   (sloped-pillar [783 63 -729])
   (sloped-pillar [671 63 -716]))

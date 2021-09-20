@@ -310,25 +310,26 @@
 
   This is a shim class which provides version-independent material handling."
   ^XMaterial [m]
-  (cond
-    (keyword? m)
-    (get materials m)
+  (when m
+    (cond
+      (keyword? m)
+      (get materials m)
 
-    (instance? Block m)
-    (xmaterial (.getType ^Block m))
+      (instance? Block m)
+      (xmaterial (.getType ^Block m))
 
-    ;; The nonsense we pull to prevent a few reflection warnings...
-    (string? m)
-    (XMaterial/matchXMaterial ^String m)
+      ;; The nonsense we pull to prevent a few reflection warnings...
+      (string? m)
+      (XMaterial/matchXMaterial ^String m)
 
-    (instance? Material m)
-    (XMaterial/matchXMaterial ^Material m)
+      (instance? Material m)
+      (XMaterial/matchXMaterial ^Material m)
 
-    (instance? ItemStack m)
-    (XMaterial/matchXMaterial ^ItemStack m)
+      (instance? ItemStack m)
+      (XMaterial/matchXMaterial ^ItemStack m)
 
-    :else
-    (XMaterial/matchXMaterial ^Material (material m))))
+      :else
+      (XMaterial/matchXMaterial ^Material (material m)))))
 
 (defmulti -set-block "Server-specific set-block implementation"
   (fn [server block material direction] server))
@@ -441,7 +442,7 @@
   ([^Player player]
    (.setAllowFlight player true)
    (.setFlying player true)
-   (teleport player [(x player) (inc (y player)) (z player)])))
+   (teleport player (update (loc player) :y inc))))
 
 (defn clear-weather
   "Get clear weather"
@@ -686,6 +687,10 @@
   (material-data [l] (material-data (get-block l)))
   (with-xyz [_ [x y z]] (vec3 x y z))
 
+  ItemStack
+  (material [i] (.getType i))
+  (material-name [i] (material-name (xmaterial i)))
+
   java.util.Map
   (x [m] (or (.get m :x) 0))
   (y [m] (or (.get m :y) 0))
@@ -726,7 +731,11 @@
 
   clojure.lang.Keyword
   (material [k]
-    (.parseMaterial (xmaterial k)))
+    (if-let [xm (xmaterial k)]
+      (.parseMaterial xm)
+      (throw (ex-info (str "Material not found: " k) {:material k
+                                                      :known-materials
+                                                      (count materials)}))))
 
   ;; Vectors can be used in two ways
   ;; [x y z yaw pitch world]
@@ -852,6 +861,9 @@
 
 (defn set-fly-speed [^Player player speed]
   (.setFlySpeed player speed))
+
+(defn allow-flight [^Player player bool]
+  (.setAllowFlight player bool))
 
 (defn active-potion-effects [^Player player]
   (.getActivePotionEffects player))

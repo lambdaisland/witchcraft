@@ -42,7 +42,7 @@
   Clojure map (`:x/:y/:z`), vector (`[x y z]`), or Glowstone Location or Vector
   instance. Returns the same type as `v`."
   [v s]
-  (wc/with-xyz v (map (partial * s) v)))
+  (wc/with-xyz v (map (partial * s) (wc/xyz v))))
 
 (defn vlength
   "Vector length"
@@ -185,6 +185,15 @@
    (into (empty coll)
          (map (partial m*v m))
          coll)))
+
+(defn rotate [rad dim1 dim2 coll]
+  (transform
+   coll
+   (with-origin
+     (rotation-matrix rad dim1 dim2)
+     [(/ (transduce (map wc/x) + coll) (count coll))
+      (/ (transduce (map wc/y) + coll) (count coll))
+      (/ (transduce (map wc/z) + coll) (count coll))])))
 
 #_
 (with-origin (rotation-matrix Math/PI :x :z) [100 100 100])
