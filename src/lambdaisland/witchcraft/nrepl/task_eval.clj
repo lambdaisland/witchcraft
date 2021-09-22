@@ -7,30 +7,30 @@
             [nrepl.misc :as misc :refer [response-for]]
             [nrepl.transport :as t]))
 
-(defn run-task [thunk session]
-  (wc/run-task
-   #(if-let [whoami (and (not wc/*default-world*)
-                         (:witchcraft/whoami (meta session)))]
-      (let [player (wc/player whoami)
-            world (wc/world player)]
-        (binding [wc/*default-world* world]
-          (.run thunk)))
-      (.run thunk))))
+(defn scheduled-exec [session]
+  (fn [id ^Runnable thunk ^Runnable ack]
+    (wc/run-task
+     #(if-let [whoami (and (not wc/*default-world*)
+                           (:witchcraft/whoami (meta session)))]
+        (let [player (wc/player whoami)
+              world (wc/world player)]
+          (binding [wc/*default-world* world]
+            (.run thunk)
+            (.run ack)))
+        (do
+          (.run thunk)
+          (.run ack))))))
 
 (defn wrap-eval
   [h]
   (fn [{:keys [op session] :as msg}]
-    (when (and (:exec (meta session))
+    (when (and session
+               (:exec (meta session))
                (not (::decorated (meta session))))
       (alter-meta! session
                    (fn [session-meta]
                      (-> session-meta
-                         (update :exec
-                                 (fn [exec]
-                                   (fn [id thunk ack]
-                                     (exec id
-                                           (partial run-task thunk session)
-                                           ack))))
+                         (assoc :exec (scheduled-exec session))
                          (assoc ::decorated true)))))
     (h msg)))
 
