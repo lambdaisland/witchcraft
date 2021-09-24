@@ -4,7 +4,8 @@
                                          :git/sha "d80cfc0e3955fc3f1b79da8d49524ae32d2e7865"}
          lambdaisland/data-printers     {:mvn/version "0.0.22"}
          com.github.cryptomorin/XSeries {:mvn/version "8.3.0"}
-         clojure2d/clojure2d            {:mvn/version "1.4.3"}}
+         clojure2d/clojure2d            {:mvn/version "1.4.3"}
+         org.reflections/reflections    {:mvn/version "0.9.12"}}
 
  :aliases
  {:dev
