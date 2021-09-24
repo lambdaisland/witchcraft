@@ -58,6 +58,14 @@ provide convenient APIs so you can go and develop your ideas.
 
 There is a work-in-progress [manual](doc/witchcraft_manual.org).
 
+## Related projects
+
+This is not the first attempt to bridge the gap between Clojure and Minecraft
+
+- [clj-minecraft](https://github.com/CmdrDats/clj-minecraft)
+- [bukkure](https://github.com/SevereOverfl0w/bukkure)
+- [Bukkit4Clojure](https://github.com/cpmcdaniel/Bukkit4Clojure)
+- [BukkitClj](https://github.com/mikroskeem/BukkitClj)
 
 
 <!-- opencollective -->
