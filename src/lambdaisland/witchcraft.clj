@@ -4,7 +4,8 @@
   (:require [clojure.java.io :as io]
             [lambdaisland.witchcraft.events :as events]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
-            [lambdaisland.witchcraft.util :as util])
+            [lambdaisland.witchcraft.util :as util]
+            [lambdaisland.witchcraft.markup :as markup])
   (:import (com.cryptomorin.xseries XMaterial XBlock)
            (org.bukkit Bukkit Chunk GameRule Location Material Server World WorldCreator)
            (org.bukkit.block Block BlockFace)
@@ -899,5 +900,39 @@
 
 (defn eye-location [^LivingEntity e]
   (loc (.getEyeLocation e)))
+
+(defn send-title
+  "Send a title and optionally subtitle to the player
+
+  Titles are splashed in big type over the middle of the screen, before they
+  fade out.
+
+  Takes strings or vectors (markup), e.g.
+
+  ```
+  [:red \"hello \" [:underline \"world\"]]
+  ```
+
+  See [[markup/codes]]."
+  ([^Player p title]
+   (send-title p title ""))
+  ([^Player p title subtitle]
+   (.sendTitle p
+               (markup/format title)
+               (markup/format subtitle))))
+
+(defn send-message
+  "Send a chat message to a specific player
+
+  Takes strings or vectors (markup), e.g.
+
+  ```
+  [:red \"hello \" [:underline \"world\"]]
+  ```
+
+  See [[markup/codes]]."
+  [^Player p message]
+  (.sendMessage p (markup/format message)))
+
 
 (load "witchcraft/printers")
