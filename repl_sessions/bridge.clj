@@ -13,6 +13,9 @@
   )
 
 (defonce c (c/start))
+c
+
+(wc/location (wc/player "sunnyplexus"))
 
 #_(wc/teleport
    (highest-block-at
@@ -269,26 +272,32 @@
   (catenary x 20))
 
 (let [start  (c/start)
-      end    (c/move start 60)
-      dip    25
-      delta  (fn [a b]
-               (Math/sqrt (* (Math/abs (- (:x a) (:x b)))
-                             (Math/abs (- (:z a) (:z b))))))
-      length (delta start end)
+      end    (c/move start 20)
+      dip    5
+      length (wc/distance start end)
       y-fn   #(* (catenary (-  % (/ length 2)) length) dip)
       step-fn (fn [curs dir]
                 (let [[x _ z] (get c/movements dir)
                       curs (-> curs (update :x + x) (update :z + z))
-                      dist (delta start curs)]
+                      dist (wc/distance start curs)]
                   (assoc curs :y (Math/round (+ (:y start) (y-fn dist))))))
       curs (assoc start :step-fn step-fn)]
   (-> curs
-      (c/material :wood-double-step)
-      (c/steps 60)
+      (c/material :warped-planks)
+      (c/steps 20)
       (c/step :left)
       (c/extrude 1 :forward-right)
       (c/extrude 3 :right)
       c/build))
+
+(wc/undo!)
+
+(wc/init-xmaterial!)
+
+wc/materials
+
+(wc/set-block
+ {:x 198, :y 92, :z 100, :material :wood-double-step, :direction :west})
 
 (->  (c/start)
      (c/material :cobblestone)
@@ -297,3 +306,5 @@
      (c/extrude 10 :up)
 
      c/build)
+
+(wc/allow-flight (wc/player "sunnyplexus"))

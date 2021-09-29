@@ -61,7 +61,7 @@
     (sequential? markup)
     (mapcat expand-markup markup)))
 
-(defn format [markup]
+(defn render ^String [markup]
   (format-seq
    (expand-markup markup)))
 

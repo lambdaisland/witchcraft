@@ -299,6 +299,11 @@
       (rotate-dir facing rotation)
       asked)))
 
+(def valid-movements
+  (-> #{}
+      (into (keys relative-movements))
+      (into (keys movements))))
+
 (defn step
   "Take one step forward in the direction given, or the direction the cursor is
   facing. If drawing is enabled this will also add a block to the block list
@@ -314,9 +319,9 @@
    ;; with a new cursor it is confusing that your first block is actually one
    ;; step away from your starting position, so this tries to do the generally
    ;; most intuitive thing.
-   (assert (keyword? dir) (str "Direction must be a keyword, got " dir))
-   (assert (contains? movements dir) (str "Unknown direction " dir ", should be one-of "
-                                          (keys movements)))
+   (assert (keyword? dir) (str "Direction must be a keyword, got " (pr-str dir)))
+   (assert (contains? valid-movements dir) (str "Unknown direction " dir ", should be one-of "
+                                                valid-movements))
    (if (and (:draw? cursor) (:first-step? cursor))
      (?block cursor)
      (?block (step-fn cursor (resolve-dir (:dir cursor) dir)))))

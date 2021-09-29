@@ -74,3 +74,26 @@
           m))
       (transient {})
       files))))
+
+(defonce reflections
+  (delay (load-reflections)))
+
+(defmacro extend-signatures
+  {:style/indent [1 :form [1]]}
+  [protocol & sig-impl]
+  `(extend-protocol ~protocol
+     ~@(as-> sig-impl $
+         (for [[sig impl] (partition 2 $)
+               klass (get @reflections sig)]
+           {:class (symbol klass)
+            :fntail impl})
+
+         (group-by :class $)
+
+         (for [[klass impls] $
+               form (cons klass (map :fntail impls))]
+           form))))
+
+(comment
+  (filter #(.contains (key %) "getWorlds(") @reflections)
+  )

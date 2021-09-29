@@ -1,12 +1,14 @@
 (ns lambdaisland.witchcraft
   "Clojure API for Minecraft/Bukkit"
-  (:refer-clojure :exclude [bean time chunk])
+  (:refer-clojure :exclude [time])
   (:require [clojure.java.io :as io]
             [lambdaisland.witchcraft.events :as events]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util]
-            [lambdaisland.witchcraft.markup :as markup])
-  (:import (com.cryptomorin.xseries XMaterial XBlock)
+            [lambdaisland.witchcraft.markup :as markup]
+            [lambdaisland.witchcraft.reflect :as reflect])
+  (:import (java.util UUID)
+           (com.cryptomorin.xseries XMaterial XBlock)
            (org.bukkit Bukkit Chunk GameRule Location Material Server World WorldCreator)
            (org.bukkit.block Block BlockFace)
            (org.bukkit.configuration.serialization ConfigurationSerialization)
@@ -67,6 +69,8 @@
 (defonce undo-history (atom ()))
 (defonce redo-history (atom ()))
 
+;; FIXME: these don't actually work the way I inteneded them to work, might
+;; require a custom set implementation.
 (def EMPTY_BLOCK_SET
   "Make sure there is only one block for each coordinate in the set, and keep them
   sorted by x/z/y."
@@ -112,36 +116,6 @@
   "Map from keyword to block.Action value"
   (util/enum->map org.bukkit.event.block.Action))
 
-;; =============================================================================
-
-;; Functions for retrieving things from objects, like the location, x/y/z
-;; values, world, etc. We also implement these for maps, where they do keyword
-;; lookups. By using these in other functions we can accept a large range of
-;; inputs, including both Glowstone/Bukkit objects and Clojure maps.
-(defprotocol PolymorphicFunctions
-  ;; Keep these classnames fully qualified, Clojure doesn't like it otherwise
-  ;; when called from namespaces where these are not imported.
-  (^org.bukkit.Location location
-   [_] [_ n]
-   "Get the location of the given object, or `n` blocks in front of it.")
-  (^org.bukkit.World world [_]
-   "Get the world for a player, by its name, by UUID, etc.")
-  (-add [this that]
-    "Add locations, vectors, etc. That can also be a map of `:x`, `:y`, `:z`")
-  (^double x [_])
-  (^double y [_])
-  (^double z [_])
-  (yaw [_])
-  (pitch [_])
-  (^org.bukkit.util.Vector direction-vec [_])
-  (^org.bukkit.Material material [_])
-  (^org.bukkit.util.Vector as-vec [_] "Coerce to org.bukkit.util.Vector")
-  (material-name [_])
-  (material-data [_])
-  (with-xyz [_ xyz] "Return the same type, but with x/y/z updated")
-  (^org.bukkit.Chunk chunk [_] "Retrieve the chunk for a location, entity, etc.")
-  (entities [_] "Get the chunk's entities"))
-
 (defn server
   "Get the currently active server."
   ^Server []
@@ -159,6 +133,124 @@
   []
   (Bukkit/getScheduler))
 
+;; =============================================================================
+
+;; Functions for retrieving things from objects, like the location, x/y/z
+;; values, world, etc. We also implement these for maps, where they do keyword
+;; lookups. By using these in other functions we can accept a large range of
+;; inputs, including both Glowstone/Bukkit objects and Clojure maps.
+(defprotocol PolymorphicFunctions
+  ;; Keep these classnames fully qualified, Clojure doesn't like it otherwise
+  ;; when called from namespaces where these are not imported.
+  (-add [this that]
+    "Add locations, vectors, etc. That can also be a map of `:x`, `:y`, `:z`")
+  (^double x [_])
+  (^double y [_])
+  (^double z [_])
+  (yaw [_])
+  (pitch [_])
+  (^org.bukkit.util.Vector direction-vec [_])
+  (^org.bukkit.Material material [_])
+  (^org.bukkit.util.Vector as-vec [_] "Coerce to org.bukkit.util.Vector")
+  (material-name [_])
+  (material-data [_])
+  (with-xyz [_ xyz] "Return the same type, but with x/y/z updated")
+  (^org.bukkit.Chunk chunk [_] "Retrieve the chunk for a location, entity, etc.")
+  (entities [_] "Get the chunk's entities"))
+
+(defprotocol HasLocation
+  (^org.bukkit.Location -location [_] "Get the location of the given object"))
+
+(defprotocol HasWorld
+  (^org.bukkit.World -world [_] [_ _]))
+
+(defprotocol HasWorlds
+  (^java.util.List -worlds [_])
+  (^org.bukkit.World -world-by-name [_ ^String _])
+  (^org.bukkit.World -world-by-uuid [_ ^UUID _]))
+
+(defn location
+  "Get the location of the given object"
+  ^Location [o]
+  (cond
+    (instance? Location o)
+    o
+
+    (vector? o)
+    (let [[x y z yaw pitch world] o]
+      (map->Location (into {}
+                           (remove (comp nil? val))
+                           {:x x
+                            :y y
+                            :z z
+                            :yaw (when (number? yaw) yaw)
+                            :pitch pitch
+                            :world world})))
+
+    (map? o)
+    (or (:location o)
+        (map->Location o))
+
+    :else
+    (-location o)))
+
+(defn world
+  "Get the world associated with a given object, or look up a world by string or
+  UUID."
+  (^World [o]
+   (cond
+     (instance? World o)
+     o
+
+     (satisfies? HasWorld o)
+     (-world o)
+
+     (string? o)
+     (-world-by-name (server) o)
+
+     (instance? java.util.UUID o)
+     (-world-by-uuid (server) o)
+
+     :else
+     (-world (location o))))
+  (^World [o n]
+   (cond
+     (string? n)
+     (-world-by-name o n)
+
+     (instance? java.util.UUID n)
+     (-world-by-uuid o n))))
+
+(defn worlds
+  "Get all worlds"
+  ([]
+   (Bukkit/getWorlds))
+  ([o]
+   (-worlds o)))
+
+(reflect/extend-signatures HasLocation
+  "org.bukkit.Location getLocation()"
+  (-location [this]
+    (.getLocation this)))
+
+(reflect/extend-signatures HasWorld
+  "org.bukkit.World getWorld()"
+  (-world [this]
+    (.getWorld this)))
+
+(reflect/extend-signatures HasWorlds
+  "java.util.List getWorlds()"
+  (-worlds [this]
+    (.getWorlds this))
+  "org.bukkit.World getWorld(java.lang.String)"
+  (-world-by-name [this ^String obj]
+    (.getWorld this obj))
+  "org.bukkit.World getWorld(java.util.UUID)"
+  (-world-by-uuid [this ^java.util.UUID obj]
+    (.getWorld this obj)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn online-players
   "List all online players"
   []
@@ -173,20 +265,13 @@
             %)
          (online-players))))
 
-(defn worlds
-  "Get all worlds on the server"
-  ([]
-   (worlds (server)))
-  ([^Server s]
-   (.getWorlds (server))))
-
 (defn default-world
   "World used for commands when no explicit world is given.
   Uses [[*default-world*]], or the first world on the server."
   []
   (if *default-world*
     (world *default-world*)
-    (world (server))))
+    (first (worlds (server)))))
 
 (defn in-front-of
   "Get the location `n` blocks in front of the given location, based on the
@@ -197,8 +282,8 @@
   ([loc n]
    (let [dir (direction-vec loc)]
      (-add (location loc) {:x (Math/ceil (* n (x dir)))
-                          :y (Math/ceil (* n (y dir)))
-                          :z (Math/ceil (* n (z dir)))}))))
+                           :y (Math/ceil (* n (y dir)))
+                           :z (Math/ceil (* n (z dir)))}))))
 
 (defn time
   "Get the current time in the world in ticks."
@@ -591,13 +676,6 @@
 
 (extend-protocol PolymorphicFunctions
   Entity
-  (location
-    ([entity]
-     (.getLocation entity))
-    ([entity n]
-     (in-front-of (.getLocation entity) n)))
-  (world [e]
-    (.getWorld e))
   (as-vec [e]
     (as-vec (location e)))
   (^double x [e] (x (location e)))
@@ -608,13 +686,6 @@
   (^org.bukkit.util.Vector direction-vec [e] (direction-vec (location e)))
 
   Block
-  (location
-    ([entity]
-     (.getLocation entity))
-    ([entity n]
-     (in-front-of (.getLocation entity) n)))
-  (world [b]
-    (.getWorld b))
   (as-vec [e] (as-vec (location e)))
   (x [e] (x (location e)))
   (y [e] (y (location e)))
@@ -630,10 +701,8 @@
     (-add (location this) that))
 
   Location
-  (location [l] l)
   (as-vec [l] (vec3 (x l) (y l) (z l)))
   (direction-vec [l] (.getDirection l))
-  (world [l] (.getWorld l))
   (x [l] (.getX l))
   (y [l] (.getY l))
   (z [l] (.getZ l))
@@ -664,9 +733,6 @@
   (chunk [this]
     (.getChunk this))
 
-  World
-  (world [this] this)
-
   Vector
   (as-vec [v] v)
   (x [v] (.getX v))
@@ -682,7 +748,6 @@
   (yaw [v] 0)
   (pitch [v] 0)
   (world [v] )
-  (location [l] (location [(x l) (y l) (z l)]))
   (material [l] (material (location l)))
   (material-name [l] (material-name (xmaterial l)))
   (material-data [l] (material-data (get-block l)))
@@ -699,8 +764,6 @@
   (pitch [m] (or (.get m :pitch) 0))
   (yaw [m] (or (.get m :yaw) 0))
   (world [m] (world (location m)))
-  (location [m] (or (.get m :location)
-                    (map->Location m)))
   (as-vec [m]
     (vec3 (x m) (y m) (z m)))
   (material [m] (material (or (.get m :material)
@@ -721,14 +784,6 @@
     (assoc m :x x :y y :z z))
   (chunk [this]
     (chunk (location this)))
-
-  String
-  (world [s]
-    (.getWorld (server) s))
-
-  java.util.UUID
-  (world [u]
-    (.getWorld (server) u))
 
   clojure.lang.Keyword
   (material [k]
@@ -751,15 +806,6 @@
   (yaw [[_ _ _ yaw]] (if (number? yaw) yaw 0) 0)
   (pitch [[_ _ _ _ pitch]] (or pitch 0))
   (world [[_ _ _ _ _ w]] (if w (world w) (default-world)))
-  (location [[x y z yaw pitch world]]
-    (map->Location (into {}
-                         (remove (comp nil? val))
-                         {:x x
-                          :y y
-                          :z z
-                          :yaw (when (number? yaw) yaw)
-                          :pitch pitch
-                          :world world})))
   (-add [this that]
     (assoc this
            0 (+ (x this) (x that))
@@ -863,8 +909,11 @@
 (defn set-fly-speed [^Player player speed]
   (.setFlySpeed player speed))
 
-(defn allow-flight [^Player player bool]
-  (.setAllowFlight player bool))
+(defn allow-flight
+  ([player]
+   (allow-flight player true))
+  ([^Player player bool]
+   (.setAllowFlight player bool)))
 
 (defn active-potion-effects [^Player player]
   (.getActivePotionEffects player))
@@ -918,8 +967,8 @@
    (send-title p title ""))
   ([^Player p title subtitle]
    (.sendTitle p
-               (markup/format title)
-               (markup/format subtitle))))
+               (markup/render title)
+               (markup/render subtitle))))
 
 (defn send-message
   "Send a chat message to a specific player
@@ -932,7 +981,7 @@
 
   See [[markup/codes]]."
   [^Player p message]
-  (.sendMessage p (markup/format message)))
+  (.sendMessage p (markup/render message)))
 
 
 (load "witchcraft/printers")
