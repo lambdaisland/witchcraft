@@ -30,3 +30,9 @@
         (str/replace #"[-_\s]+" "-")
         (str/replace #"^-" "")
         (str/replace #"-$" ""))))
+
+(defmacro when-class-exists [classname & body]
+  (try
+    (Class/forName (str classname))
+    `(do ~@body)
+    (catch ClassNotFoundException e)))

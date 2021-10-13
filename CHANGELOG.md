@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Fix support for Glowstone 1.12, which doesn't yet have the GameRule class
 
 # 0.3.90 (2021-10-13 / aec52ea)
 

@@ -9,7 +9,7 @@
             [lambdaisland.witchcraft.reflect :as reflect])
   (:import (java.util UUID)
            (com.cryptomorin.xseries XMaterial XBlock)
-           (org.bukkit Bukkit Chunk GameRule Location Material Server World WorldCreator)
+           (org.bukkit Bukkit Chunk Location Material Server World WorldCreator)
            (org.bukkit.block Block BlockFace)
            (org.bukkit.configuration.serialization ConfigurationSerialization)
            (org.bukkit.enchantments Enchantment)
@@ -92,11 +92,14 @@
   "Map from keyword to EntityType value"
   (util/enum->map org.bukkit.entity.EntityType))
 
-(def game-rule-types
-  "Map from keyword to GameRule"
-  (into {}
-        (map (juxt #(keyword (util/dasherize (.getName ^GameRule %))) identity))
-        (GameRule/values)))
+(util/when-class-exists
+ org.bukkit.GameRule
+ (def game-rule-types
+   "Map from keyword to GameRule"
+   (into {}
+         (map (juxt #(keyword (util/dasherize (.getName ^org.bukkit.GameRule %))) identity))
+         (org.bukkit.GameRule/values))))
+
 
 (defonce ^{:doc "Map from keyword to XMaterial value"} materials {})
 (defonce ^{:doc "Map from XMaterial value to keyword"} material-names {})
@@ -1012,20 +1015,22 @@
   ([this that & more]
    (reduce -add (-add this that) more)))
 
-(defn set-game-rule
-  "Set a game rule like `:do-daylight-cycle` or `:do-insomnia`.
+(util/when-class-exists
+ org.bukkit.GameRule
+ (defn set-game-rule
+   "Set a game rule like `:do-daylight-cycle` or `:do-insomnia`.
   See `(keys wc/game-rule-types)` for all options"
-  [wrld kw bool]
-  (if-let [rule (get game-rule-types kw)]
-    (.setGameRule (world wrld) ^GameRule rule bool)
-    (throw (ex-info (str "No such game rule " kw ", see " `game-rule-types)))))
+   [wrld kw bool]
+   (if-let [rule (get game-rule-types kw)]
+     (.setGameRule (world wrld) ^org.bukkit.GameRule rule bool)
+     (throw (ex-info (str "No such game rule " kw ", see " `game-rule-types)))))
 
-(defn set-game-rules
-  "Set multiple game rules like `:do-daylight-cycle` or `:do-insomnia`.
+ (defn set-game-rules
+   "Set multiple game rules like `:do-daylight-cycle` or `:do-insomnia`.
   See `(keys wc/game-rule-types)` for all options. Takes a map from keyword to
   bool."
-  [world m]
-  (run! #(set-game-rule world (key %) (val %)) m))
+   [world m]
+   (run! #(set-game-rule world (key %) (val %)) m)))
 
 (defn eye-height [^LivingEntity e]
   (.getEyeHeight e))
