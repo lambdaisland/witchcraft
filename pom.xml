@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>witchcraft</artifactId>
-  <version>0.0.28</version>
+  <version>0.0.87</version>
   <name>witchcraft</name>
   <description>Clojure API for Minecraft/Glowstone/Bukkit</description>
   <url>https://github.com/lambdaisland/witchcraft</url>
@@ -22,7 +22,7 @@
     <url>https://github.com/lambdaisland/witchcraft</url>
     <connection>scm:git:git://github.com/lambdaisland/witchcraft.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/witchcraft.git</developerConnection>
-    <tag>364d04153ecf5f0ecd2cd393245447776b17e2b6</tag>
+    <tag>2e94c32a8220ede8c71c3a9aa585a8b89900338b</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -31,9 +31,29 @@
       <version>1.10.3</version>
     </dependency>
     <dependency>
-      <groupId>net.glowstone</groupId>
-      <artifactId>glowstone</artifactId>
-      <version>2021.7.0-SNAPSHOT</version>
+      <groupId>com.lambdaisland</groupId>
+      <artifactId>classpath</artifactId>
+      <version></version>
+    </dependency>
+    <dependency>
+      <groupId>lambdaisland</groupId>
+      <artifactId>data-printers</artifactId>
+      <version>0.0.22</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.cryptomorin</groupId>
+      <artifactId>XSeries</artifactId>
+      <version>8.4.0</version>
+    </dependency>
+    <dependency>
+      <groupId>clojure2d</groupId>
+      <artifactId>clojure2d</artifactId>
+      <version>1.4.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.reflections</groupId>
+      <artifactId>reflections</artifactId>
+      <version>0.9.12</version>
     </dependency>
   </dependencies>
   <build>
@@ -62,7 +82,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>364d04153ecf5f0ecd2cd393245447776b17e2b6</git-revision>
+              <git-revision>2e94c32a8220ede8c71c3a9aa585a8b89900338b</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
@@ -97,6 +117,11 @@
       <id>aikar</id>
       <name>aikar</name>
       <url>https://repo.aikar.co/nexus/content/repositories/aikar-release/</url>
+    </repository>
+    <repository>
+      <id>papermc</id>
+      <name>papermc</name>
+      <url>https://papermc.io/repo/repository/maven-public/</url>
     </repository>
   </repositories>
   <distributionManagement>
