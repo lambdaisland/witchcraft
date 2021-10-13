@@ -15,6 +15,7 @@
            (org.bukkit.enchantments Enchantment)
            (org.bukkit.entity Entity Player HumanEntity LivingEntity)
            (org.bukkit.inventory ItemStack Inventory)
+           (org.bukkit.inventory.meta ItemMeta)
            (org.bukkit.material MaterialData Directional)
            (org.bukkit.plugin PluginManager Plugin)
            (org.bukkit.potion Potion PotionEffectType)
@@ -169,6 +170,18 @@
   (^org.bukkit.World -world-by-name [_ ^String _])
   (^org.bukkit.World -world-by-uuid [_ ^UUID _]))
 
+(defprotocol HasItemMeta
+  (^org.bukkit.inventory.meta.ItemMeta -item-meta [_])
+  (-set-item-meta [_ ^org.bukkit.inventory.meta.ItemMeta _]))
+
+(defprotocol HasDisplayName
+  (^String -display-name [_])
+  (-set-display-name [_ ^String _]))
+
+(defprotocol HasLore
+  (^java.util.List -lore [_])
+  (-set-lore [_ _]))
+
 (defn location
   "Get the location of the given object"
   ^Location [o]
@@ -228,6 +241,52 @@
   ([o]
    (-worlds o)))
 
+(defn item-meta
+  [o]
+  (-item-meta o))
+
+(defn display-name
+  [o]
+  (if (satisfies? HasDisplayName o)
+    (-display-name o)
+    (display-name (item-meta o))))
+
+(defn lore
+  [o]
+  (if (satisfies? HasLore o)
+    (-lore o)
+    (lore (item-meta o))))
+
+(defn set-lore
+  [o lore]
+  (if (satisfies? HasLore o)
+    (-set-lore o lore)
+    (let [m (item-meta o)]
+      (-set-lore m lore)
+      (-set-item-meta o m))))
+
+(defn set-display-name
+  [o name]
+  (if (satisfies? HasDisplayName o)
+    (-set-display-name o name)
+    (let [m (item-meta o)]
+      (-set-display-name m name)
+      (-set-item-meta o m))))
+
+(defn set-item-meta
+  [o im]
+  (cond
+    (satisfies? HasItemMeta o)
+    (-set-item-meta o im)
+
+    (map? im)
+    (let [my-meta (item-meta o)]
+      (doseq [[k v] im]
+        (case k
+          :name (set-display-name my-meta v)
+          :lore (set-lore my-meta v)))
+      (set-item-meta o my-meta))))
+
 (reflect/extend-signatures HasLocation
   "org.bukkit.Location getLocation()"
   (-location [this]
@@ -248,6 +307,30 @@
   "org.bukkit.World getWorld(java.util.UUID)"
   (-world-by-uuid [this ^java.util.UUID obj]
     (.getWorld this obj)))
+
+(reflect/extend-signatures HasItemMeta
+  "org.bukkit.inventory.meta.ItemMeta getItemMeta()"
+  (-item-meta [this]
+    (.getItemMeta this))
+  "setItemMeta(org.bukkit.inventory.meta.ItemMeta)"
+  (-set-item-meta [this ^org.bukkit.inventory.meta.ItemMeta im]
+    (.setItemMeta this im)))
+
+(reflect/extend-signatures HasDisplayName
+  "java.lang.String getDisplayName()"
+  (-display-name [this]
+    (.getDisplayName this))
+  "setDisplayName(java.lang.String)"
+  (-set-display-name [this ^String n]
+    (.setDisplayName this n)))
+
+(reflect/extend-signatures HasLore
+  "java.util.List getLore()"
+  (-lore [this]
+    (.getLore this))
+  "setLore(java.util.List)"
+  (-set-lore [this lore]
+    (.setLore this lore)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

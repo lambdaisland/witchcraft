@@ -95,5 +95,5 @@
            form))))
 
 (comment
-  (filter #(.contains (key %) "getWorlds(") @reflections)
+  (filter #(.contains (key %) "Lore") @reflections)
   )
