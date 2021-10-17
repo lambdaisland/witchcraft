@@ -229,7 +229,7 @@
 (defmethod wc/-set-blocks :glowstone [_ blocks]
   (let [^net.glowstone.util.BlockStateDelegate delegate (net.glowstone.util.BlockStateDelegate.)]
     (doseq [{:keys [world x y z material data direction]
-             :or {world (wc/world (wc/server))
+             :or {world (wc/default-world)
                   data 0}
              :as block} blocks
             :let [^Material material (wc/material (:material block))

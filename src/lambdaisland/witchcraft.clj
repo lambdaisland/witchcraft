@@ -962,6 +962,8 @@
         (material [m#] (.parseMaterial m#))
         (material-name [m#] (get material-names m#))))))
 
+;; TODO: Glowstone 1.12 does not recognize biomeProvider or hardcore
+
 (defn world-creator [^String name opts]
   (reduce
    (fn [^WorldCreator wc [k v]]
