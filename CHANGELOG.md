@@ -1,10 +1,9 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Fix  Glowstone's optimized set-blocks implementation,  it used a way  to get a
+  default world which has been superceded by `(wc/default-world)`
 
 # 0.4.94 (2021-10-13 / ebf25c2)
 
