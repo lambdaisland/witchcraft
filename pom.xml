@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>witchcraft</artifactId>
-  <version>0.6.103</version>
+  <version>0.6.105</version>
   <name>witchcraft</name>
   <description>Clojure API for Minecraft/Glowstone/Bukkit</description>
   <url>https://github.com/lambdaisland/witchcraft</url>
@@ -22,7 +22,7 @@
     <url>https://github.com/lambdaisland/witchcraft</url>
     <connection>scm:git:git://github.com/lambdaisland/witchcraft.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/witchcraft.git</developerConnection>
-    <tag>e348e810e8fe5f7aeaa7dc2992faef35bd34bcf6</tag>
+    <tag>85334a339d4bc90d7414ff6064627eac64d7c97f</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -55,6 +55,12 @@
       <artifactId>reflections</artifactId>
       <version>0.10.2</version>
     </dependency>
+    <dependency>
+      <groupId>io.papermc.paper</groupId>
+      <artifactId>paper-api</artifactId>
+      <version>1.17.1-R0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   <build>
     <sourceDirectory>src</sourceDirectory>
@@ -82,7 +88,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>e348e810e8fe5f7aeaa7dc2992faef35bd34bcf6</git-revision>
+              <git-revision>85334a339d4bc90d7414ff6064627eac64d7c97f</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
