@@ -2,14 +2,14 @@
   "Logo-like API for drawing blocks by using a walking metaphor.
 
   This is a functional API, movements simply build up a list of block positions,
-  call [[build]] at the end to actually make them materialize in the game.
+  call [[build!]] at the end to actually make them materialize in the game.
 
   A cursor contains a current location (x/y/z), a
   directions (:north, :north-east, :east, etc.), and a current building
   material, e.g :lapis-block (see [[lambdaisland.witchcraft/materials]]).
 
   It also contains a drawing flag `:draw?` and a list of blocks `:blocks`. When
-  drawing is on, then any step will add a block to the list. [[build]] creates
+  drawing is on, then any step will add a block to the list. [[build!]] creates
   blocks in the world based on this, and resets the list.
 
   Call [[start]] to get an initial cursor, this will return a cursor that is one
@@ -402,7 +402,10 @@
   (wc/set-blocks blocks)
   (assoc cursor :blocks #{}))
 
-(def ^{:deprecated "Use build!"} build build!)
+(def
+  ^{:deprecated true
+    :doc "See [[build!]]"}
+  build build!)
 
 (defn flash!
   "Like build, but shortly after undoes the build again
