@@ -1,9 +1,9 @@
-(ns lambdaisland.witchcraft.worlds
+(ns lambdaisland.witchcraft.glowstone.worlds
   "Generate new worlds based on simple xyz->material functions
 
   Quite naive, more a proof of concept."
   (:refer-clojure :exclude [bean])
-  (:require [lambdaisland.witchcraft :as wc :refer :all]
+  (:require [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.util :as util]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
@@ -29,7 +29,7 @@
                              :when material]
                        (.setBlock chunk x y z (wc/material material)))
                      chunk)))))
-  (.setSpawnLocation (world name) (wc/location (assoc spawn-loc :world (world name)))))
+  (.setSpawnLocation (wc/world name) (wc/location (assoc spawn-loc :world (wc/world name)))))
 
 (comment
   (create-world "stone-flats"
