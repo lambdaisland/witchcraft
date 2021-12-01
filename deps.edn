@@ -1,10 +1,10 @@
 {:paths ["src" "test" "resources"]
  :deps  {org.clojure/clojure            {:mvn/version "1.10.3"}
          com.lambdaisland/classpath     {:mvn/version "0.0.27"}
-         lambdaisland/data-printers     {:mvn/version "0.0.22"}
+         lambdaisland/data-printers     {:mvn/version "0.7.47"}
          com.github.cryptomorin/XSeries {:mvn/version "8.4.0"}
          clojure2d/clojure2d            {:mvn/version "1.4.3"}
-         org.reflections/reflections    {:mvn/version "0.9.12"}}
+         org.reflections/reflections    {:mvn/version "0.10.2"}}
 
  :aliases
  {:dev
@@ -18,7 +18,7 @@
   {:extra-deps {io.papermc/paper {:local/root "/home/arne/Downloads/paper-1.17.1-157.jar"}}}
 
   :paperclip
-  {:extra-deps {io.papermc/paperclip {:mvn/version "2.0.1"}}}
+  {:extra-deps {io.papermc/paperclip {:mvn/version "3.0.2"}}}
 
   :paper-api
   {:extra-deps {io.papermc.paper/paper-api {:mvn/version "1.17.1-R0.1-SNAPSHOT"}}}}
