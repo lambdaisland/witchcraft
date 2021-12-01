@@ -1,13 +1,26 @@
 #!/usr/bin/env bb
 
-(ns proj (:require [lioss.main :as lioss]))
+(ns proj
+  (:require [lioss.main :as lioss]
+            [lioss.subshell :as subshell]))
+
+(defn gen-markdown-manual [opts]
+  (subshell/spawn "emacs" "-q" "witchcraft_manual.org" "--batch" "-f" "org-md-export-to-markdown"
+                  {:dir "doc"})
+  opts)
 
 (lioss/main
  {:license                   :mpl
   :inception-year            2021
   :description               "Clojure API for Minecraft/Glowstone/Bukkit"
   :group-id                  "com.lambdaisland"
-  :aliases-as-scope-provided [:glowstone :nrepl]})
+  :aliases-as-scope-provided [:glowstone :nrepl]
+  :pre-release-hook gen-markdown-manual
+  :commands ["gen-md-doc"
+             {:description "Generate markdown version of the manual"
+              :command gen-markdown-manual}]})
+
+
 
 
 ;; Local Variables:
