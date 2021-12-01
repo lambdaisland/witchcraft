@@ -17,7 +17,7 @@
 
 (defn sloped-pillar [loc & [{:keys [height]
                              :or {height (count palette)}}]]
-  (let [gen (p/palette-generator palette)]
+  (let [gen (p/gradient-gen {:palette palette})]
     (wc/set-blocks
      (for [x (range -18 19)
            y (range height)
@@ -50,18 +50,19 @@
        :material (material-fn {:x x :y y :z z})})))
 
 (defn torus [loc]
-  (let [gen-fn (p/palette-generator [:deepslate
-                                     :deepslate
-                                     :deepslate-copper-ore
-                                     :deepslate-copper-ore
-                                     :deepslate-copper-ore
-                                     :basalt
-                                     :basalt
-                                     :basalt
-                                     :cyan-terracotta
-                                     :cyan-terracotta
-                                     :cyan-terracotta
-                                     ])]
+  (let [gen-fn (p/gradient-gen
+                {:palette
+                 [:deepslate
+                  :deepslate
+                  :deepslate-copper-ore
+                  :deepslate-copper-ore
+                  :deepslate-copper-ore
+                  :basalt
+                  :basalt
+                  :basalt
+                  :cyan-terracotta
+                  :cyan-terracotta
+                  :cyan-terracotta]})]
     (wc/set-blocks
      (m/transform
       (torus-shape {:R 70
