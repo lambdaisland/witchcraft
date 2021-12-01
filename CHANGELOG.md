@@ -10,51 +10,12 @@
 
 ## Added
 
-## Fixed
-
-## Changed
-
-# 0.6.139 (2021-12-01 / 16a4edf)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.136 (2021-12-01 / 8ce5cc1)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.133 (2021-12-01 / 2993dd7)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.130 (2021-12-01 / d2f05ca)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.127 (2021-12-01 / a368c1b)
-
-## Added
-
 - Support for Paper 1.18
 
 ## Fixed
 
 - Issues with Paper's new classloader behavior
+- Fixed cljdoc builds, finally browsable docs!
 
 # 0.5.98 (2021-10-17 / 55eabf3)
 
