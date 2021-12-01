@@ -83,7 +83,8 @@
 (defn listen! [event k f]
   (let [event-class (resolve-event-class event)]
     (unlisten! event-class k)
-    (when-let [pm (Bukkit/getPluginManager)]
+    (when-let [pm (and (Bukkit/getServer)
+                       (Bukkit/getPluginManager))]
       (.registerEvent
        pm
        event-class
