@@ -37,7 +37,7 @@
     `(do ~@body)
     (catch ClassNotFoundException e)))
 
-(defmacro if-class-exists [classname & then else]
+(defmacro if-class-exists [classname then else]
   (try
     (Class/forName (str classname))
     `(do ~@then)
