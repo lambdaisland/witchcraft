@@ -83,26 +83,28 @@
 (defn listen! [event k f]
   (let [event-class (resolve-event-class event)]
     (unlisten! event-class k)
-    (.registerEvent (Bukkit/getPluginManager)
-                    event-class
-                    (with-meta
-                      (reify org.bukkit.event.Listener)
-                      {::key k})
-                    (priority :normal)
-                    (reify org.bukkit.plugin.EventExecutor
-                      (execute [this listener event]
-                        (try
-                          (let [e (bean event)]
-                            (f (cond-> e
-                                 (:action e)
-                                 (update :action actions))))
-                          (catch Throwable t
-                            (println "Error in event handler" event k t)))))
-                    (proxy [org.bukkit.plugin.PluginBase] []
-                      (getDescription []
-                        (org.bukkit.plugin.PluginDescriptionFile. (str "Listen for " (name event)) "1.0" (str k)))
-                      (isEnabled []
-                        true)))))
+    (when-let [pm (Bukkit/getPluginManager)]
+      (.registerEvent
+       pm
+       event-class
+       (with-meta
+         (reify org.bukkit.event.Listener)
+         {::key k})
+       (priority :normal)
+       (reify org.bukkit.plugin.EventExecutor
+         (execute [this listener event]
+           (try
+             (let [e (bean event)]
+               (f (cond-> e
+                    (:action e)
+                    (update :action actions))))
+             (catch Throwable t
+               (println "Error in event handler" event k t)))))
+       (proxy [org.bukkit.plugin.PluginBase] []
+         (getDescription []
+           (org.bukkit.plugin.PluginDescriptionFile. (str "Listen for " (name event)) "1.0" (str k)))
+         (isEnabled []
+           true))))))
 
 (comment
   (listen! :async-player-chat
