@@ -2,11 +2,19 @@
 
 (ns proj
   (:require [lioss.main :as lioss]
-            [lioss.subshell :as subshell]))
+            [lioss.subshell :as subshell]
+            [clojure.string :as str]))
 
 (defn gen-markdown-manual [opts]
   (subshell/spawn "emacs" "-q" "witchcraft_manual.org" "--batch" "-f" "org-md-export-to-markdown"
                   {:dir "doc"})
+  (spit "doc/witchcraft_manual.md"
+        (str
+         "<!-- THIS FILE IS GENERATED FROM witchcraft_manual.org. DO NOT EDIT DIRECTLY -->\n"
+         (str/replace
+          (slurp "doc/witchcraft_manual.md")
+          #"Table of Contents"
+          "Witchcraft Manual")))
   opts)
 
 (lioss/main
