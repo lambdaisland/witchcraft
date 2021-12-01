@@ -23,10 +23,10 @@
   clj -J-Dcom.mojang.eula.agree=true -J-javaagent:/home/arne/Downloads/paper-1.17.1-157.jar -A:cider/nrepl -M:papermc
   ```
   "
-  (:require [lambdaisland.witchcraft :as wc])
+  (:require [lambdaisland.witchcraft :as wc]
+            [lambdaisland.witchcraft.util :as util])
   (:import (org.bukkit Bukkit Server)
            (org.bukkit.block Block BlockFace)
-           (io.papermc.paperclip Paperclip)
            (org.bukkit.block.data BlockData Directional)))
 
 (set! *warn-on-reflection* true)
@@ -48,7 +48,10 @@
             (recur))))
       (future
         (try
-          (Paperclip/main (into-array String (if gui? [] ["nogui"])))
+          (util/if-class-exists
+           io.papermc.paperclip.Paperclip
+           (io.papermc.paperclip.Paperclip/main (into-array String (if gui? [] ["nogui"])))
+           (println "Class not found: io.papermc.paperclip.Paperclip" ))
           (finally
             (println ::started)))))))
 
