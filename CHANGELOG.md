@@ -1,3 +1,11 @@
+# Unreleased
+
+## Added
+
+## Fixed
+
+## Changed
+
 # 0.6.106 (2021-12-01 / d553d5b)
 
 ## Added
