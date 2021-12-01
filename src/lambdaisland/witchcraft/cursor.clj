@@ -402,7 +402,7 @@
   (wc/set-blocks blocks)
   (assoc cursor :blocks #{}))
 
-(def build ^{:deprecated "Use build!"} build!)
+(def ^{:deprecated "Use build!"} build build!)
 
 (defn flash!
   "Like build, but shortly after undoes the build again
