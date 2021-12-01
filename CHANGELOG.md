@@ -2,73 +2,11 @@
 
 ## Added
 
-## Fixed
-
-## Changed
-
-# 0.6.124 (2021-12-01 / 135d4ba)
-
-## Added
+- Support for Paper 1.18
 
 ## Fixed
 
-## Changed
-
-# 0.6.121 (2021-12-01 / b50b42f)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.118 (2021-12-01 / 46f1222)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.115 (2021-12-01 / ec46df2)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.112 (2021-12-01 / d7b0695)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.109 (2021-12-01 / 99841c3)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.106 (2021-12-01 / d553d5b)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.103 (2021-12-01 / 2d86a1f)
-
-## Added
-
-## Fixed
-
-## Changed
+- Issues with Paper's new classloader behavior
 
 # 0.5.98 (2021-10-17 / 55eabf3)
 

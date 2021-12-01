@@ -1,6 +1,8 @@
 (ns lambdaisland.witchcraft.reflect
+  (:require [lambdaisland.classpath :as licp])
   (:import (org.reflections Reflections Store)
            (org.reflections.util ConfigurationBuilder
+                                 ClasspathHelper
                                  FilterBuilder)
            (javassist.bytecode MethodInfo)
            (java.lang.reflect Modifier)
@@ -27,9 +29,25 @@
 (defn assoc-sig [m sig klassname]
   (assoc! m sig ((fnil conj #{}) (get m sig) klassname)))
 
+(defn classloaders []
+  ;; shenanigans because paper's pluginclassloader hides what its parents
+  ;; provide
+  (let [plugin-loader (when-let [instance-var (resolve 'lambdaisland.witchcraft.plugin/instance)]
+                        (.getClassLoader (.getClass ^Object @@instance-var)))]
+    (cond-> [(licp/context-classloader)]
+      plugin-loader
+      (conj plugin-loader
+            (.getParent plugin-loader)))))
+
+(defn reflect-config []
+  (let [config (ConfigurationBuilder.)
+        loaders (into-array ClassLoader (classloaders))]
+    (doseq [pkg packages]
+      (.addUrls config (ClasspathHelper/forPackage pkg loaders)))
+    config))
+
 (defn load-reflections []
-  (let [config (.. (ConfigurationBuilder.)
-                   (forPackages (into-array String packages)))
+  (let [config (reflect-config)
         files (mapcat #(.getFiles (Vfs/fromURL %)) (.getUrls config))
         adapt (.getMetadataAdapter config)]
     (persistent!
@@ -96,4 +114,5 @@
 
 (comment
   (filter #(.contains (key %) "Lore") @reflections)
+  (load-reflections)
   )
