@@ -4,7 +4,7 @@
          lambdaisland/data-printers     {:mvn/version "0.7.47"}
          com.github.cryptomorin/XSeries {:mvn/version "8.4.0"}
          clojure2d/clojure2d            {:mvn/version "1.4.3"}
-         org.reflections/reflections    {:mvn/version "0.10.2"}}
+         org.reflections/reflections    {:mvn/version "0.9.12"}}
 
  :aliases
  {:dev
