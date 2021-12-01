@@ -1,4 +1,4 @@
-# Unreleased
+# 0.6.130 (2021-12-01 / d2f05ca)
 
 ## Added
 
