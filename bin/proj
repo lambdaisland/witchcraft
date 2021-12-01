@@ -7,7 +7,7 @@
   :inception-year            2021
   :description               "Clojure API for Minecraft/Glowstone/Bukkit"
   :group-id                  "com.lambdaisland"
-  :aliases-as-scope-provided [:glowstone]})
+  :aliases-as-scope-provided [:glowstone :nrepl]})
 
 
 ;; Local Variables:
