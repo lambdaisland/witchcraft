@@ -1,26 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
-
-# 0.6.150 (2021-12-01 / b4fc432)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.6.147 (2021-12-01 / c14c534)
-
-## Added
-
-## Fixed
-
-## Changed
+- Fixed reflection warnings
 
 # 0.6.142 (2021-12-01 / 787e7c1)
 
