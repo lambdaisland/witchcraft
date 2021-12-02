@@ -39,7 +39,7 @@
       (conj plugin-loader
             (.getParent plugin-loader)))))
 
-(defn reflect-config []
+(defn reflect-config ^ConfigurationBuilder []
   (let [config (ConfigurationBuilder.)
         loaders (into-array ClassLoader (classloaders))]
     (doseq [pkg packages]
