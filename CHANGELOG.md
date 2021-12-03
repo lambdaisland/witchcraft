@@ -2,9 +2,14 @@
 
 ## Added
 
-## Fixed
+- lambdaisland.witchcraft.fill API
+- gallery item: MegaChop 9000
+- more docstrings
+- normalize-text
 
 ## Changed
+
+- `set-lore` and `set-display-name` now implicitly render markup
 
 # 0.6.154 (2021-12-02 / dfda8b7)
 
