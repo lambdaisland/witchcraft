@@ -1,4 +1,4 @@
-(ns lambdaisland.witchcraft.gallery.mechachop9000
+(ns lambdaisland.witchcraft.gallery.megachop9000
   "A magical dwarven axe which chops down a full tree trunk with one chop."
   (:require [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.events :as e]

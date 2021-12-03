@@ -58,37 +58,37 @@
 (defn fill-xyz
   "Perform a [[fill]] along the x, y, and z axes. Convenience function."
   ([start] (fill-xyz start nil))
-  ([start opts] (fill start (assoc opts :x [-1 0 1] :y [-1 0 1] :z [-1 0 1]))))
+  ([start opts] (fill start (assoc opts :dx [-1 0 1] :dy [-1 0 1] :dz [-1 0 1]))))
 
 (defn fill-xy
   "Perform a [[fill]] along the x, and y axes. Convenience function."
   ([start] (fill-xy start nil))
-  ([start opts] (fill start (assoc opts :x [-1 0 1] :y [-1 0 1] :z [0]))))
+  ([start opts] (fill start (assoc opts :dx [-1 0 1] :dy [-1 0 1] :dz [0]))))
 
 (defn fill-xz
   "Perform a [[fill]] along the x, and z axes. Convenience function."
   ([start] (fill-xz start nil))
-  ([start opts] (fill start (assoc opts :x [-1 0 1] :y [0] :z [-1 0 1]))))
+  ([start opts] (fill start (assoc opts :dx [-1 0 1] :dy [0] :dz [-1 0 1]))))
 
 (defn fill-x
   "Perform a [[fill]] along the x axis. Convenience function."
   ([start] (fill-x start nil))
-  ([start opts] (fill start (assoc opts :x [-1 0 1] :y [0] :z [0]))))
+  ([start opts] (fill start (assoc opts :dx [-1 0 1] :dy [0] :dz [0]))))
 
 (defn fill-yz
   "Perform a [[fill]] along the y, and z axes. Convenience function."
   ([start] (fill-yz start nil))
-  ([start opts] (fill start (assoc opts :x [0] :y [-1 0 1] :z [-1 0 1]))))
+  ([start opts] (fill start (assoc opts :dx [0] :dy [-1 0 1] :dz [-1 0 1]))))
 
 (defn fill-y
   "Perform a [[fill]] along the y axis. Convenience function."
   ([start] (fill-y start nil))
-  ([start opts] (fill start (assoc opts :x [0] :y [-1 0 1] :z [0]))))
+  ([start opts] (fill start (assoc opts :dx [0] :dy [-1 0 1] :dz [0]))))
 
 (defn fill-z
   "Perform a [[fill]] along the z axis. Convenience function."
   ([start] (fill-z start nil))
-  ([start opts] (fill start (assoc opts :x [0] :y [0] :z [-1 0 1]))))
+  ([start opts] (fill start (assoc opts :dx [0] :dy [0] :dz [-1 0 1]))))
 
 #_
 (for [x [true false]
@@ -110,7 +110,7 @@
       ([~'start] (~sym ~'start nil))
       ([~'start ~'opts]
        (~'fill ~'start (~'assoc ~'opts
-                        :x ~(if x [-1 0 1] [0])
-                        :y ~(if y [-1 0 1] [0])
-                        :z ~(if z [-1 0 1] [0]))))
+                        :dx ~(if x [-1 0 1] [0])
+                        :dy ~(if y [-1 0 1] [0])
+                        :dz ~(if z [-1 0 1] [0]))))
       )))
