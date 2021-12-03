@@ -2,7 +2,8 @@
   "A magical dwarven axe which chops down a full tree trunk with one chop."
   (:require [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.events :as e]
-            [lambdaisland.witchcraft.markup :as markup]))
+            [lambdaisland.witchcraft.markup :as markup]
+            [lambdaisland.witchcraft.fill :as fill]))
 
 (def megachop9000-name
   (wc/normalize-text
@@ -32,5 +33,11 @@
          (when (and (= megachop9000-name (wc/display-name (wc/item-in-hand player)))
                     (re-find #"-log$" (name material)))
            (run! (memfn breakNaturally)
-                 (fill clickedBlock {:pred #(= material (wc/material-name %))
-                                     :dy [-1 0 1]}))))))))
+                 (fill/fill-xyz clickedBlock {:pred #(= material (wc/material-name %))}))))))))
+
+
+(comment
+  (give-to-player (wc/player "sunnyplexus"))
+  (register-listener!)
+
+  )
