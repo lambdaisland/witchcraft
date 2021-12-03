@@ -1,6 +1,6 @@
 (ns lambdaisland.witchcraft
   "Clojure API for Minecraft/Bukkit"
-  (:refer-clojure :exclude [time])
+  (:refer-clojure :exclude [time bean chunk])
   (:require [clojure.java.io :as io]
             [lambdaisland.witchcraft.events :as events]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
@@ -238,45 +238,61 @@
      (-world-by-uuid o n))))
 
 (defn worlds
-  "Get all worlds"
+  "Get a list of all worlds on the server"
   ([]
    (Bukkit/getWorlds))
   ([o]
    (-worlds o)))
 
+(def
+  ^{:doc "Render hiccup-like markup into a string with color and styling codes that Minecraft understand, see the [[lambdaisland.witchcraft.markup]] namespace for details."}
+  render-markup
+  markup/render)
+
 (defn item-meta
+  "Get the ItemMeta for an item or compatible object, this object contains things
+  like the display name of the item, if it has been renamed."
   [o]
   (-item-meta o))
 
 (defn display-name
+  "Get the display-name for an item or compatible object."
   [o]
   (if (satisfies? HasDisplayName o)
     (-display-name o)
     (display-name (item-meta o))))
 
 (defn lore
+  "Get the lore for an item or compatible object."
   [o]
   (if (satisfies? HasLore o)
     (-lore o)
     (lore (item-meta o))))
 
 (defn set-lore
+  "Set the lore on an item, itemstack, itemmeta. Takes a list (sequence) of
+  strings, or of markup vectors as per [[lambdaisland.witchcraft.markup/render]]."
   [o lore]
   (if (satisfies? HasLore o)
-    (-set-lore o lore)
+    (-set-lore o (map #(markup/render [:reset %1]) lore))
     (let [m (item-meta o)]
-      (-set-lore m lore)
+      (-set-lore m (map #(markup/render [:reset %1]) lore))
       (-set-item-meta o m))))
 
 (defn set-display-name
+  "Set the display-name on an item, itemstack, itemmeta. Takes a list (sequence)
+  of strings, or of markup vectors as
+  per [[lambdaisland.witchcraft.markup/render]]."
   [o name]
   (if (satisfies? HasDisplayName o)
-    (-set-display-name o name)
+    (-set-display-name o (markup/render name))
     (let [m (item-meta o)]
-      (-set-display-name m name)
+      (-set-display-name m (markup/render name))
       (-set-item-meta o m))))
 
 (defn set-item-meta
+  "Set the ItemMeta for compatible objects, like an ItemStack. Either takes an
+  actual ItemMeta object, or a map with `:name` and/or `:lore` keys."
   [o im]
   (cond
     (satisfies? HasItemMeta o)
@@ -632,9 +648,15 @@
 
 (defn item-stack
   "Create an ItemStack object"
-  ^ItemStack [material count]
-  (doto (.parseItem (xmaterial material))
-    (.setAmount count)))
+  ^ItemStack
+  ([material]
+   (item-stack material 1))
+  ([material count]
+   (let [^ItemStack is (if (instance? ItemStack material)
+                         material
+                         (.parseItem (xmaterial material)))]
+     (.setAmount is count)
+     is)))
 
 (defn add-inventory
   "Add the named item to the player's inventory, or n copies of it"
@@ -1073,5 +1095,16 @@
   [^Player p message]
   (.sendMessage p (markup/render message)))
 
+(defn normalize-text
+  "When dealing with text which contains `§`-based color and markup codes,
+  \"normalize\" it by setting it on an item and reading back the result. This
+  will cause the server to strip out redundant markup. Useful if you later want
+  to use equality checks on the name of items.
+
+  Can also take hiccup-like markup as per [[lambdaisland.witchcraft.markup]]"
+  [txt]
+  (display-name
+   (doto (item-stack :wooden-axe 1)
+     (set-display-name (render-markup txt)))))
 
 (load "witchcraft/printers")

@@ -49,11 +49,12 @@
         ;; Any color tag unsets these effects, so we brute-force re-enable them
         ;; after every tag within our scope
         (#{:obfuscated :bold :strikethrough :underline :italic} tag)
-        (cons tag (mapcat (fn [e]
-                            (if (keyword? e)
-                              [e tag]
-                              [e]))
-                          (mapcat expand-markup children)))
+        (concat (cons tag (mapcat (fn [e]
+                                    (if (keyword? e)
+                                      [e tag]
+                                      [e]))
+                                  (mapcat expand-markup children)))
+                [:reset])
 
         :else
         (mapcat #(concat [tag] (expand-markup %) [:reset]) children)))
@@ -61,9 +62,20 @@
     (sequential? markup)
     (mapcat expand-markup markup)))
 
-(defn render ^String [markup]
+(defn render
+  "Render hiccup-like markup into a string that Minecraft understands, this allows
+  you to create text with color, bold, italic, underline, etc."
+  ^String [markup]
   (format-seq
    (expand-markup markup)))
+
+(defn fAnCy
+  "Color letters in alternating colors, makes for very flavorful item names."
+  [string colors]
+  (into [:<>]
+        (map (fn [ch c]
+               [c (str ch)])
+             string (cycle colors))))
 
 (comment
   (format
