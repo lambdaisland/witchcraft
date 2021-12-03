@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Fixed megachop 9000
 
 # 0.6.163 (2021-12-03 / 493bdc7)
 
