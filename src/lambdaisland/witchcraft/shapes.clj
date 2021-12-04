@@ -2,6 +2,21 @@
   (:require [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.matrix :as m]))
 
+(defn range*
+  "Like range, but deal with negative or non-ascending numbers in a way
+   we like better.
+
+  (range -3) ;;=> (-2 -1 0)
+  (range 5 2) ;;=> (2 3 4)"
+  ([a]
+   (if (< 0 a)
+     (range a)
+     (range (inc a) 1)))
+  ([a b]
+   (if (< a b)
+     (range a b)
+     (range b a))))
+
 (defn ball-fn
   "Return a predicate that checks if the location is part of the ball."
   [{:keys [radius center inner-radius]
@@ -33,16 +48,22 @@
   on the result yourself instead.
 
   Returns a sequence of `[x y z]` or `[x y z material]`, to be passed
-  to [[wc/set-blocks]]."
-  [{:keys [east-west-length
-           north-south-length
+  to [[wc/set-blocks]].
+
+  To specify the size use `:height`, and either `:width`/`:length`, or
+  `:east-west-length`/`:north-south-length`, as per your preference.
+  "
+  [{:keys [east-west-length width
+           north-south-length length
            height
            material
            start]}]
-  (for [x (range (min 0 east-west-length) (max 0 east-west-length))
-        y (range (min 0 height) (max 0 height))
-        z (range (min 0 north-south-length) (max 0 north-south-length))]
-    (handle-start+material [x y z] start material)))
+  (let [width (or east-west-length width)
+        length (or north-south-length length)]
+    (for [x (range* width)
+          y (range* height)
+          z (range* length)]
+      (handle-start+material [x y z] start material))))
 
 (defn ball
   "Create a ball shape.
@@ -193,7 +214,6 @@
           material
           (conj material))))))
 
-
 (defn torus
   "Draw a torus shape.
   `:radius` is the radius of the \"ring\", `:tube-radius` is the radius of the
@@ -217,6 +237,33 @@
                                (* tube-radius tube-radius)))
                   margin)]
     (handle-start+material [x y z] start material)))
+
+(defn rectube
+  "Create a rectangular tube, i.e. a box but with the inside hollow and two
+  opposing sides open.
+
+  Arguments are like [[box]], but with the added `:direction` which can be
+  `:east-west`, `:north-south`, or `:top-bottom`. `:top-bottom` is the default."
+  [{:keys [east-west-length width
+           north-south-length length
+           height
+           material
+           start
+           direction]
+    :or {direction :top-bottom}}]
+  (let [width (or east-west-length width)
+        length (or north-south-length length)
+        xs (range* width)
+        ys (range* height)
+        zs (range* length)]
+    (for [x xs, y ys, z zs
+          :when (or (and (or (= (first xs) x) (= (last xs) x))
+                         (not (= direction :east-west)))
+                    (and (or (= (first ys) y) (= (last ys) y))
+                         (not (= direction :top-bottom)))
+                    (and (or (= (first zs) z) (= (last zs) z))
+                         (not (= direction :north-south))))]
+      (handle-start+material [x y z] start material))))
 
 
 (comment

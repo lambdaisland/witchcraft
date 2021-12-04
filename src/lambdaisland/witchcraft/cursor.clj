@@ -118,7 +118,7 @@
           ;; The material we are drawing with
           :material default-material
           ;; Material properties, post-flattening only
-          :properties nil
+          :block-data nil
           ;; Wether the "pen" is down, when this to false steps will move the cursor
           ;; but not add blocks
           :draw? true
@@ -172,7 +172,7 @@
   If the material is a two-element vector (either explicitly or via the palette)
   then this is taken as [material material-data], and overrides the
   material-data in the cursor."
-  [{:keys [x y z material properties
+  [{:keys [x y z material block-data
            data palette dir face-direction? rotate-block]}]
   (let [m (get palette material material)
         [m md] (if (vector? m) m [m data])
@@ -186,8 +186,8 @@
       (assoc :direction (rotate-dir dir rotate-block))
       data
       (assoc :data data)
-      properties
-      (assoc :properties properties))))
+      block-data
+      (assoc :block-data block-data))))
 
 (defn apply-matrix
   "Apply a single matrix to a single x/y/z map based on the origin."
@@ -235,13 +235,13 @@
 
 (defn material
   "Set the current cursor material, and optionally material-data (integer), or
-  properties (map), to be used for consecutive blocks."
+  block-data (map), to be used for consecutive blocks."
   ([c m]
    (material c m nil))
   ([c m md]
    (if (map? md)
-     (assoc c :material m :properties md :data nil)
-     (assoc c :material m :properties nil :data md))))
+     (assoc c :material m :block-data md :data nil)
+     (assoc c :material m :block-data nil :data md))))
 
 (defn rotate-dir
   "Given a direction keyword like :north or :south and a number, make that many
@@ -297,10 +297,10 @@
                      (= :down dir) (rotate-dir (:dir cursor) 4)))
     cursor))
 
-(defn properties
-  "Set the `BlockData` properties (post-flattening and material-dependent)."
+(defn block-data
+  "Set the `BlockData` block-data (post-flattening and material-dependent)."
   [cursor prop-map]
-  (assoc cursor :properties prop-map))
+  (assoc cursor :block-data prop-map))
 
 (defn step-fn
   "Default implementation of how a single step happens, i.e. determine the
@@ -392,8 +392,8 @@
 
 (defn excursion
   "Apply a block-drawing function f, then return to the original position."
-  [cursor f]
-  (assoc cursor :blocks (:blocks (f cursor))))
+  [cursor f & args]
+  (assoc cursor :blocks (:blocks (apply f cursor args))))
 
 (defn extrude
   "Take the current block list and extrude it in a given direction, by default up."

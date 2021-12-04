@@ -626,7 +626,7 @@
       (pre-flattening?)
       (assoc :data (.getData (.getData (.getState block))))
       (and (not (pre-flattening?)) (< 1 (count block-data)))
-      (assoc :properties (dissoc block-data :material))
+      (assoc :block-data (dissoc block-data :material))
       (not= :self direction)
       (assoc :direction direction))))
 
@@ -670,7 +670,7 @@
       :else
       (XMaterial/matchXMaterial ^Material (material m)))))
 
-(defn properties->blockdata
+(defn map->blockdata
   "Create a `BlockData` instance for the given material and properties"
   ^BlockData [material prop-map]
   (-parse-block-data
@@ -685,7 +685,7 @@
                            prop-map))
         "]")))
 
-(defn set-properties
+(defn set-block-data
   "Set `BlockData` properties, these are material dependent, e.g. slabs can have
   `{:type :top}` or `{:type :bottom}`.
 
@@ -693,20 +693,20 @@
   `BlockData`, if you already have one handy you should pass it in to prevent an
   extra lookup."
   ([block prop-map]
-   (set-properties block (material block) prop-map))
+   (set-block-data block (material block) prop-map))
   ([block mat prop-map]
-   (-set-block-data (get-block block) (properties->blockdata mat prop-map))))
+   (-set-block-data (get-block block) (map->blockdata mat prop-map))))
 
 (defmulti -set-block "Server-specific set-block implementation"
-  (fn [server block material direction properties] server))
+  (fn [server block material direction block-data] server))
 
-(defmethod -set-block :default [_ block mat direction properties]
+(defmethod -set-block :default [_ block mat direction block-data]
   (let [xmaterial (xmaterial mat)]
     (XBlock/setType block xmaterial))
   (when direction
     (set-direction block direction))
-  (when properties
-    (set-properties block (material mat) properties)))
+  (when block-data
+    (set-block-data block (material mat) block-data)))
 
 (defn set-block
   "Set the block at a specific location to a specific material
@@ -719,16 +719,18 @@
    (let [b (get-block loc)]
      (swap! undo-history conj {:before [(block b)]
                                :after [loc]})
-     (-set-block server-type b material (when (map? loc) (:direction loc))))
+     (-set-block server-type b material
+                 (when (map? loc) (:direction loc))
+                 (when (map? loc) (:block-data loc))))
    loc))
 
 
 (defmulti -set-blocks (fn [server blocks] server))
 
 (defmethod -set-blocks :default [_ blocks]
-  (doseq [{:keys [direction material properties] :as loc} blocks
+  (doseq [{:keys [direction material block-data] :as loc} blocks
           :let [block (get-block loc)]]
-    (-set-block server-type block material direction properties)))
+    (-set-block server-type block material direction block-data)))
 
 (defn set-blocks
   "Set blocks in bulk
@@ -742,7 +744,7 @@
   blocks it is changing, so you can [[undo!]] and then [[redo!]] the result,
   unless `:keep-history?` is set to `false`.
 
-  Optionally takes an `:anchor` option, which then offsets the whole structure
+  Optionally takes an `:start` option, which then offsets the whole structure
   by that distance (can be a map, vector, `Location`, bukkit `Vector`, etc.), so
   you can define the structure you are passing in independently of its position
   in the world.
@@ -752,12 +754,12 @@
   incur significant lag."
   ([blocks]
    (set-blocks blocks {:keep-history? true}))
-  ([blocks {:keys [keep-history? anchor]
+  ([blocks {:keys [keep-history? start]
             :or {keep-history? true}}]
    (let [blocks (as-> blocks $
                   (remove nil? $)
-                  (if anchor
-                    (map #(add % anchor) $)
+                  (if start
+                    (map #(add % start) $)
                     $)
                   (map (fn [b]
                          (if (map? b)
@@ -767,7 +769,7 @@
                                     :z (z b)
                                     :material (material-name b)}
                              (and (vector? b) (map? (get b 3)))
-                             (assoc :properties (get b 3)))))
+                             (assoc :block-data (get b 3)))))
                        $))]
      (when keep-history?
        (swap! undo-history conj {:before (doall (map block blocks))
@@ -942,6 +944,11 @@
   "Like [[xyz]], but add an extra `1` at the end, for affine transformations"
   [o]
   [(x o) (y o) (z o) 1])
+
+(defn xyz-round
+  "Like [[xyz]], but returns rounded integers."
+  [o]
+  [(Math/round (x o)) (Math/round (y o)) (Math/round (z o))])
 
 (defn distance
   "Get the euclidian distance between two locations. Can take various bukkit

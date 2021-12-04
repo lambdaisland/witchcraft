@@ -5,12 +5,15 @@
 - API additions:
 - `target-block` : find the block you are looking at
 - `block-data` : get info about block properties as a map (post-flattening only)
+- `set-block-data` : complimentary setter, set block data as map
 - `cursor/rotation` : helper for a previously hidden flag to add an extra
   rotatio n to every block
 - Rework `material` and `material-name` to be more polymorphic
-- `set-blocks!` and `cursor/build!` now both optionally take an `:anchor`, to
+- `set-blocks!` and `cursor/build!` now both optionally take an `:start`, to
   make the pattern easier of having location-independent structure generators
 - Significant docstring improvements
+- support for block data in `set-block`, `set-blocks`, `cursor/material`
+- Add `shapes/rectube`, handy for houses and lot of other stuff.
 
 ## Fixed
 
