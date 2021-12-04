@@ -479,8 +479,7 @@ Hold `F3` and press `p` so you can tab out without the game pausing.
 * Learning to code with Witchcraft
 
 The ~lambdaisland.witchcraft~ namespace provides the main API. It's a lot like
-~clojure.core~ in that it contains lots and lots of different utility functions
-which are fairly low level.
+~clojure.core~ in that it contains lots and lots of basic utility functions.
 
 Other namespaces provide higher level APIs to do specific things.
 
@@ -489,6 +488,13 @@ Other namespaces provide higher level APIs to do specific things.
 - ~lambdaisland.witchcraft.palette~ Helpers for constructing your block/color palette.
 - ~lambdaisland.witchcraft.matrix~ Matrix manipulations, to rotate, scale, etc.
 - ~lambdaisland.witchcraft.events~ Register event handler to add custom behavior.
+- ~lambdaisland.witchcraft.fill~ Fill (also called "flood") algorithm, to find contiguous blocks of a certain type
+
+There is also a growing collection of ~lambdaisland.witchcraft.gallery.*~
+namespaces, like ~lambdaisland.witchcraft.gallery.big-chicken~. These are
+recipes and showcases showing Witchcraft in action. You can try them out to get
+a feel for what you can do, or to get inspiration and ideas. They usually have a
+rich comment block at the bottom that you can poke at with a REPL.
 
 Witchcraft tries its best to be convenient and forgiving, and to make the
 interop between Clojure and the Java classes provided by Bukkit as seemless as
@@ -541,11 +547,66 @@ function to get it, and it will generally do the right thing.
 
 * Topics
 
-- Inspecting the world
-- Creating blocks
-- Drawing with Cursor
-- Adding Event Handlers
-- Interacting with Players
+** Inspecting the world
 
-* Recipes
+When you start manipulating the world with code, often the first thing you need
+to do is collect information about the world. Where am I? What's this block I'm
+standing on? What's the location of all blocks that make up this tree?
+
+Start by finding the Player object for yourself. Now you can look up the X/Y/Z
+of where you are, since you'll probably want to manipulate the world close to
+where you are, so you can see it.
+
+#+begin_src clojure
+(def me (wc/player "my-user-name"))
+#+end_src
+
+Now to find the location of something, be it a player, a block, an enity, you
+have a few options.
+
+#+begin_src clojure
+(wc/xyz me)
+;;=> [-16960.525728007666 116.0 -18060.47555957846]
+
+(wc/loc me)
+;;=> {:x -16960.525728007666, :y 116.0, :z -18060.47555957846, :pitch 31.200085, :yaw 36.902298, :world "world"}
+
+(wc/location me)
+;;=> #bukkit/Location [-16960.525728007666 116.0 -18060.47555957846 36.902298 31.200085 "world"]
+#+end_src
+
+The ~xyz~ function returns a three-element vector. It's nice and concise, and works great with destructuring:
+
+#+begin_src clojure
+(let [[x y z] (wc/xyz me)] ,,,)
+#+end_src
+
+~loc~ is similar but returns a map, which allows you to get a few more things,
+like the pitch, yaw, and name of the world you are in.
+
+~location~ returns the underlying ~org.bukkit.Location~ object, in case you want
+the actual Java object to do interop.
+
+Note that the longer named one is the one that provides Java interop, since it's
+something you'll need less often it's made a little less convenient.
+
+Now let's look at some blocks:
+
+#+begin_src clojure
+(wc/block [-16960.525728007666 116.0 -18060.47555957846])
+;;=> {:x -16960, :y 116, :z -18060, :material :snow}
+
+(wc/get-block [-16960.525728007666 116.0 -18060.47555957846])
+;;=> #bukkit/Block {:x -16960.0, :y 116.0, :z -18060.0, :world "world", :material :snow}
+#+end_src
+
+~get-block~ gives you the `org.bukkit.Block` object, again in case you need it
+for interop, but most of the time you'll use ~block~, which gives you a map
+representation of the most important aspects: its location and material.
+
+** Creating blocks
+** Drawing with Cursor
+** Adding Event Handlers
+** Interacting with Players
+
 

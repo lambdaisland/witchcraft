@@ -4,7 +4,7 @@
            (org.reflections.util ConfigurationBuilder
                                  ClasspathHelper
                                  FilterBuilder)
-           (javassist.bytecode MethodInfo)
+           (javassist.bytecode MethodInfo ClassFile)
            (java.lang.reflect Modifier)
            (org.reflections.vfs Vfs Vfs$File)
            (org.reflections.adapters MetadataAdapter)
@@ -54,9 +54,10 @@
      (reduce
       (fn [m ^Vfs$File file]
         (if (.acceptsInput adapt (.getRelativePath file))
-          (let [klass (.getOrCreateClassObject adapt file)
-                klassname (.getClassName adapt klass)]
-            (if-not (some #(.startsWith klassname %) packages)
+          (let [^ClassFile classfile (.getOrCreateClassObject adapt file)
+                klassname (.getClassName adapt classfile)]
+            (if-not (and (Modifier/isPublic (.getAccessFlags classfile))
+                         (some #(.startsWith klassname %) packages))
               m
               (reduce
                (fn [m method]
@@ -88,7 +89,7 @@
                         klassname))
                    m))
                m
-               (.getMethods adapt klass))))
+               (.getMethods adapt classfile))))
           m))
       (transient {})
       files))))
@@ -113,6 +114,6 @@
            form))))
 
 (comment
-  (filter #(.contains (key %) "Lore") @reflections)
+  (filter #(.contains (key %) "createBlockData") @reflections)
   (load-reflections)
   )

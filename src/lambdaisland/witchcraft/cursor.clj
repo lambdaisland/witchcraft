@@ -269,6 +269,14 @@
         :else
         (rotate-dir dir n)))))
 
+(defn rotation
+  "Specify a relative rotation in 1/8 turns clockwise. Blocks will still be
+  aligned based on the cursor direction, but then additionally given this much
+  rotation. Useful in case your blocks are not aligning with the draw line in
+  the way that you wanted."
+  [cursor n]
+  (assoc cursor :rotate-block n))
+
 (defn face
   "Face the cursor in a certain direction"
   [cursor dir]
@@ -398,9 +406,11 @@
 
 (defn build!
   "Apply the list of blocks in the cursor to the world."
-  [{:keys [blocks] :as cursor}]
-  (wc/set-blocks blocks)
-  (assoc cursor :blocks #{}))
+  ([cursor]
+   (build! cursor nil))
+  ([{:keys [blocks] :as cursor} opts]
+   (wc/set-blocks blocks opts)
+   (assoc cursor :blocks #{})))
 
 (def
   ^{:deprecated true

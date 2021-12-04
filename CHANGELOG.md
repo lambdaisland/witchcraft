@@ -2,7 +2,19 @@
 
 ## Added
 
+- API additions:
+- `target-block` : find the block you are looking at
+- `block-data` : get info about block properties as a map (post-flattening only)
+- `cursor/rotation` : helper for a previously hidden flag to add an extra
+  rotatio n to every block
+- Rework `material` and `material-name` to be more polymorphic
+- `set-blocks!` and `cursor/build!` now both optionally take an `:anchor`, to
+  make the pattern easier of having location-independent structure generators
+- Significant docstring improvements
+
 ## Fixed
+
+- Reflection-based protocol implementations: skip private classes
 
 ## Changed
 

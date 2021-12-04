@@ -2,6 +2,7 @@
   "Clojure API for Minecraft/Bukkit"
   (:refer-clojure :exclude [time bean chunk])
   (:require [clojure.java.io :as io]
+            [clojure.string :as str]
             [lambdaisland.witchcraft.events :as events]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util]
@@ -154,9 +155,7 @@
   (yaw [_])
   (pitch [_])
   (^org.bukkit.util.Vector direction-vec [_])
-  (^org.bukkit.Material material [_])
   (^org.bukkit.util.Vector as-vec [_] "Coerce to org.bukkit.util.Vector")
-  (material-name [_])
   (material-data [_])
   (with-xyz [_ xyz] "Return the same type, but with x/y/z updated")
   (^org.bukkit.Chunk chunk [_] "Retrieve the chunk for a location, entity, etc.")
@@ -177,6 +176,9 @@
   (^org.bukkit.inventory.meta.ItemMeta -item-meta [_])
   (-set-item-meta [_ ^org.bukkit.inventory.meta.ItemMeta _]))
 
+(defprotocol HasMaterial
+  (^org.bukkit.Material -material [_]))
+
 (defprotocol HasDisplayName
   (^String -display-name [_])
   (-set-display-name [_ ^String _]))
@@ -184,6 +186,29 @@
 (defprotocol HasLore
   (^java.util.List -lore [_])
   (-set-lore [_ _]))
+
+(defprotocol HasTargetBlock
+  (^org.bukkit.Block -get-target-block [_ transparent max-distance]))
+
+(defprotocol HasBlockData
+  (^org.bukkit.block.data.BlockData -get-block-data [_]))
+
+(defprotocol CanParseBlockData
+  (^org.bukkit.block.data.BlockData -parse-block-data [_ _]))
+
+(declare ^Material material)
+(declare ^clojure.lang.Keyword material-name)
+(declare ^XMaterial xmaterial)
+(declare ^Block get-block)
+(declare ^clojure.lang.IPersistentMap block)
+
+(defn add
+  "Add multiple vector/location-like things together.
+  Returns a value with the same type of the first argument."
+  ([this that]
+   (-add this that))
+  ([this that & more]
+   (reduce -add (-add this that) more)))
 
 (defn location
   "Get the location of the given object"
@@ -306,6 +331,97 @@
           :lore (set-lore my-meta v)))
       (set-item-meta o my-meta))))
 
+(defn get-target-block
+  "Get the target block in the line of sight of the entity/player, as org.bukkit.block.Block"
+  (^org.bukkit.block.Block [entity]
+   (get-target-block entity #{:air}))
+  (^org.bukkit.block.Block [entity transparent]
+   (get-target-block entity transparent 20))
+  (^org.bukkit.block.Block [entity transparent max-distance]
+   (cond
+     (satisfies? HasTargetBlock entity)
+     (-get-target-block entity (into #{} (map material) transparent) max-distance))))
+
+(defn target-block
+  "Get the target block in the line of sight of the entity/player, as a map"
+  [& args]
+  (block (apply get-target-block args)))
+
+(defn get-block-data
+  "Get the BlockData object of something"
+  ^org.bukkit.block.data.BlockData
+  [b]
+  (cond
+    (satisfies? HasBlockData b)
+    (-get-block-data b)
+    (string? b)
+    (-parse-block-data (server) b)
+    :else
+    (-get-block-data (get-block b))))
+
+(defn block-data
+  "Get the block data for the block as a map with `:material`, and other
+  material-specific key-values. This is kind of hacky in that we essentially
+  parse this out of the stringified version of the `BlockData`, but given the
+  immense parochialism in concrete `BlockData` subclasses we have little other
+  choice, and we can still reconstitute the `BlockData` by parsing it with
+  `Server/createBlockData`."
+  [b]
+  (let [bd (get-block-data b)
+        [_ _ attrs] (re-find #"^([^\[]*)\[(.*)\]"
+                             (.getAsString bd))]
+    (into {:material (material-name bd)}
+          (map (fn [s]
+                 (let [[k v] (str/split s #"=")]
+                   [(keyword k)
+                    (cond
+                      (= "true" v) true
+                      (= "false" v) false
+                      (re-find #"\d+" v) (Long/parseLong v)
+                      (re-find #"\d+\.\d+" v) (Double/parseDouble v)
+                      :else (keyword v))])))
+          (str/split attrs #","))))
+
+(defn material
+  "Get the `org.bukkit.Material` for the given object.
+
+  - map: looks for a `:material` key
+  - vector: will look for a keyword in the fourth position
+    (so you can use `[x y z material]``)
+  - keyword: looks up the named material
+  - Objects that implement `getMaterial()` or `getType()`, use
+    the object method to get the material
+  - location-like things: pass on to `get-block` to get the
+    material at that location
+  "
+  [m]
+  (cond
+    (satisfies? HasMaterial m)
+    (-material m)
+
+    (keyword? m)
+    (if-let [xm (xmaterial m)]
+      (.parseMaterial xm)
+      (throw (ex-info (str "Material not found: " m) {:material m
+                                                      :known-materials
+                                                      (count materials)})))
+
+    (map? m)
+    (material (:material m (location m)))
+
+    (vector? m)
+    (let [[_ _ _ m] m]
+      (when (keyword? m)
+        (material m)))
+
+    :else
+    (-material (get-block m))))
+
+(defn material-name [m]
+  (if (instance? XMaterial m)
+    (get material-names m)
+    (material-name (xmaterial m))))
+
 (reflect/extend-signatures HasLocation
   "org.bukkit.Location getLocation()"
   (-location [this]
@@ -350,6 +466,27 @@
   "setLore(java.util.List)"
   (-set-lore [this lore]
     (.setLore this lore)))
+
+(reflect/extend-signatures HasTargetBlock
+  "org.bukkit.block.Block getTargetBlock(java.util.Set,int)"
+  (-get-target-block [this ^java.util.Set transparent ^long max-distance]
+    (.getTargetBlock this transparent max-distance)))
+
+(reflect/extend-signatures HasBlockData
+  "org.bukkit.block.data.BlockData getBlockData()"
+  (-get-block-data [this]
+    (.getBlockData this)))
+
+(reflect/extend-signatures HasMaterial
+  "org.bukkit.Material getMaterial()"
+  (-material [this] (.getMaterial this))
+  "org.bukkit.Material getType()"
+  (-material [this] (.getType this)))
+
+(reflect/extend-signatures CanParseBlockData
+  "org.bukkit.block.data.BlockData createBlockData(java.lang.String)"
+  (-parse-block-data [this ^String string]
+    (.createBlockData this string)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -503,8 +640,8 @@
       (keyword? m)
       (get materials m)
 
-      (instance? Block m)
-      (xmaterial (.getType ^Block m))
+      (satisfies? HasMaterial m)
+      (xmaterial (-material m))
 
       ;; The nonsense we pull to prevent a few reflection warnings...
       (string? m)
@@ -552,22 +689,40 @@
 (defn set-blocks
   "Set blocks in bulk
 
-  Takes a sequence of maps with :x, :y, :z, :material, and optionally :world
-  and :data.
+  Takes a sequence of maps with `:x`, `:y`, `:z`, `:material`, and optionally
+  `:world` and `:data`, or a sequence of `[x y z material]` vectors.
+  Alternatively you can pass a sequence of any object that responds to the `x`,
+  `y`, `z`, and `material-name` methods.
 
-  Currently only optimized on Glowstone, elsewhere it repeatedly calls [[set-block]]"
+  This adds an entry to the undo history, capturing the previous state of the
+  blocks it is changing, so you can [[undo!]] and then [[redo!]] the result,
+  unless `:keep-history?` is set to `false`.
+
+  Optionally takes an `:anchor` option, which then offsets the whole structure
+  by that distance (can be a map, vector, `Location`, bukkit `Vector`, etc.), so
+  you can define the structure you are passing in independently of its position
+  in the world.
+
+  Currently only optimized on Glowstone, elsewhere it repeatedly
+  calls [[set-block]], so changing really large amounts of blocks at once will
+  incur significant lag."
   ([blocks]
    (set-blocks blocks {:keep-history? true}))
-  ([blocks {:keys [keep-history?]}]
-   (let [blocks (->> blocks
-                     (remove nil?)
-                     (map (fn [b]
-                            (if (map? b)
-                              b
-                              {:x (x b)
-                               :y (y b)
-                               :z (z b)
-                               :material (material-name b)}))))]
+  ([blocks {:keys [keep-history? anchor]
+            :or {keep-history? true}}]
+   (let [blocks (as-> blocks $
+                  (remove nil? $)
+                  (if anchor
+                    (map #(add % anchor) $)
+                    $)
+                  (map (fn [b]
+                         (if (map? b)
+                           b
+                           {:x (x b)
+                            :y (y b)
+                            :z (z b)
+                            :material (material-name b)}))
+                       $))]
      (when keep-history?
        (swap! undo-history conj {:before (doall (map block blocks))
                                  :after blocks}))
@@ -801,8 +956,6 @@
   (yaw [e] (yaw (location e)))
   (pitch [e] (pitch (location e)))
   (^org.bukkit.util.Vector direction-vec [e] (direction-vec (location e)))
-  (material [b] (.getType b))
-  (material-name [b] (material-name (xmaterial b)))
   (material-data [b] (when (pre-flattening?)
                        (.getData (.getData (.getState b)))))
   (-add [this that]
@@ -828,8 +981,6 @@
                   (yaw that))
                (+ (pitch this)
                   (pitch that))))
-  (material [l] (material (get-block l)))
-  (material-name [l] (material-name (xmaterial l)))
   (material-data [l] (material-data (get-block l)))
   (with-xyz [this [x y z]]
     (Location. (world this)
@@ -856,14 +1007,8 @@
   (yaw [v] 0)
   (pitch [v] 0)
   (world [v] )
-  (material [l] (material (location l)))
-  (material-name [l] (material-name (xmaterial l)))
   (material-data [l] (material-data (get-block l)))
   (with-xyz [_ [x y z]] (vec3 x y z))
-
-  ItemStack
-  (material [i] (.getType i))
-  (material-name [i] (material-name (xmaterial i)))
 
   java.util.Map
   (x [m] (or (.get m :x) 0))
@@ -874,11 +1019,6 @@
   (world [m] (world (location m)))
   (as-vec [m]
     (vec3 (x m) (y m) (z m)))
-  (material [m] (material (or (.get m :material)
-                              (location m))))
-  (material-name [m]
-    (or (.get m :material)
-        (material-name (xmaterial m))))
   (material-data [m]
     (when (pre-flattening?)
       (or (.get m :data)
@@ -894,12 +1034,8 @@
     (chunk (location this)))
 
   clojure.lang.Keyword
-  (material [k]
-    (if-let [xm (xmaterial k)]
-      (.parseMaterial xm)
-      (throw (ex-info (str "Material not found: " k) {:material k
-                                                      :known-materials
-                                                      (count materials)}))))
+
+
 
   ;; Vectors can be used in two ways
   ;; [x y z yaw pitch world]
@@ -921,8 +1057,6 @@
            2 (+ (z this) (z that))))
   (as-vec [[x y z]]
     (vec3 x y z))
-  (material-name [[_ _ _ m]] (when (keyword? m) m))
-  (material [[_ _ _ m]] (when (keyword? m) (material m)))
   (with-xyz [m [x y z]]
     (assoc m 0 x 1 y 2 z))
   (chunk [this]
@@ -980,9 +1114,8 @@
         (into {} (map (juxt val key)) materials)))
 
       (extend-type XMaterial
-        PolymorphicFunctions
-        (material [m#] (.parseMaterial m#))
-        (material-name [m#] (get material-names m#))))))
+        HasMaterial
+        (-material [m#] (.parseMaterial m#))))))
 
 ;; TODO: Glowstone 1.12 does not recognize biomeProvider or hardcore
 
@@ -992,7 +1125,7 @@
      (case k
        ;; TODO: most of these are polymorphic, add type dispatch. For now only
        ;; supporting most basic/primitive version
-       :biome-provider (.biomeProvider wc ^String v)
+       #_#_:biome-provider (.biomeProvider wc ^String v)
        :copy (.copy wc ^World v)
        :environment (.environment wc v)
        :seed (.seed wc v)
@@ -1030,14 +1163,6 @@
 
 (defn active-item [^Player player]
   (.getActiveItem player))
-
-(defn add
-  "Add multiple vector/location-like things together.
-  Returns a value with the same type of the first argument."
-  ([this that]
-   (-add this that))
-  ([this that & more]
-   (reduce -add (-add this that) more)))
 
 (util/when-class-exists
  org.bukkit.GameRule
