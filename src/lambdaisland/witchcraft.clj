@@ -12,6 +12,7 @@
            (com.cryptomorin.xseries XMaterial XBlock)
            (org.bukkit Bukkit Chunk Location Material Server World WorldCreator)
            (org.bukkit.block Block BlockFace)
+           (org.bukkit.block.data BlockData)
            (org.bukkit.configuration.serialization ConfigurationSerialization)
            (org.bukkit.enchantments Enchantment)
            (org.bukkit.entity Entity Player HumanEntity LivingEntity)
@@ -191,7 +192,8 @@
   (^org.bukkit.Block -get-target-block [_ transparent max-distance]))
 
 (defprotocol HasBlockData
-  (^org.bukkit.block.data.BlockData -get-block-data [_]))
+  (^org.bukkit.block.data.BlockData -get-block-data [_])
+  (-set-block-data [_ _]))
 
 (defprotocol CanParseBlockData
   (^org.bukkit.block.data.BlockData -parse-block-data [_ _]))
@@ -369,18 +371,21 @@
   [b]
   (let [bd (get-block-data b)
         [_ _ attrs] (re-find #"^([^\[]*)\[(.*)\]"
-                             (.getAsString bd))]
-    (into {:material (material-name bd)}
-          (map (fn [s]
-                 (let [[k v] (str/split s #"=")]
-                   [(keyword k)
-                    (cond
-                      (= "true" v) true
-                      (= "false" v) false
-                      (re-find #"\d+" v) (Long/parseLong v)
-                      (re-find #"\d+\.\d+" v) (Double/parseDouble v)
-                      :else (keyword v))])))
-          (str/split attrs #","))))
+                             (.getAsString bd))
+        result {:material (material-name bd)}]
+    (if attrs
+      (into result
+            (map (fn [s]
+                   (let [[k v] (str/split s #"=")]
+                     [(keyword k)
+                      (cond
+                        (= "true" v) true
+                        (= "false" v) false
+                        (re-find #"\d+" v) (Long/parseLong v)
+                        (re-find #"\d+\.\d+" v) (Double/parseDouble v)
+                        :else (keyword v))])))
+            (str/split attrs #","))
+      result)))
 
 (defn material
   "Get the `org.bukkit.Material` for the given object.
@@ -396,6 +401,9 @@
   "
   [m]
   (cond
+    (instance? Material m)
+    m
+
     (satisfies? HasMaterial m)
     (-material m)
 
@@ -475,7 +483,10 @@
 (reflect/extend-signatures HasBlockData
   "org.bukkit.block.data.BlockData getBlockData()"
   (-get-block-data [this]
-    (.getBlockData this)))
+    (.getBlockData this))
+  "void setBlockData(org.bukkit.block.data.BlockData)"
+  (-set-block-data [this ^org.bukkit.block.data.BlockData bd]
+    (.setBlockData this bd)))
 
 (reflect/extend-signatures HasMaterial
   "org.bukkit.Material getMaterial()"
@@ -606,13 +617,16 @@
   if you need the actual block object."
   [block-or-loc]
   (let [block (get-block block-or-loc)
-        direction (direction block)]
+        direction (direction block)
+        block-data (block-data block)]
     (cond-> {:x (long (x block))
              :y (long (y block))
              :z (long (z block))
-             :material (material-name block)}
+             :material (:material block-data)}
       (pre-flattening?)
       (assoc :data (.getData (.getData (.getState block))))
+      (and (not (pre-flattening?)) (< 1 (count block-data)))
+      (assoc :properties (dissoc block-data :material))
       (not= :self direction)
       (assoc :direction direction))))
 
@@ -656,14 +670,43 @@
       :else
       (XMaterial/matchXMaterial ^Material (material m)))))
 
-(defmulti -set-block "Server-specific set-block implementation"
-  (fn [server block material direction] server))
+(defn properties->blockdata
+  "Create a `BlockData` instance for the given material and properties"
+  ^BlockData [material prop-map]
+  (-parse-block-data
+   material
+   (str "["
+        (str/join "," (map (fn [[k v]]
+                             (str (name k)
+                                  "="
+                                  (if (keyword? v)
+                                    (name v)
+                                    (str v))))
+                           prop-map))
+        "]")))
 
-(defmethod -set-block :default [_ block material direction]
-  (let [xmaterial (xmaterial material)]
+(defn set-properties
+  "Set `BlockData` properties, these are material dependent, e.g. slabs can have
+  `{:type :top}` or `{:type :bottom}`.
+
+  We need to get a matching `Material` object to construct the correct type of
+  `BlockData`, if you already have one handy you should pass it in to prevent an
+  extra lookup."
+  ([block prop-map]
+   (set-properties block (material block) prop-map))
+  ([block mat prop-map]
+   (-set-block-data (get-block block) (properties->blockdata mat prop-map))))
+
+(defmulti -set-block "Server-specific set-block implementation"
+  (fn [server block material direction properties] server))
+
+(defmethod -set-block :default [_ block mat direction properties]
+  (let [xmaterial (xmaterial mat)]
     (XBlock/setType block xmaterial))
   (when direction
-    (set-direction block direction)))
+    (set-direction block direction))
+  (when properties
+    (set-properties block (material mat) properties)))
 
 (defn set-block
   "Set the block at a specific location to a specific material
@@ -679,12 +722,13 @@
      (-set-block server-type b material (when (map? loc) (:direction loc))))
    loc))
 
+
 (defmulti -set-blocks (fn [server blocks] server))
 
 (defmethod -set-blocks :default [_ blocks]
-  (doseq [{:keys [direction material] :as loc} blocks
+  (doseq [{:keys [direction material properties] :as loc} blocks
           :let [block (get-block loc)]]
-    (-set-block server-type block material direction)))
+    (-set-block server-type block material direction properties)))
 
 (defn set-blocks
   "Set blocks in bulk
@@ -718,10 +762,12 @@
                   (map (fn [b]
                          (if (map? b)
                            b
-                           {:x (x b)
-                            :y (y b)
-                            :z (z b)
-                            :material (material-name b)}))
+                           (cond-> {:x (x b)
+                                    :y (y b)
+                                    :z (z b)
+                                    :material (material-name b)}
+                             (and (vector? b) (map? (get b 3)))
+                             (assoc :properties (get b 3)))))
                        $))]
      (when keep-history?
        (swap! undo-history conj {:before (doall (map block blocks))

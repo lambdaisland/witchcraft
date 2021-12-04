@@ -117,6 +117,8 @@
           :dir dir
           ;; The material we are drawing with
           :material default-material
+          ;; Material properties, post-flattening only
+          :properties nil
           ;; Wether the "pen" is down, when this to false steps will move the cursor
           ;; but not add blocks
           :draw? true
@@ -170,7 +172,8 @@
   If the material is a two-element vector (either explicitly or via the palette)
   then this is taken as [material material-data], and overrides the
   material-data in the cursor."
-  [{:keys [x y z material data palette dir face-direction? rotate-block]}]
+  [{:keys [x y z material properties
+           data palette dir face-direction? rotate-block]}]
   (let [m (get palette material material)
         [m md] (if (vector? m) m [m data])
         md (or md 0)]
@@ -182,7 +185,9 @@
       face-direction?
       (assoc :direction (rotate-dir dir rotate-block))
       data
-      (assoc :data data))))
+      (assoc :data data)
+      properties
+      (assoc :properties properties))))
 
 (defn apply-matrix
   "Apply a single matrix to a single x/y/z map based on the origin."
@@ -229,12 +234,14 @@
     c))
 
 (defn material
-  "Set the current cursor material, and optionally material-data, to be used for
-  consecutive blocks."
+  "Set the current cursor material, and optionally material-data (integer), or
+  properties (map), to be used for consecutive blocks."
   ([c m]
    (material c m nil))
   ([c m md]
-   (assoc c :material m :data md)))
+   (if (map? md)
+     (assoc c :material m :properties md :data nil)
+     (assoc c :material m :properties nil :data md))))
 
 (defn rotate-dir
   "Given a direction keyword like :north or :south and a number, make that many
@@ -290,7 +297,16 @@
                      (= :down dir) (rotate-dir (:dir cursor) 4)))
     cursor))
 
-(defn step-fn [c dir]
+(defn properties
+  "Set the `BlockData` properties (post-flattening and material-dependent)."
+  [cursor prop-map]
+  (assoc cursor :properties prop-map))
+
+(defn step-fn
+  "Default implementation of how a single step happens, i.e. determine the
+  direction and update `:x` / `:y` / `:z` accordingly. Can be overruled by
+  adding a `:step-fn` to the cursor."
+  [c dir]
   (let [[x y z] (get movements dir)]
     (-> c
         (assoc :dir dir)
