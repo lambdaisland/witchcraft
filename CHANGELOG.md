@@ -1,4 +1,4 @@
-# Unreleased
+# 0.6.172 (2021-12-04 / 6d3ded1)
 
 ## Added
 
