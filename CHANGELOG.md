@@ -2,9 +2,15 @@
 
 ## Added
 
-## Fixed
+- The `fill` API can now take a set of `:materials` instead of a `:pred`
+- Pas direction of a block in `set-blocks` when using vectors
+- Accept both `:start` and `:anchor` in `set-blocks`
+- Improved interop calls
 
 ## Changed
+
+- `inventory` now returns a sequence of maps, use `get-inventory` if you want
+  the bukkit object.
 
 # 0.6.172 (2021-12-04 / 6d3ded1)
 

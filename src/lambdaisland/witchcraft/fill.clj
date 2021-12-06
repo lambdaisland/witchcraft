@@ -15,20 +15,27 @@
   `:pred` is a function which receives a block, and returns true if the block
   should be added to the result, or false otherwise. The default function
   considers all blocks that are not `:air` blocks.
+
+  Alternative pass in a set of `:materials` (keywords), and it will only find
+  neighbours of those types.
   "
   ([loc]
    (neighbours loc nil))
-  ([loc {:keys [dx dy dz pred]
+  ([loc {:keys [dx dy dz pred materials]
          :or {dx [-1 0 1]
               dy [0]
               dz [-1 0 1]
-              pred #(not= (wc/material-name %) :air)}}]
-   (for [dx dx dy dy dz dz
-         nloc [(wc/add (wc/location loc) [dx dy dz])]
-         :when (not= (wc/location loc) nloc)
-         block [(wc/get-block nloc)]
-         :when (pred block)]
-     block)))
+              }}]
+   (let [pred (or pred
+                  (if materials
+                    (comp (set materials) wc/material-name)
+                    #(not= (wc/material-name %) :air)))]
+     (for [dx dx dy dy dz dz
+           nloc [(wc/add (wc/location loc) [dx dy dz])]
+           :when (not= (wc/location loc) nloc)
+           block [(wc/get-block nloc)]
+           :when (pred block)]
+       block))))
 
 (defn fill
   "Recursively find neighbours, as per [[neighbours]].
@@ -39,21 +46,23 @@
   you really know what you're doing. Defaults to `30`."
   ([start]
    (fill start nil))
-  ([start {:keys [limit] :or {limit 30} :as opts}]
+  ([start {:keys [limit throw?] :or {limit 30 throw? true} :as opts}]
    (loop [search #{start}
           result #{start}
           iterations 0]
-     (when (and limit (<= limit iterations))
-       (throw (ex-info (str `fill " did not terminate within " limit " iterations, aborting.")
-                       {:start start :opts opts})))
-     (let [new-blocks (reduce
-                       (fn [res loc]
-                         (into res (remove result) (neighbours loc opts)))
-                       #{}
-                       search)]
-       (if (seq new-blocks)
-         (recur new-blocks (into result new-blocks) (inc iterations))
-         result)))))
+     (if (and limit (<= limit iterations))
+       (if throw?
+         (throw (ex-info (str `fill " did not terminate within " limit " iterations, aborting.")
+                         {:start start :opts opts}))
+         result)
+       (let [new-blocks (reduce
+                         (fn [res loc]
+                           (into res (remove result) (neighbours loc opts)))
+                         #{}
+                         search)]
+         (if (seq new-blocks)
+           (recur new-blocks (into result new-blocks) (inc iterations))
+           result))))))
 
 (defn fill-xyz
   "Perform a [[fill]] along the x, y, and z axes. Convenience function."

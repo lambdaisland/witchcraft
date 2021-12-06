@@ -162,6 +162,13 @@
   (^org.bukkit.Chunk chunk [_] "Retrieve the chunk for a location, entity, etc.")
   (entities [_] "Get the chunk's entities"))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Interop protocols
+;;
+;; These functions all start with a `-`, indicating they are just a low-level
+;; proxy to an underlying interop form. See the `reflect/extend-signature` calls
+;; lower down.
+
 (defprotocol HasLocation
   (^org.bukkit.Location -location [_] "Get the location of the given object"))
 
@@ -195,8 +202,17 @@
   (^org.bukkit.block.data.BlockData -get-block-data [_])
   (-set-block-data [_ _]))
 
+(defprotocol HasInventory
+  (^org.bukkit.inventory.Inventory -inventory [_]))
+
 (defprotocol CanParseBlockData
   (^org.bukkit.block.data.BlockData -parse-block-data [_ _]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Interop wrappers
+;;
+;; Regular functions which delegate to interop protocols, but do some additional
+;; type checks, coercion, or dealing with plain Clojure data along the way.
 
 (declare ^Material material)
 (declare ^clojure.lang.Keyword material-name)
@@ -279,12 +295,17 @@
 (defn item-meta
   "Get the ItemMeta for an item or compatible object, this object contains things
   like the display name of the item, if it has been renamed."
-  [o]
-  (-item-meta o))
+  ^ItemMeta [o]
+  (cond
+    (instance? ItemMeta o)
+    o
+
+    (satisfies? HasItemMeta o)
+    (-item-meta o)))
 
 (defn display-name
   "Get the display-name for an item or compatible object."
-  [o]
+  ^String [o]
   (if (satisfies? HasDisplayName o)
     (-display-name o)
     (display-name (item-meta o))))
@@ -354,6 +375,8 @@
   ^org.bukkit.block.data.BlockData
   [b]
   (cond
+    (instance? org.bukkit.block.data.BlockData b)
+    b
     (satisfies? HasBlockData b)
     (-get-block-data b)
     (string? b)
@@ -399,7 +422,7 @@
   - location-like things: pass on to `get-block` to get the
     material at that location
   "
-  [m]
+  ^org.bukkit.Material [m]
   (cond
     (instance? Material m)
     m
@@ -425,10 +448,51 @@
     :else
     (-material (get-block m))))
 
-(defn material-name [m]
+(defn mat
+  "Get the material name of something, as a keyword."
+  [m]
   (if (instance? XMaterial m)
     (get material-names m)
-    (material-name (xmaterial m))))
+    (when-let [xm (xmaterial m)]
+      (mat xm))))
+
+(defn material-name
+  "Get the material name of something, as a keyword. Alias for [[mat]]."
+  [m]
+  (mat m))
+
+(defn get-inventory
+  "Get the org.bukkit.inventory.Inventory for the given object/entity."
+  ^org.bukkit.inventory.Inventory [o]
+  (cond
+    (instance? org.bukkit.inventory.Inventory o)
+    o
+
+    (satisfies? HasInventory o)
+    (-inventory o)))
+
+(defn inventory
+  "Get the inventory of something as a sequence of maps."
+  [o]
+  (let [inv (get-inventory o)]
+    (for [^ItemStack stack inv
+          :when stack]
+      (let [im (.getItemMeta stack)
+            dn (.getDisplayName im)
+            lore (.getLore im)
+            itemflags (.getItemFlags im)
+            localized (.getLocalizedName im)
+            enchants (.getEnchants im)]
+        (cond-> {:material (mat stack)
+                 :amount (.getAmount stack)}
+          (not= "" dn) (assoc :display-name dn)
+          (not= "" localized) (assoc :localized-dname localized)
+          (seq lore) (assoc :lore (seq lore))
+          (seq itemflags) (assoc :item-flags itemflags)
+          (seq enchants) (assoc :enchants enchants))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Interop protocol implementations
 
 (reflect/extend-signatures HasLocation
   "org.bukkit.Location getLocation()"
@@ -498,6 +562,11 @@
   "org.bukkit.block.data.BlockData createBlockData(java.lang.String)"
   (-parse-block-data [this ^String string]
     (.createBlockData this string)))
+
+(reflect/extend-signatures HasInventory
+  "org.bukkit.inventory.Inventory getInventory()"
+  (-inventory [this]
+    (.getInventory this)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -651,11 +720,17 @@
   ^XMaterial [m]
   (when m
     (cond
-      (keyword? m)
-      (get materials m)
+      (instance? XMaterial m)
+      m
 
       (satisfies? HasMaterial m)
       (xmaterial (-material m))
+
+      (keyword? m)
+      (get materials m)
+
+      (and (map? m) (contains? :material m))
+      (xmaterial (:material m))
 
       ;; The nonsense we pull to prevent a few reflection warnings...
       (string? m)
@@ -744,22 +819,22 @@
   blocks it is changing, so you can [[undo!]] and then [[redo!]] the result,
   unless `:keep-history?` is set to `false`.
 
-  Optionally takes an `:start` option, which then offsets the whole structure
-  by that distance (can be a map, vector, `Location`, bukkit `Vector`, etc.), so
-  you can define the structure you are passing in independently of its position
-  in the world.
+  Optionally takes an `:start` or `:anchor` option, which then offsets the whole
+  structure by that distance (can be a map, vector, `Location`, bukkit `Vector`,
+  etc.), so you can define the structure you are passing in independently of its
+  position in the world.
 
   Currently only optimized on Glowstone, elsewhere it repeatedly
   calls [[set-block]], so changing really large amounts of blocks at once will
   incur significant lag."
   ([blocks]
    (set-blocks blocks {:keep-history? true}))
-  ([blocks {:keys [keep-history? start]
+  ([blocks {:keys [keep-history? start anchor]
             :or {keep-history? true}}]
    (let [blocks (as-> blocks $
                   (remove nil? $)
-                  (if start
-                    (map #(add % start) $)
+                  (if (or start anchor)
+                    (map #(add % (or start anchor)) $)
                     $)
                   (map (fn [b]
                          (if (map? b)
@@ -768,8 +843,10 @@
                                     :y (y b)
                                     :z (z b)
                                     :material (material-name b)}
-                             (and (vector? b) (map? (get b 3)))
-                             (assoc :block-data (get b 3)))))
+                             (and (vector? b) (map? (last b)))
+                             (assoc :block-data (last b))
+                             (and (vector? b) (keyword? (get b 4)))
+                             (assoc :direction (get b 4)))))
                        $))]
      (when keep-history?
        (swap! undo-history conj {:before (doall (map block blocks))
@@ -844,11 +921,6 @@
      (.setThundering false)
      (.setStorm false))))
 
-(defn inventory
-  "Get the player's inventory"
-  ^Inventory [player]
-  (.getInventory ^Player player))
-
 (defn item-stack
   "Create an ItemStack object"
   ^ItemStack
@@ -862,23 +934,26 @@
      is)))
 
 (defn add-inventory
-  "Add the named item to the player's inventory, or n copies of it"
+  "Add the named item to the player or entity's inventory, or n copies of it"
   ([player item]
    (add-inventory player item 1))
   ([player item n]
-   (.addItem (inventory player)
+   (.addItem (get-inventory player)
              (into-array ItemStack [(item-stack item n)]))))
 
 (defn remove-inventory
-  "Remove the named items from the player's inventory, or n copies of it"
+  "Remove the named items from the player or entity's inventory, or n copies of
+  it"
   ([player item]
    (remove-inventory player item 1))
   ([player item n]
-   (.removeItem (inventory player)
+   (.removeItem (get-inventory player)
                 (into-array ItemStack [(item-stack item n)]))))
 
-(defn empty-inventory [player]
-  (let [i (inventory player)
+(defn empty-inventory
+  "Clear out the inventory"
+  [entity]
+  (let [i (get-inventory entity)
         c (.getContents i)]
     (.removeItem i c)))
 
@@ -1085,10 +1160,6 @@
     (assoc m :x x :y y :z z))
   (chunk [this]
     (chunk (location this)))
-
-  clojure.lang.Keyword
-
-
 
   ;; Vectors can be used in two ways
   ;; [x y z yaw pitch world]

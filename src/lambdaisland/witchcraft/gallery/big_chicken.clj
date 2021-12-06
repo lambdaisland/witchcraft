@@ -58,7 +58,7 @@
 (comment
   (wc/set-blocks
    (chicken-shape
-    (wc/in-front-of (wc/player "sunnyplexus") 5)
+    (wc/target-block (wc/player))
     ))
 
   (wc/undo!))
