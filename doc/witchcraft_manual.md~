@@ -2,36 +2,40 @@
 
 # Witchcraft Manual
 
-1.  [Introduction](#org5a93c16)
-2.  [Minecraft Concepts](#org21c9c56)
-    1.  [Survival vs Creative](#orga7257d9)
-    2.  [Whirlwind Tour of a Survival Game](#orgd8f48be)
-    3.  [Worlds and Biomes](#org8cf9aa4)
-    4.  [Coordinate system](#org9ba1da6)
-    5.  [The flattening](#org74604a1)
-    6.  [Resources and Crafting](#org81455b3)
-    7.  [Villagers and Traders](#org9da8553)
-    8.  [Farming](#org2b787e7)
-    9.  [Redstone](#orgeb5ae54)
-    10. [Enchanting and XP](#org4c9b14f)
-    11. [Modding, Bukkit, SpigotMC](#org1644593)
-    12. [Java vs Bedrock](#org1e90007)
-    13. [Alternative Games](#orgaa11a33)
-        1.  [Parkour](#orgf67c8e0)
-        2.  [Speedrunner vs Hunters](#orge4ba73e)
-        3.  [Skyblock](#orgf9d24a2)
-        4.  [Build Wars](#org99ff49e)
-        5.  [Bed Wars](#org0e03904)
-3.  [Getting started with Witchcraft](#org0c33df0)
-    1.  [Running the plugin](#org476b4c4)
-    2.  [Running from the REPL](#org96e2ed2)
-4.  [Learning to code with Witchcraft](#org81d6b23)
-5.  [Topics](#org0caa629)
-6.  [Recipes](#orgb4895fb)
+1.  [Introduction](#org7bdb94b)
+2.  [Minecraft Concepts](#org10f6717)
+    1.  [Survival vs Creative](#org8248015)
+    2.  [Whirlwind Tour of a Survival Game](#org0665cb2)
+    3.  [Worlds and Biomes](#org17978af)
+    4.  [Coordinate system](#orga4532f9)
+    5.  [The flattening](#orgfcbec05)
+    6.  [Resources and Crafting](#org920bdb3)
+    7.  [Villagers and Traders](#org08e56f8)
+    8.  [Farming](#orgbddcddc)
+    9.  [Redstone](#org8ad00a4)
+    10. [Enchanting and XP](#orgb979ad4)
+    11. [Modding, Bukkit, SpigotMC](#org05a3628)
+    12. [Java vs Bedrock](#org8ccff12)
+    13. [Alternative Games](#org452a6a1)
+        1.  [Parkour](#orgd0af062)
+        2.  [Speedrunner vs Hunters](#org7dd5de4)
+        3.  [Skyblock](#org2f7119e)
+        4.  [Build Wars](#org2d3ec12)
+        5.  [Bed Wars](#org4d76298)
+3.  [Getting started with Witchcraft](#org5313a8d)
+    1.  [Running the plugin](#orgfac8ad9)
+    2.  [Running from the REPL](#org714758e)
+4.  [Learning to code with Witchcraft](#org23d3c8b)
+5.  [Topics](#org4e1ab39)
+    1.  [Inspecting the world](#org4917d4c)
+    2.  [Creating blocks](#org5e23e93)
+    3.  [Drawing with Cursor](#orga5ab4eb)
+    4.  [Adding Event Handlers](#org4e751df)
+    5.  [Interacting with Players](#org9a53f52)
 
 
 
-<a id="org5a93c16"></a>
+<a id="org7bdb94b"></a>
 
 # Introduction
 
@@ -67,7 +71,7 @@ has been used succesfully for things like lobby servers, and it provides a great
 basis for creative coding, which is mainly what we are interested in.
 
 
-<a id="org21c9c56"></a>
+<a id="org10f6717"></a>
 
 # Minecraft Concepts
 
@@ -83,7 +87,7 @@ and you can safely skip to the next section, or skim through it to find any
 unexplored areas.
 
 
-<a id="orga7257d9"></a>
+<a id="org8248015"></a>
 
 ## Survival vs Creative
 
@@ -102,7 +106,7 @@ a sense of what Minecraft is all about, it's good to understand what a "full"
 survival game looks like.
 
 
-<a id="orgd8f48be"></a>
+<a id="org0665cb2"></a>
 
 ## Whirlwind Tour of a Survival Game
 
@@ -144,7 +148,7 @@ you need to slay the final boss, the Ender Dragon. And, tada! You've beaten
 Minecraft. (This all is easier said than done.)
 
 
-<a id="org8cf9aa4"></a>
+<a id="org17978af"></a>
 
 ## Worlds and Biomes
 
@@ -174,7 +178,7 @@ Note that this description of the world generation process is highly simplistic,
 but at least it gives you a basic idea of how things world.
 
 
-<a id="org9ba1da6"></a>
+<a id="orga4532f9"></a>
 
 ## Coordinate system
 
@@ -200,7 +204,7 @@ data. It is also used for blocks that can be placed in a specific direction, for
 instance stair cases.
 
 
-<a id="org74604a1"></a>
+<a id="orgfcbec05"></a>
 
 ## The flattening
 
@@ -233,7 +237,7 @@ data.
 You can support the Glowstone by [Donating on Bountysource](https://salt.bountysource.com/checkout/amount?team=glowstonemc).
 
 
-<a id="org81455b3"></a>
+<a id="org920bdb3"></a>
 
 ## Resources and Crafting
 
@@ -266,7 +270,7 @@ torches. Use the number keys for quick access to specific slots, or flip through
 them with your mouse's scroll wheel.
 
 
-<a id="org9da8553"></a>
+<a id="org08e56f8"></a>
 
 ## Villagers and Traders
 
@@ -285,7 +289,7 @@ the world with their llamas. These tend to have rare and useful items on them,
 which you can buy with the emeralds you got from your villagers.
 
 
-<a id="org2b787e7"></a>
+<a id="orgbddcddc"></a>
 
 ## Farming
 
@@ -308,7 +312,7 @@ Manually farming is fine for a while, but if you really want to cash in then you
 need to automate things, this is where redstone comes in.
 
 
-<a id="orgeb5ae54"></a>
+<a id="org8ad00a4"></a>
 
 ## Redstone
 
@@ -331,7 +335,7 @@ and comporators you can create intricate machinery, including complete logic
 circuits, as well as fully automated farms.
 
 
-<a id="org4c9b14f"></a>
+<a id="orgb979ad4"></a>
 
 ## Enchanting and XP
 
@@ -350,7 +354,7 @@ it with bookshelves, as well as sufficient XP. You need to reach level 30 before
 the highest levels become available.
 
 
-<a id="org1644593"></a>
+<a id="org05a3628"></a>
 
 ## Modding, Bukkit, SpigotMC
 
@@ -408,7 +412,7 @@ which incorporates improvements made by other projects, notably SpigotMC and
 Paper.
 
 
-<a id="org1e90007"></a>
+<a id="org8ccff12"></a>
 
 ## Java vs Bedrock
 
@@ -430,7 +434,7 @@ it will never be able to fully support, due to inherent differences between the
 servers, but it's a cool project nonetheless.
 
 
-<a id="orgaa11a33"></a>
+<a id="org452a6a1"></a>
 
 ## Alternative Games
 
@@ -441,7 +445,7 @@ mechanisms. I'm just listing a few common ones to give you an idea, since these
 are the kind of things you could do with Witchcraft as well.
 
 
-<a id="orgf67c8e0"></a>
+<a id="orgd0af062"></a>
 
 ### Parkour
 
@@ -449,7 +453,7 @@ Complete a custom trail high in the sky with lots of jumps and other challenges.
 A great way to practice your gameplay dexterity.
 
 
-<a id="orge4ba73e"></a>
+<a id="org7dd5de4"></a>
 
 ### Speedrunner vs Hunters
 
@@ -459,7 +463,7 @@ a pack of hunters, other players whose sole objective is to stop the speedrunner
 from reaching their goal. Hilarity ensues.
 
 
-<a id="orgf9d24a2"></a>
+<a id="org2f7119e"></a>
 
 ### Skyblock
 
@@ -468,7 +472,7 @@ random resources, and need to survive, eventually building up shelter and food
 production.
 
 
-<a id="org99ff49e"></a>
+<a id="org2d3ec12"></a>
 
 ### Build Wars
 
@@ -476,7 +480,7 @@ Groups of players are tasked with building a specific item or structure within a
 set time limit. Once time is up players rate each other's creations.
 
 
-<a id="org0e03904"></a>
+<a id="org4d76298"></a>
 
 ### Bed Wars
 
@@ -484,12 +488,12 @@ Popular game where groups of players need to try to destroy the bed of another
 group, while protecting their own
 
 
-<a id="org0c33df0"></a>
+<a id="org5313a8d"></a>
 
 # Getting started with Witchcraft
 
 
-<a id="org476b4c4"></a>
+<a id="orgfac8ad9"></a>
 
 ## Running the plugin
 
@@ -506,7 +510,7 @@ including the Witchcraft library/API version, and the second to configure the
 plugin, and the Clojure code it should run at startup.
 
 
-<a id="org96e2ed2"></a>
+<a id="org714758e"></a>
 
 ## Running from the REPL
 
@@ -557,13 +561,12 @@ join the server we just started.
 Hold \`F3\` and press \`p\` so you can tab out without the game pausing. 
 
 
-<a id="org81d6b23"></a>
+<a id="org23d3c8b"></a>
 
 # Learning to code with Witchcraft
 
 The `lambdaisland.witchcraft` namespace provides the main API. It's a lot like
-`clojure.core` in that it contains lots and lots of different utility functions
-which are fairly low level.
+`clojure.core` in that it contains lots and lots of basic utility functions.
 
 Other namespaces provide higher level APIs to do specific things.
 
@@ -572,6 +575,13 @@ Other namespaces provide higher level APIs to do specific things.
 -   `lambdaisland.witchcraft.palette` Helpers for constructing your block/color palette.
 -   `lambdaisland.witchcraft.matrix` Matrix manipulations, to rotate, scale, etc.
 -   `lambdaisland.witchcraft.events` Register event handler to add custom behavior.
+-   `lambdaisland.witchcraft.fill` Fill (also called "flood") algorithm, to find contiguous blocks of a certain type
+
+There is also a growing collection of `lambdaisland.witchcraft.gallery.*`
+namespaces, like `lambdaisland.witchcraft.gallery.big-chicken`. These are
+recipes and showcases showing Witchcraft in action. You can try them out to get
+a feel for what you can do, or to get inspiration and ideas. They usually have a
+rich comment block at the bottom that you can poke at with a REPL.
 
 Witchcraft tries its best to be convenient and forgiving, and to make the
 interop between Clojure and the Java classes provided by Bukkit as seemless as
@@ -674,18 +684,79 @@ function to get it, and it will generally do the right thing.
 </table>
 
 
-<a id="org0caa629"></a>
+<a id="org4e1ab39"></a>
 
 # Topics
 
--   Inspecting the world
--   Creating blocks
--   Drawing with Cursor
--   Adding Event Handlers
--   Interacting with Players
+
+<a id="org4917d4c"></a>
+
+## Inspecting the world
+
+When you start manipulating the world with code, often the first thing you need
+to do is collect information about the world. Where am I? What's this block I'm
+standing on? What's the location of all blocks that make up this tree?
+
+Start by finding the Player object for yourself. Now you can look up the X/Y/Z
+of where you are, since you'll probably want to manipulate the world close to
+where you are, so you can see it.
+
+    (def me (wc/player "my-user-name"))
+
+Now to find the location of something, be it a player, a block, an enity, you
+have a few options.
+
+    (wc/xyz me)
+    ;;=> [-16960.525728007666 116.0 -18060.47555957846]
+    
+    (wc/loc me)
+    ;;=> {:x -16960.525728007666, :y 116.0, :z -18060.47555957846, :pitch 31.200085, :yaw 36.902298, :world "world"}
+    
+    (wc/location me)
+    ;;=> #bukkit/Location [-16960.525728007666 116.0 -18060.47555957846 36.902298 31.200085 "world"]
+
+The `xyz` function returns a three-element vector. It's nice and concise, and works great with destructuring:
+
+    (let [[x y z] (wc/xyz me)] ,,,)
+
+`loc` is similar but returns a map, which allows you to get a few more things,
+like the pitch, yaw, and name of the world you are in.
+
+`location` returns the underlying `org.bukkit.Location` object, in case you want
+the actual Java object to do interop.
+
+Note that the longer named one is the one that provides Java interop, since it's
+something you'll need less often it's made a little less convenient.
+
+Now let's look at some blocks:
+
+    (wc/block [-16960.525728007666 116.0 -18060.47555957846])
+    ;;=> {:x -16960, :y 116, :z -18060, :material :snow}
+    
+    (wc/get-block [-16960.525728007666 116.0 -18060.47555957846])
+    ;;=> #bukkit/Block {:x -16960.0, :y 116.0, :z -18060.0, :world "world", :material :snow}
+
+`get-block` gives you the \`org.bukkit.Block\` object, again in case you need it
+for interop, but most of the time you'll use `block`, which gives you a map
+representation of the most important aspects: its location and material.
 
 
-<a id="orgb4895fb"></a>
+<a id="org5e23e93"></a>
 
-# Recipes
+## Creating blocks
+
+
+<a id="orga5ab4eb"></a>
+
+## Drawing with Cursor
+
+
+<a id="org4e751df"></a>
+
+## Adding Event Handlers
+
+
+<a id="org9a53f52"></a>
+
+## Interacting with Players
 
