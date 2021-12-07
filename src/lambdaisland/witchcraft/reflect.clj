@@ -97,13 +97,25 @@
 (defonce reflections
   (delay (load-reflections)))
 
+(defn exclude-descendants
+  "We don't extend a protocol to a type if a supertype of the type already
+  implements the given method, this mainly means that we extend Bukkit interface
+  like Block, and not concrete implementations, like CraftBlock, unless the
+  latter has methods we care about that are not provided by an interface."
+  [klasses]
+  (remove
+   (fn [klass]
+     (some (set klasses) (map (memfn ^Class getName)
+                              (ancestors (Class/forName klass)))))
+   klasses))
+
 (defmacro extend-signatures
   {:style/indent [1 :form [1]]}
   [protocol & sig-impl]
   `(extend-protocol ~protocol
      ~@(as-> sig-impl $
          (for [[sig impl] (partition 2 $)
-               klass (get @reflections sig)]
+               klass (exclude-descendants (get @reflections sig))]
            {:class (symbol klass)
             :fntail impl})
 
@@ -114,6 +126,6 @@
            form))))
 
 (comment
-  (filter #(.contains (key %) "setBlockData") @reflections)
+  (filter #(.contains (key %) "Location") @reflections)
   (load-reflections)
   )

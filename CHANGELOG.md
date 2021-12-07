@@ -1,10 +1,13 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Fix compile erros
+- Make `wc/location` check for `HasLocation`
+- Bring back coercion from Vector to Location
+- In extend-signatures only extend the minimal set, so exclude descendant types
+- Wrap the name normalization in megachop9000 in a delay so it can't cause load
+  errors
 
 # 0.7.175 (2021-12-06 / 8b3190d)
 

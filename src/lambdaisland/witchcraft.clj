@@ -219,6 +219,7 @@
 (declare ^XMaterial xmaterial)
 (declare ^Block get-block)
 (declare ^clojure.lang.IPersistentMap block)
+(declare ^World world)
 
 (defn add
   "Add multiple vector/location-like things together.
@@ -234,6 +235,9 @@
   (cond
     (instance? Location o)
     o
+
+    (satisfies? HasLocation o)
+    (-location o)
 
     (vector? o)
     (let [[x y z yaw pitch world] o]
@@ -251,7 +255,14 @@
         (map->Location o))
 
     :else
-    (-location o)))
+    (map->Location (into {}
+                         (remove (comp nil? val))
+                         {:x (x o)
+                          :y (y o)
+                          :z (z o)
+                          :yaw (yaw o)
+                          :pitch (pitch o)
+                          :world (world o)}))))
 
 (defn world
   "Get the world associated with a given object, or look up a world by string or
@@ -497,7 +508,10 @@
 (reflect/extend-signatures HasLocation
   "org.bukkit.Location getLocation()"
   (-location [this]
-    (.getLocation this)))
+    (.getLocation this))
+  "org.bukkit.Location toLocation(org.bukkit.World)"
+  (-location [this]
+    (.toLocation this (default-world))))
 
 (reflect/extend-signatures HasWorld
   "org.bukkit.World getWorld()"

@@ -6,13 +6,14 @@
             [lambdaisland.witchcraft.fill :as fill]))
 
 (def megachop9000-name
-  (wc/normalize-text
-   (markup/fAnCy "MegaChop 9000"
-                 [:yellow :gold :red])))
+  (delay
+    (wc/normalize-text
+     (markup/fAnCy "MegaChop 9000"
+                   [:yellow :gold :red]))))
 
 (defn create-megachop []
   (let [axe (wc/item-stack :diamond-axe)]
-    (wc/set-display-name axe megachop9000-name)
+    (wc/set-display-name axe @megachop9000-name)
     (wc/set-lore axe
                  [[:italic "Even the trees shivered"]
                   [:italic
@@ -30,7 +31,7 @@
    (fn [{:keys [clickedBlock player action]}]
      (when clickedBlock
        (let [material (wc/material-name clickedBlock)]
-         (when (and (= megachop9000-name (wc/display-name (wc/item-in-hand player)))
+         (when (and (= @megachop9000-name (wc/display-name (wc/item-in-hand player)))
                     (re-find #"-log$" (name material)))
            (run! (memfn breakNaturally)
                  (fill/fill-xyz clickedBlock {:pred #(= material (wc/material-name %))}))))))))
