@@ -2,9 +2,9 @@
 
 ## Added
 
-## Fixed
+- `break-naturally`
+- `blockv`
 
-## Changed
 
 # 0.8.178 (2021-12-07 / f93ce7b)
 
