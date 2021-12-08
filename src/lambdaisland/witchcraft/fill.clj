@@ -43,26 +43,27 @@
   your Minecraft server. To somewhat guard against that the result set will only
   grow for `:limit` iterations. If the algorithm hasn't terminated yet at that
   point an exception will be thrown. Increase `:limit` or set it to `false` if
-  you really know what you're doing. Defaults to `30`."
+  you really know what you're doing. Defaults to `15`."
   ([start]
    (fill start nil))
-  ([start {:keys [limit throw?] :or {limit 30 throw? true} :as opts}]
-   (loop [search #{start}
-          result #{start}
-          iterations 0]
-     (if (and limit (<= limit iterations))
-       (if throw?
-         (throw (ex-info (str `fill " did not terminate within " limit " iterations, aborting.")
-                         {:start start :opts opts}))
-         result)
-       (let [new-blocks (reduce
-                         (fn [res loc]
-                           (into res (remove result) (neighbours loc opts)))
-                         #{}
-                         search)]
-         (if (seq new-blocks)
-           (recur new-blocks (into result new-blocks) (inc iterations))
-           result))))))
+  ([start {:keys [limit throw?] :or {limit 15 throw? true} :as opts}]
+   (let [start (wc/get-block start)]
+     (loop [search #{start}
+            result #{start}
+            iterations 0]
+       (if (and limit (<= limit iterations))
+         (if throw?
+           (throw (ex-info (str `fill " did not terminate within " limit " iterations, aborting.")
+                           {:start start :opts opts}))
+           result)
+         (let [new-blocks (reduce
+                           (fn [res loc]
+                             (into res (remove result) (neighbours loc opts)))
+                           #{}
+                           search)]
+           (if (seq new-blocks)
+             (recur new-blocks (into result new-blocks) (inc iterations))
+             result)))))))
 
 (defn fill-xyz
   "Perform a [[fill]] along the x, y, and z axes. Convenience function."

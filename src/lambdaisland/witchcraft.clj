@@ -208,6 +208,11 @@
 (defprotocol CanParseBlockData
   (^org.bukkit.block.data.BlockData -parse-block-data [_ _]))
 
+(defprotocol CanBreakNaturally (-break-naturally [_]))
+(defprotocol CanBreakNaturallyTool (-break-naturally-tool [_ tool]))
+(defprotocol CanBreakNaturallyEffect (-break-naturally-effect [_ effect]))
+(defprotocol CanBreakNaturallyToolEffect (-break-naturally-tool-effect [_ tool effect?]))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interop wrappers
 ;;
@@ -220,6 +225,7 @@
 (declare ^Block get-block)
 (declare ^clojure.lang.IPersistentMap block)
 (declare ^World world)
+(declare ^World default-world)
 
 (defn add
   "Add multiple vector/location-like things together.
@@ -502,6 +508,42 @@
           (seq itemflags) (assoc :item-flags itemflags)
           (seq enchants) (assoc :enchants enchants))))))
 
+(defn break-naturally
+  "Breaks the block and spawns items, can optionally take a `tool` argument, as if
+  a player had digged the block with that specific tool (`ItemStack`, or
+  something that can be coerced to an item-stack or material, like a keyword).
+  Optionally also takes an `effect?` boolean, which determines whether to play
+  the block break particle effect and sound.
+
+  `effect?` is not supported on all implementations."
+  ([block-like]
+   (if (satisfies? CanBreakNaturally block-like)
+     (-break-naturally block-like)
+     (-break-naturally (get-block block-like))))
+  ([block-like tool-or-effect]
+   (let [block (get-block block-like)]
+     (if (boolean? tool-or-effect)
+       ;; Bukkit API has added some of these overloads in later versions, so we
+       ;; can't assume they are there. Fall back to zero-args version if we
+       ;; don't find them.
+       (if (satisfies? CanBreakNaturallyEffect block)
+         (-break-naturally-effect block tool-or-effect)
+         (-break-naturally block))
+       (if (satisfies? CanBreakNaturallyTool block)
+         ;; If it's not a bool then we coerce to ItemStack
+         (-break-naturally-tool block (item-stack tool-or-effect))
+         (-break-naturally block)))))
+  ([block-like tool effect?]
+   (let [block (get-block block-like)
+         is (item-stack tool)]
+     (cond
+       (satisfies? CanBreakNaturallyToolEffect block)
+       (-break-naturally-tool-effect block is effect?)
+       (satisfies? CanBreakNaturallyTool block)
+       (-break-naturally-tool block is)
+       :else
+       (-break-naturally block)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interop protocol implementations
 
@@ -582,6 +624,23 @@
   (-inventory [this]
     (.getInventory this)))
 
+(reflect/extend-signatures CanBreakNaturally
+  "boolean breakNaturally()"
+  (-break-naturally [this] (.breakNaturally this)))
+
+(reflect/extend-signatures CanBreakNaturallyTool
+  "boolean breakNaturally(org.bukkit.inventory.ItemStack)"
+  (-break-naturally-tool [this ^ItemStack tool] (.breakNaturally this tool)))
+
+(reflect/extend-signatures CanBreakNaturallyEffect
+  "boolean breakNaturally(boolean)"
+  (-break-naturally-boolean [this ^Boolean effect] (.breakNaturally this effect)))
+
+(reflect/extend-signatures CanBreakNaturallyToolEffect
+  "boolean breakNaturally(org.bukkit.inventory.ItemStack,boolean)"
+  (-break-naturally-tool [this ^ItemStack tool ^Boolean effect]
+    (.breakNaturally this tool effect)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn online-players
@@ -601,7 +660,7 @@
 (defn default-world
   "World used for commands when no explicit world is given.
   Uses [[*default-world*]], or the first world on the server."
-  []
+  ^World []
   (if *default-world*
     (world *default-world*)
     (first (worlds (server)))))
@@ -610,6 +669,7 @@
   "Get the location `n` blocks in front of the given location, based on the
   location's direction. Polymorphic, can work with most things that have a
   location. Returns plain data."
+  {:deprecated true}
   ([loc]
    (in-front-of loc 1))
   ([loc n]
@@ -712,6 +772,19 @@
       (assoc :block-data (dissoc block-data :material))
       (not= :self direction)
       (assoc :direction direction))))
+
+(defn blockv
+  "Like [[block]], but return a vector instead of a map. Contains in order:
+  x,y,z,material, and optionally a direction and/or a block-data map (or
+  block-data integer pre-flattening). Generally the same structure as can be
+  passed to [[set-blocks]]."
+  [block-or-loc]
+  (let [{:keys [x y z material data block-data direction]} (block block-or-loc)]
+    (cond-> [x y z material]
+      direction
+      (conj direction)
+      (or data block-data)
+      (conj block-data))))
 
 (defmulti -set-direction (fn [server block face] server))
 
@@ -939,7 +1012,9 @@
   "Create an ItemStack object"
   ^ItemStack
   ([material]
-   (item-stack material 1))
+   (if (instance? ItemStack material)
+     material
+     (.parseItem (xmaterial material))))
   ([material count]
    (let [^ItemStack is (if (instance? ItemStack material)
                          material
