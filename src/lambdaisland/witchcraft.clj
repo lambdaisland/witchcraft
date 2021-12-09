@@ -226,6 +226,7 @@
 (declare ^clojure.lang.IPersistentMap block)
 (declare ^World world)
 (declare ^World default-world)
+(declare ^ItemStack item-stack)
 
 (defn add
   "Add multiple vector/location-like things together.
