@@ -1,10 +1,9 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Be more conservative when recursing in `display-name`, return `nil` if the
+  type of object passed in does not provide a display-name
 
 # 0.8.186 (2021-12-09 / 69954ed)
 

@@ -326,7 +326,8 @@
   ^String [o]
   (if (satisfies? HasDisplayName o)
     (-display-name o)
-    (display-name (item-meta o))))
+    (when-let [im (item-meta o)]
+      (-display-name im))))
 
 (defn lore
   "Get the lore for an item or compatible object."
