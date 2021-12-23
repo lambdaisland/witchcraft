@@ -133,6 +133,8 @@
           ;; Whether or not we should adjust the direction each block is facing
           ;; based on the direction on the cursor?
           :face-direction? true
+          ;; Make all blocks face a specific direction, e.g. :east
+          :block-facing nil
           ;; 3x3 matrices that are applied to each block that is placed. When this
           ;; is set each step causes multiple blocks to be set. Coordinates are
           ;; shifted before/after each transformation based on the `:origin`
@@ -239,7 +241,9 @@
   "Set the current cursor material, and optionally material-data (integer), or
   block-data (map), to be used for consecutive blocks."
   ([c m]
-   (material c m nil))
+   (if (vector? m)
+     (material c (first m) (second m))
+     (material c m nil)))
   ([c m md]
    (if (map? md)
      (assoc c :material m :block-data md :data nil)
@@ -410,26 +414,31 @@
    (extrude cursor n :up))
   ([cursor n dir]
    (let [dir (resolve-dir (:dir cursor) dir)]
-     (reduce
-      (fn [c b]
-        (reduce
-         (fn [c i]
-           (excursion
-            c
-            (fn [c]
-              (reps
-               (merge c b)
-               i
-               (fn [c]
-                 (-> c
-                     (block-facing (:direction b))
-                     (step dir)))))))
-         c
-         (range 1 (inc n))))
-      cursor
-      (:blocks cursor)))))
+     (assoc
+       (reduce
+        (fn [c b]
+          (reduce
+           (fn [c i]
+             (excursion
+              c
+              (fn [c]
+                (reps
+                 (assoc (merge c b) :block-facing (:direction b))
+                 i
+                 (fn [c]
+                   (step c dir))))))
+           c
+           (range 1 (inc n))))
+        cursor
+        (:blocks cursor))
+       :block-facing (:block-facing cursor)))))
 
 (def material->keyword (into {} (map (juxt val key)) wc/materials))
+
+(defn blocks
+  "Get the set of blocks placed by the cursor"
+  [{:keys [blocks] :as cursor}]
+  blocks)
 
 (defn build!
   "Apply the list of blocks in the cursor to the world."
@@ -470,6 +479,12 @@
   (merge (reduce (fn [c m] (-> c (material m) (step))) c pattern)
          (select-keys c [:material :data])))
 
+(defn face-direction?
+  "Should the direction blocks are facing be based on the direction of the
+  cursor?"
+  [cursor bool]
+  (assoc cursor :face-direction? bool))
+
 (defn translate
   "Move all blocks in the block set, as well as the cursor, by a given offset."
   [c offset]
@@ -498,7 +513,6 @@
 ;; already nicely illustrates what you can do with it
 (defn symmetry-xz [c]
   (matrices c
-
             [[0 0 1]
              [0 1 0]
              [1 0 0]]
@@ -519,8 +533,7 @@
              [0 0 -1]]
             [[-1 0 0]
              [0 1 0]
-             [0 0 -1]]
-            ))
+             [0 0 -1]]))
 
 (comment
   (-> {:x 1 :y 1 :z 1 :dir :east}
