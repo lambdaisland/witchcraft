@@ -4,6 +4,9 @@
 
 ## Fixed
 
+- Improve `material-name`/`mat` and `xmaterial` to handle keywords and vectors
+  consistently
+
 ## Changed
 
 # 0.8.189 (2021-12-09 / 14cbbd6)

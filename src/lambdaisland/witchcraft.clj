@@ -470,8 +470,20 @@
 (defn mat
   "Get the material name of something, as a keyword."
   [m]
-  (if (instance? XMaterial m)
+  (cond
+    (keyword? m)
+    m
+
+    (and (map? m) (keyword? (:material m)))
+    (:material m)
+
+    (and (vector? m) (keyword? (get m 3)))
+    (get m 3)
+
+    (instance? XMaterial m)
     (get material-names m)
+
+    :else
     (when-let [xm (xmaterial m)]
       (mat xm))))
 
@@ -820,6 +832,9 @@
 
       (and (map? m) (contains? :material m))
       (xmaterial (:material m))
+
+      (and (vector? m) (keyword? (get m 3)))
+      (xmaterial (get m 3))
 
       ;; The nonsense we pull to prevent a few reflection warnings...
       (string? m)
