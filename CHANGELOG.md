@@ -6,6 +6,8 @@
 
 - Improve `material-name`/`mat` and `xmaterial` to handle keywords and vectors
   consistently
+- Set block direction after setting block-data, because block-data will
+  otherwise overrule the direction.
 
 ## Changed
 
