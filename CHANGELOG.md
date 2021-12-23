@@ -2,6 +2,9 @@
 
 ## Added
 
+- Added a `:palette` option to `set-blocks`, similar to how the palette works
+  with cursors
+
 ## Fixed
 
 - Improve `material-name`/`mat` and `xmaterial` to handle keywords and vectors

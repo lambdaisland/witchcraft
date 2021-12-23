@@ -903,13 +903,41 @@
                  (when (map? loc) (:block-data loc))))
    loc))
 
-
 (defmulti -set-blocks (fn [server blocks] server))
 
 (defmethod -set-blocks :default [_ blocks]
   (doseq [{:keys [direction material block-data] :as loc} blocks
           :let [block (get-block loc)]]
     (-set-block server-type block material direction block-data)))
+
+(defn- block-map
+  "Deal with set-blocks taking either maps or vectors, this coerces to a consitent
+  map form."
+  [b]
+  (if (map? b)
+    b
+    (cond-> {:x (x b)
+             :y (y b)
+             :z (z b)
+             :material (material-name b)}
+      (and (vector? b) (map? (last b)))
+      (assoc :block-data (last b))
+      (and (vector? b) (keyword? (get b 4)))
+      (assoc :direction (get b 4)))))
+
+(defn- handle-palette
+  "Handle the palette argument to set-blocks, which should be a map from keyword
+  to keyword (material alias -> material), or from keyword to two-element
+  vector, [material block-data]."
+  [palette {:keys [material] :as b}]
+  (if-let [m (palette material)]
+    (if (vector? m)
+      (-> b
+          (assoc :material (first m))
+          (update :block-data #(merge (second m) %)))
+      (-> b
+          (assoc :material m)))
+    b))
 
 (defn set-blocks
   "Set blocks in bulk
@@ -928,34 +956,35 @@
   etc.), so you can define the structure you are passing in independently of its
   position in the world.
 
+  Can take a `:palette`, which is a map with material name aliases (keyword to
+  keyword, or keyword to [keyword map] pair, to provide block-data).
+
   Currently only optimized on Glowstone, elsewhere it repeatedly
   calls [[set-block]], so changing really large amounts of blocks at once will
   incur significant lag."
   ([blocks]
    (set-blocks blocks {:keep-history? true}))
-  ([blocks {:keys [keep-history? start anchor]
+  ([blocks {:keys [keep-history? start anchor palette]
             :or {keep-history? true}}]
    (let [blocks (as-> blocks $
                   (remove nil? $)
                   (if (or start anchor)
                     (map #(add % (or start anchor)) $)
                     $)
-                  (map (fn [b]
-                         (if (map? b)
-                           b
-                           (cond-> {:x (x b)
-                                    :y (y b)
-                                    :z (z b)
-                                    :material (material-name b)}
-                             (and (vector? b) (map? (last b)))
-                             (assoc :block-data (last b))
-                             (and (vector? b) (keyword? (get b 4)))
-                             (assoc :direction (get b 4)))))
-                       $))]
+                  (map block-map $)
+                  (if palette
+                    (map (partial handle-palette palette) $)
+                    $))]
+     (def xxx blocks)
      (when keep-history?
        (swap! undo-history conj {:before (doall (map block blocks))
                                  :after blocks}))
      (-set-blocks server-type blocks))))
+
+(def
+  ^{:doc "Alias for [[set-blocks]], for symmetry with [[lambdaisland.witchcraft.cursor/build!]]"}
+  build!
+  set-blocks)
 
 ;; TODO: move this elsewhere
 #_
