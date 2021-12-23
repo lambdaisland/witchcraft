@@ -33,7 +33,10 @@
   (as-> loc $
     (if start (m/v+ $ start) $)
     (if material
-      (conj $ (if (fn? material) (material $) material))
+      (let [m (if (fn? material) (material $) material)]
+        (if (vector? m)
+          (into $ m)
+          (conj $ m)))
       $)))
 
 (defn box
