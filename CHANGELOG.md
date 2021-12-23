@@ -4,7 +4,11 @@
 
 - Added a `:palette` option to `set-blocks`, similar to how the palette works
   with cursors
-
+- Introduce a new `:facing` option in the cursor, to force the direction blocks
+  face regardless of cursor direction.
+- Added convenience functions in `lambdaisland.witchcraft.cursor`: `blocks` and
+  `facing-direction?`.
+  
 ## Fixed
 
 - Improve `material-name`/`mat` and `xmaterial` to handle keywords and vectors
@@ -13,6 +17,9 @@
   otherwise overrule the direction.
 
 ## Changed
+
+- Improve material-handling in cursor, material can also be a two element vector
+  (material+block-data).
 
 # 0.8.189 (2021-12-09 / 14cbbd6)
 
