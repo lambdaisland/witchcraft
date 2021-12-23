@@ -882,10 +882,10 @@
 (defmethod -set-block :default [_ block mat direction block-data]
   (let [xmaterial (xmaterial mat)]
     (XBlock/setType block xmaterial))
-  (when direction
-    (set-direction block direction))
   (when block-data
-    (set-block-data block (material mat) block-data)))
+    (set-block-data block (material mat) block-data))
+  (when direction
+    (set-direction block direction)))
 
 (defn set-block
   "Set the block at a specific location to a specific material
