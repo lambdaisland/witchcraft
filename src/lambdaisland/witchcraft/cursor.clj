@@ -37,8 +37,7 @@
   ```
   "
   (:refer-clojure :exclude [bean])
-  (:require [clojure.set :as set]
-            [lambdaisland.witchcraft :as wc]
+  (:require [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]))
 
 (def default-material
