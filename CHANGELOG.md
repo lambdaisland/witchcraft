@@ -4,8 +4,8 @@
 
 - Added a `:palette` option to `set-blocks`, similar to how the palette works
   with cursors
-- Introduce a new `:facing` option in the cursor, to force the direction blocks
-  face regardless of cursor direction.
+- Introduce a new `:block-facing` option in the cursor, to force the direction
+  blocks face regardless of cursor direction.
 - Added convenience functions in `lambdaisland.witchcraft.cursor`: `blocks` and
   `facing-direction?`.
   
