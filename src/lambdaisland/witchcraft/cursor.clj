@@ -172,7 +172,7 @@
   If the material is a two-element vector (either explicitly or via the palette)
   then this is taken as [material material-data], and overrides the
   material-data in the cursor."
-  [{:keys [x y z material block-data
+  [{:keys [x y z material block-data block-facing
            data palette dir face-direction? rotate-block]}]
   (let [m (get palette material material)
         [m md] (if (vector? m) m [m data])
@@ -182,6 +182,8 @@
          :y y
          :z z
          :material m}
+      block-facing
+      (assoc :direction block-facing)
       face-direction?
       (assoc :direction (rotate-dir dir rotate-block))
       data
@@ -395,6 +397,13 @@
   [cursor f & args]
   (assoc cursor :blocks (:blocks (apply f cursor args))))
 
+(defn block-facing
+  "Make the cursor produce blocks with the specified direction."
+  [cursor dir]
+  (-> cursor
+      (assoc :block-facing dir)
+      (assoc :face-direction? false)))
+
 (defn extrude
   "Take the current block list and extrude it in a given direction, by default up."
   ([cursor n]
@@ -412,7 +421,9 @@
                (merge c b)
                i
                (fn [c]
-                 (step c dir))))))
+                 (-> c
+                     (block-facing (:direction b))
+                     (step dir)))))))
          c
          (range 1 (inc n))))
       cursor
