@@ -408,30 +408,36 @@
       (assoc :block-facing dir)
       (assoc :face-direction? false)))
 
+(defn restore-block-facing
+  "Restore the attributes related to block-facing from `old-cursor`."
+  [cursor old-cursor]
+  (merge cursor (select-keys old-cursor [:block-facing :face-direction?])))
+
 (defn extrude
   "Take the current block list and extrude it in a given direction, by default up."
   ([cursor n]
    (extrude cursor n :up))
   ([cursor n dir]
    (let [dir (resolve-dir (:dir cursor) dir)]
-     (assoc
-       (reduce
-        (fn [c b]
-          (reduce
-           (fn [c i]
-             (excursion
-              c
-              (fn [c]
-                (reps
-                 (assoc (merge c b) :block-facing (:direction b))
-                 i
-                 (fn [c]
-                   (step c dir))))))
-           c
-           (range 1 (inc n))))
-        cursor
-        (:blocks cursor))
-       :block-facing (:block-facing cursor)))))
+     (restore-block-facing
+      (reduce
+       (fn [c b]
+         (reduce
+          (fn [c i]
+            (excursion
+             c
+             (fn [c]
+               (reps
+                (block-facing
+                 (merge c b) (:direction b))
+                i
+                (fn [c]
+                  (step c dir))))))
+          c
+          (range 1 (inc n))))
+       cursor
+       (:blocks cursor))
+      cursor))))
 
 (def material->keyword (into {} (map (juxt val key)) wc/materials))
 
