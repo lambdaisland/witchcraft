@@ -411,7 +411,9 @@
 (defn restore-block-facing
   "Restore the attributes related to block-facing from `old-cursor`."
   [cursor old-cursor]
-  (merge cursor (select-keys old-cursor [:block-facing :face-direction?])))
+  (assoc cursor
+         :block-facing (:block-facing old-cursor)
+         :face-direction? (:face-direction? old-cursor)))
 
 (defn extrude
   "Take the current block list and extrude it in a given direction, by default up."
