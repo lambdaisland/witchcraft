@@ -40,6 +40,6 @@
 (defmacro if-class-exists [classname then else]
   (try
     (Class/forName (str classname))
-    `(do ~@then)
+    then
     (catch ClassNotFoundException e
-      `(do ~@else))))
+      else)))
