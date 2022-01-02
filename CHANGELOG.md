@@ -2,17 +2,13 @@
 
 ## Added
 
-## Fixed
-
-## Changed
+- Added reflection and event support for the Citizens API
 
 # 0.8.205 (2021-12-31 / 637ef2a)
 
-## Added
-
 ## Fixed
 
-## Changed
+- Fix compatiblity issue on Paper 1.17
 
 # 0.8.201 (2021-12-31 / 05608cb)
 

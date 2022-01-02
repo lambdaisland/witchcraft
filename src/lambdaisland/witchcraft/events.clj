@@ -8,45 +8,30 @@
            (org.bukkit Bukkit)
            (org.bukkit.event.block Action)))
 
-(defn inject-bukkit-jar!
-  "Needed for paper (possibly others). Paper uses Java Agent voodoo to put the
-  patched mojang jar on the classpath, but that means we have no accessible way
-  to \"see\" it on the classpath. ApplicationClassLoader does not expose its
-  urls, and Paperclip does not update the property which we check instead. So we
-  add it to \"our\" classloader (Clojure's dynamicclassloader), so
-  licp/find-resource can do its work."
-  []
-  (.addURL (licp/root-loader)
-           (java.net.URL.
-            (str/replace
-             (str/replace
-              (str (.getResource
-                    (.getClassLoader (Class/forName "org.bukkit.Bukkit"))
-                    "org/bukkit/Bukkit.class"))
-              #"!/.*" "")
-             #"^jar:" ""))))
+(require 'lambdaisland.witchcraft.classpath-hacks)
 
 (defn find-event-classes []
-  (licp/find-resources #"(bukkit|paper|spigot).*event.*Event\.class"))
+  (licp/find-resources #"(bukkit|paper|spigot|net/citizensnpcs).*event.*Event\.class"))
 
 (def event-classes
   (let [classes (find-event-classes)
         classes (if (empty? classes)
-                  (do
-                    (inject-bukkit-jar!)
-                    (find-event-classes))
+                  (find-event-classes)
                   classes)]
     (map #(-> % (str/replace #"/" ".") (str/replace #".class$" ""))
          classes)))
 
 (defn class->kw [name]
-  (-> name
-      (str/replace #".*\." "")
-      (str/replace #"Event$" "")
-      (str/replace #"([a-z])([A-Z])" (fn [[_ a A]]
-                                       (str a "-" A)))
-      (str/lower-case)
-      keyword))
+  (let [shortname (-> name
+                      (str/replace #".*\." "")
+                      (str/replace #"Event$" "")
+                      (str/replace #"([a-z])([A-Z])" (fn [[_ a A]]
+                                                       (str a "-" A)))
+                      (str/lower-case)
+                      )]
+    (if (str/starts-with? name "net.citizensnpcs")
+      (keyword "citizens" shortname)
+      (keyword shortname))))
 
 (def events
   (into {}

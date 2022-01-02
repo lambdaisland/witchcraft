@@ -16,6 +16,8 @@
 
 (set! *warn-on-reflection* true)
 
+(require 'lambdaisland.witchcraft.classpath-hacks)
+
 (def packages
   ["org.bukkit"
    "net.kyori"
@@ -24,7 +26,8 @@
    "com.destroystokyo"
    "io.papermc"
    "org.spigotmc"
-   "net.glowstone"])
+   "net.glowstone"
+   "net.citizensnpcs"])
 
 (defn assoc-sig [m sig klassname]
   (assoc! m sig ((fnil conj #{}) (get m sig) klassname)))
@@ -126,6 +129,6 @@
            form))))
 
 (comment
-  (filter #(.contains (key %) "Location") @reflections)
+  (filter #(.contains (key %) "createNPC") @reflections)
   (load-reflections)
   )
