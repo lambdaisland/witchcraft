@@ -4,6 +4,10 @@
 
 - Added reflection and event support for the Citizens API
 
+## Changed
+
+- Improvements to `cursor/block-facing`
+
 # 0.8.205 (2021-12-31 / 637ef2a)
 
 ## Fixed
