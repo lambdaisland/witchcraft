@@ -150,11 +150,6 @@
   ;; when called from namespaces where these are not imported.
   (-add [this that]
     "Add locations, vectors, etc. That can also be a map of `:x`, `:y`, `:z`")
-  (^double x [_])
-  (^double y [_])
-  (^double z [_])
-  (yaw [_])
-  (pitch [_])
   (^org.bukkit.util.Vector direction-vec [_])
   (^org.bukkit.util.Vector as-vec [_] "Coerce to org.bukkit.util.Vector")
   (material-data [_])
@@ -171,6 +166,15 @@
 
 (defprotocol HasLocation
   (^org.bukkit.Location -location [_] "Get the location of the given object"))
+
+(defprotocol HasXYZ
+  (-x [_])
+  (-y [_])
+  (-z [_]))
+
+(defprotocol HasPitchYaw
+  (-pitch [_])
+  (-yaw [_]))
 
 (defprotocol HasWorld
   (^org.bukkit.World -world [_] [_ _]))
@@ -205,6 +209,9 @@
 (defprotocol HasInventory
   (^org.bukkit.inventory.Inventory -inventory [_]))
 
+(defprotocol HasEntity
+  (^org.bukkit.entity.Entity -entity [_]))
+
 (defprotocol CanParseBlockData
   (^org.bukkit.block.data.BlockData -parse-block-data [_ _]))
 
@@ -212,6 +219,8 @@
 (defprotocol CanBreakNaturallyTool (-break-naturally-tool [_ tool]))
 (defprotocol CanBreakNaturallyEffect (-break-naturally-effect [_ effect]))
 (defprotocol CanBreakNaturallyToolEffect (-break-naturally-tool-effect [_ tool effect?]))
+
+(defprotocol CanSpawn (-spawn [thing location]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interop wrappers
@@ -236,6 +245,97 @@
   ([this that & more]
    (reduce -add (-add this that) more)))
 
+(defn x ^double [o]
+  (cond
+    (satisfies? HasXYZ o)
+    (-x o)
+
+    (satisfies? HasLocation o)
+    (-x (-location o))
+
+    (satisfies? HasEntity o)
+    (-x (-location (-entity o)))
+
+    (map? o)
+    (:x o 0)
+
+    (vector? o)
+    (get o 0)))
+
+(defn y ^double [o]
+  (cond
+    (satisfies? HasXYZ o)
+    (-y o)
+
+    (satisfies? HasLocation o)
+    (-y (-location o))
+
+    (satisfies? HasEntity o)
+    (-y (-location (-entity o)))
+
+    (map? o)
+    (:y o 0)
+
+    (vector? o)
+    (get o 1)))
+
+(defn z ^double [o]
+  (cond
+    (satisfies? HasXYZ o)
+    (-z o)
+
+    (satisfies? HasLocation o)
+    (-z (-location o))
+
+    (satisfies? HasEntity o)
+    (-z (-location (-entity o)))
+
+    (map? o)
+    (:z o 0)
+
+    (vector? o)
+    (get o 2)))
+
+(defn pitch ^double [o]
+  (cond
+    (satisfies? HasPitchYaw o)
+    (-pitch o)
+
+    (satisfies? HasLocation o)
+    (-pitch (-location o))
+
+    (satisfies? HasEntity o)
+    (-pitch (-location (-entity o)))
+
+    (map? o)
+    (:pitch o 0)
+
+    (vector? o)
+    (let [n (get o 3)]
+      (if (number? n)
+        n
+        0))))
+
+(defn yaw ^double [o]
+  (cond
+    (satisfies? HasPitchYaw o)
+    (-yaw o)
+
+    (satisfies? HasLocation o)
+    (-yaw (-location o))
+
+    (satisfies? HasEntity o)
+    (-yaw (-location (-entity o)))
+
+    (map? o)
+    (:yaw o 0)
+
+    (vector? o)
+    (let [n (get o 4)]
+      (if (number? n)
+        n
+        0))))
+
 (defn location
   "Get the location of the given object"
   ^Location [o]
@@ -245,6 +345,9 @@
 
     (satisfies? HasLocation o)
     (-location o)
+
+    (satisfies? HasEntity o)
+    (-location (-entity o))
 
     (vector? o)
     (let [[x y z yaw pitch world] o]
@@ -569,6 +672,23 @@
   (-location [this]
     (.toLocation this (default-world))))
 
+(reflect/extend-signatures HasXYZ
+  "double getX()" (-x [this] (.getX this))
+  "double getY()" (-y [this] (.getY this))
+  "double getZ()" (-z [this] (.getZ this))
+  "int getX()" (-x [this] (.getX this))
+  "int getY()" (-y [this] (.getY this))
+  "int getZ()" (-z [this] (.getZ this)))
+
+(reflect/extend-signatures HasPitchYaw
+  "float getPitch()" (-pitch [this] (.getPitch this))
+  "float getYaw()" (-yaw [this] (.getYaw this)))
+
+;; Chunks only have x and z
+(extend-protocol HasXYZ
+  org.bukkit.Chunk (-y [_] 0)
+  org.bukkit.ChunkSnapshot (-y [_] 0))
+
 (reflect/extend-signatures HasWorld
   "org.bukkit.World getWorld()"
   (-world [this]
@@ -628,6 +748,10 @@
   "org.bukkit.Material getType()"
   (-material [this] (.getType this)))
 
+(reflect/extend-signatures HasEntity
+  "org.bukkit.entity.Entity getEntity()"
+  (-entity [this] (.getEntity this)))
+
 (reflect/extend-signatures CanParseBlockData
   "org.bukkit.block.data.BlockData createBlockData(java.lang.String)"
   (-parse-block-data [this ^String string]
@@ -654,6 +778,12 @@
   "boolean breakNaturally(org.bukkit.inventory.ItemStack,boolean)"
   (-break-naturally-tool [this ^ItemStack tool ^Boolean effect]
     (.breakNaturally this tool effect)))
+
+(reflect/extend-signatures CanSpawn
+  "spawn(org.bukkit.Location)"
+  (-spawn [this loc] (.spawn this loc))
+  "spawnAt(org.bukkit.Location)"
+  (-spawn [this loc] (.spawnAt this loc)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -722,13 +852,15 @@
   take Clojure maps or vectors, so you can use it to coerce input of unknown
   type."
   [obj]
-  (cond-> {:x (x obj)
-           :y (y obj)
-           :z (z obj)
-           :pitch (pitch obj)
-           :yaw (yaw obj)}
-    (world obj)
-    (assoc :world (.getName (world obj)))))
+  (let [pitch (pitch obj)
+        yaw   (yaw obj)
+        ^World world (world obj)]
+    (cond-> {:x (x obj)
+             :y (y obj)
+             :z (z obj)}
+      pitch (assoc :pitch pitch)
+      yaw   (assoc :yaw yaw)
+      world (assoc :world (.getName world)))))
 
 (defn map->Location
   "Convert a map/bean to a Location instance"
@@ -1007,13 +1139,15 @@
 
 (defn spawn
   "Spawn a new entity"
-  [loc entity]
+  [loc entity-or-npc]
   (let [loc (location loc)]
-    (.spawnEntity (world loc)
-                  loc
-                  ^Entity (if (keyword? entity)
-                            (get entity-types entity)
-                            entity))))
+    (if (satisfies? CanSpawn entity-or-npc)
+      (-spawn entity-or-npc loc)
+      (.spawnEntity (world loc)
+                    loc
+                    ^Entity (if (keyword? entity-or-npc)
+                              (get entity-types entity-or-npc)
+                              entity-or-npc)))))
 
 (defn game-mode
   "Get the current game mode"
@@ -1204,20 +1338,10 @@
   Entity
   (as-vec [e]
     (as-vec (location e)))
-  (^double x [e] (x (location e)))
-  (^double y [e] (y (location e)))
-  (^double z [e] (z (location e)))
-  (yaw [e] (yaw (location e)))
-  (pitch [e] (pitch (location e)))
   (^org.bukkit.util.Vector direction-vec [e] (direction-vec (location e)))
 
   Block
   (as-vec [e] (as-vec (location e)))
-  (x [e] (x (location e)))
-  (y [e] (y (location e)))
-  (z [e] (z (location e)))
-  (yaw [e] (yaw (location e)))
-  (pitch [e] (pitch (location e)))
   (^org.bukkit.util.Vector direction-vec [e] (direction-vec (location e)))
   (material-data [b] (when (pre-flattening?)
                        (.getData (.getData (.getState b)))))
@@ -1227,11 +1351,6 @@
   Location
   (as-vec [l] (vec3 (x l) (y l) (z l)))
   (direction-vec [l] (.getDirection l))
-  (x [l] (.getX l))
-  (y [l] (.getY l))
-  (z [l] (.getZ l))
-  (yaw [l] (.getYaw l))
-  (pitch [l] (.getPitch l))
   (-add ^Location [this that]
     (Location. (world this)
                (+ (x this)
@@ -1257,9 +1376,6 @@
 
   Vector
   (as-vec [v] v)
-  (x [v] (.getX v))
-  (y [v] (.getY v))
-  (z [v] (.getZ v))
   (-add ^Vector [this that]
     (Vector. (+ (x this)
                 (x that))
@@ -1267,18 +1383,11 @@
                 (y that))
              (+ (z this)
                 (z that))))
-  (yaw [v] 0)
-  (pitch [v] 0)
   (world [v] )
   (material-data [l] (material-data (get-block l)))
   (with-xyz [_ [x y z]] (vec3 x y z))
 
   java.util.Map
-  (x [m] (or (.get m :x) 0))
-  (y [m] (or (.get m :y) 0))
-  (z [m] (or (.get m :z) 0))
-  (pitch [m] (or (.get m :pitch) 0))
-  (yaw [m] (or (.get m :yaw) 0))
   (world [m] (world (location m)))
   (as-vec [m]
     (vec3 (x m) (y m) (z m)))
@@ -1303,11 +1412,6 @@
   ;; is a number it's considered a yaw, if it's a keyword it's considered a
   ;; material-name
   clojure.lang.PersistentVector
-  (x [[x _ _]] (or x 0))
-  (y [[_ y _]] (or y 0))
-  (z [[_ _ z]] (or z 0))
-  (yaw [[_ _ _ yaw]] (if (number? yaw) yaw 0) 0)
-  (pitch [[_ _ _ _ pitch]] (or pitch 0))
   (world [[_ _ _ _ _ w]] (if w (world w) (default-world)))
   (-add [this that]
     (assoc this
@@ -1328,11 +1432,6 @@
   Chunk
   (entities [c]
     (seq (.getEntities c)))
-  (x [c]
-    (.getX c))
-  (y [c])
-  (z [c]
-    (.getZ c))
   (world [c]
     (.getWorld c)))
 

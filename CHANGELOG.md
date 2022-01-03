@@ -2,9 +2,13 @@
 
 ## Added
 
-## Fixed
+- Add `HasXYZ`, `HasPitchYaw`, `HasEntity`, and `CanSpawn` protocol
 
 ## Changed
+
+- Make `x`/`y`/`z`/`pitch`/`yaw` use the newer protocol + reflected
+  implementation generation approach
+- Make `spawn` work with anything that `CanSpawn`, including Citizens NPCs
 
 # 0.10.213 (2022-01-02 / 1a44b44)
 
