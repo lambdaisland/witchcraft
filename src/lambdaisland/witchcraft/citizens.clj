@@ -10,6 +10,8 @@
            (net.citizensnpcs.api.npc NPCRegistry)
            (org.bukkit.entity EntityType)))
 
+(set! *warn-on-reflection* true)
+
 (defn npc-registry ^NPCRegistry []
   (CitizensAPI/getNPCRegistry))
 
@@ -19,10 +21,18 @@
 (defprotocol HasCreateNPC
   (-create-npc [_ e s]))
 
+(defprotocol HasTraits
+  (-get-or-add-trait [_ c]))
+
 (reflect/extend-signatures HasCreateNPC
-                           "createNPC(org.bukkit.entity.EntityType,java.lang.String)"
-                           (-create-npc [this entity-type npc-name]
-                                        (.createNPC this entity-type npc-name)))
+  "createNPC(org.bukkit.entity.EntityType,java.lang.String)"
+  (-create-npc [this entity-type npc-name]
+    (.createNPC this entity-type npc-name)))
+
+(reflect/extend-signatures HasTraits
+  "net.citizensnpcs.api.trait.Trait getOrAddTrait(java.lang.Class)"
+  (-get-or-add-trait [this klz]
+    (.getOrAddTrait this klz)))
 
 (defn create-npc [entity-type npc-name]
   (-create-npc (npc-registry)
@@ -42,7 +52,10 @@
   "Get the trait with the given name for the given NPC, adds it if it hasn't been
   added to the NPC already, and returns the Trait instance."
   [npc trait-name]
-  (.getOrAddTrait npc (trait-class trait-name)))
+  (-get-or-add-trait npc (trait-class trait-name)))
+
+(defn npc-by-id [id]
+  (.getById (npc-registry) id))
 
 (comment
 
@@ -60,4 +73,9 @@
   (wc/set-time 0)
 
   (wc/spawn [0 0 0] jonny)
-  )
+
+
+  (make-trait "test-trait2" {:init {:foo 123}})
+
+  @(npc-trait (npc-by-id 0)
+              "test-trait2"))
