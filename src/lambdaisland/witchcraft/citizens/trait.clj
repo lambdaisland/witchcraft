@@ -81,6 +81,19 @@
   "Convert string to keyword, replacing `__` with `.`, see also [[munge-key]]."
   [s] (keyword (str/replace s #"__" ".")))
 
+(defmulti pre-save
+  "Prepare a value before persistence, should return either the value unchanged,
+  or a map with {:witchcraft/tag ... :value ...}"
+  type)
+
+(defmethod pre-save :default [v] v)
+
+(defmulti post-load
+  "Coerce a value to the right type after loading based on the `:witchcraft/tag`."
+  (fn [v] (and (map? v) (:witchcraft/tag v))))
+
+(defmethod post-load :default [v] v)
+
 (defn flatten-keys
   "Given a (potentially nested) map with keyword keys, return a flat list of
   key/value pairs, with composite string keys that use `.` separators to
@@ -99,7 +112,9 @@
   "Given a DataKey and a (potentially nested) map, store all values in the map on
   the datakey, excluding map values that have the `:no-persist` metadata."
   [^DataKey key m]
-  (doseq [[k v] (flatten-keys m)
+  (doseq [[k v] (flatten-keys (reduce dissoc
+                                      (dissoc m :no-persist)
+                                      (:no-persist m)))
           :when (not (:no-persist (meta v)))]
     (.setRaw key k v)))
 
@@ -132,12 +147,12 @@
 (defn trait-save [this ^DataKey key]
   (if (get-cb this :save)
     (call-cb this :save key)
-    (update-datakey key @this)))
+    (update-datakey key (walk/prewalk pre-save @this))))
 
 (defn trait-load [this ^DataKey key]
   (if (get-cb this :load)
     (call-cb this :load key)
-    (swap! this merge (datakey->map key))))
+    (swap! this merge (walk/postwalk post-load (datakey->map key)))))
 
 (defn trait-isRunImplemented [this]
   (boolean (get-in @registry [(.getName this) :run])))
@@ -193,8 +208,8 @@
 
   To initialize the Trait instance after instantiation, use `:post-init`.
   "
-  [name callbacks]
-  (let [name (str/lower-case name) ; Trait does the same, stay consistent
+  [trait-name callbacks]
+  (let [name (str/lower-case (name trait-name)) ; Trait does the same, stay consistent
         init-fn-name (str "init-" name)
         classname (str *ns* "." name)]
     (swap! registry assoc name callbacks)
@@ -217,7 +232,7 @@
           :state "state"
           :init init-fn-name
           :constructors {[] [String]}
-          :post-init `trait-post-init
+          :post-init "post-init"
           :prefix "trait-"
           :impl-ns (namespace `_)
           :load-impl-ns false})))

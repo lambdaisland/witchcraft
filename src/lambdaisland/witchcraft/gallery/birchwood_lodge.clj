@@ -158,12 +158,12 @@
 
   (wc/undo!)
 
-  )
 
-(wc/xyz-round (wc/target-block (wc/player)))
-(m/v-
- [-16341 163 -17240]
- [-16351 150 -17246]
- )
 
-(def anchor  [-16351 150 -17246])
+  (wc/xyz-round (wc/target-block (wc/player)))
+  (m/v-
+   [-16341 163 -17240]
+   [-16351 150 -17246]
+   )
+
+  (def anchor  [-16351 150 -17246]))
