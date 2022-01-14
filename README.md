@@ -56,7 +56,10 @@ provide convenient APIs so you can go and develop your ideas.
 
 ## Usage
 
+Start by watching some of the [videos](https://www.youtube.com/playlist?list=PLhYmIiHOMWoGyYsWmcQN0sG40BRjnNGM3) to get a sense of what you can and to get inspired.
+
 There is a work-in-progress [manual](doc/witchcraft_manual.org).
+
 
 ## Related projects
 
