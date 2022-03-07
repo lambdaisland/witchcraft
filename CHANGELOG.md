@@ -2,6 +2,9 @@
 
 ## Added
 
+- Added functions to access entities, get/set difficulty, work with enchantments
+- Overhaul and expand the support for working with inventories
+
 ## Fixed
 
 ## Changed

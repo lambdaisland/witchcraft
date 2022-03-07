@@ -3,6 +3,7 @@
   (:refer-clojure :exclude [time bean chunk])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
+            [clojure.set :as set]
             [lambdaisland.witchcraft.events :as events]
             [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util]
@@ -10,7 +11,14 @@
             [lambdaisland.witchcraft.reflect :as reflect])
   (:import (java.util UUID)
            (com.cryptomorin.xseries XMaterial XBlock)
-           (org.bukkit Bukkit Chunk Location Material Server World WorldCreator)
+           (org.bukkit Bukkit
+                       Chunk
+                       Difficulty
+                       Location
+                       Material
+                       Server
+                       World
+                       WorldCreator)
            (org.bukkit.block Block BlockFace)
            (org.bukkit.block.data BlockData)
            (org.bukkit.configuration.serialization ConfigurationSerialization)
@@ -90,9 +98,30 @@
 
 ;; ================================================================================
 
+(defn enchantment-key [^Enchantment e]
+  (keyword
+   (-> e
+       .getKey
+       str
+       (str/replace #"^minecraft:" "")
+       (str/replace #"_" "-"))))
+
 (def entity-types
   "Map from keyword to EntityType value"
   (util/enum->map org.bukkit.entity.EntityType))
+
+(def enchant-types
+  "Map from keyword to Enchantment"
+  (into {}
+        (map (juxt enchantment-key identity))
+        (Enchantment/values)))
+
+(def difficulty-types
+  "Map from keyword to Difficulty"
+  {:peaceful Difficulty/PEACEFUL
+   :easy Difficulty/EASY
+   :normal Difficulty/NORMAL
+   :hard Difficulty/HARD})
 
 (util/when-class-exists
  org.bukkit.GameRule
@@ -102,6 +131,8 @@
          (map (juxt #(keyword (util/dasherize (.getName ^org.bukkit.GameRule %))) identity))
          (org.bukkit.GameRule/values))))
 
+(def inventory-types
+  (util/enum->map org.bukkit.event.inventory.InventoryType))
 
 (defonce ^{:doc "Map from keyword to XMaterial value"} materials {})
 (defonce ^{:doc "Map from XMaterial value to keyword"} material-names {})
@@ -164,6 +195,9 @@
 ;; proxy to an underlying interop form. See the `reflect/extend-signature` calls
 ;; lower down.
 
+(defprotocol HasUUID
+  (^java.util.UUID -uuid [_]))
+
 (defprotocol HasLocation
   (^org.bukkit.Location -location [_] "Get the location of the given object"))
 
@@ -209,8 +243,15 @@
 (defprotocol HasInventory
   (^org.bukkit.inventory.Inventory -inventory [_]))
 
+(defprotocol HasItemStack
+  (^org.bukkit.inventory.ItemStack -item-stack [_]))
+
 (defprotocol HasEntity
   (^org.bukkit.entity.Entity -entity [_]))
+
+(defprotocol HasDifficulty
+  (-get-difficulty [_])
+  (-set-difficulty [_ d]))
 
 (defprotocol CanParseBlockData
   (^org.bukkit.block.data.BlockData -parse-block-data [_ _]))
@@ -221,6 +262,159 @@
 (defprotocol CanBreakNaturallyToolEffect (-break-naturally-tool-effect [_ tool effect?]))
 
 (defprotocol CanSpawn (-spawn [thing location]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Interop protocol implementations
+
+(declare ^World default-world)
+
+(reflect/extend-signatures HasUUID
+  "java.util.UUID getUniqueId()"
+  (-uuid [this] (.getUniqueId this))
+  "java.util.UUID uuid()"
+  (-uuid [this] (.uuid this))
+  "java.util.UUID id()"
+  (-uuid [this] (.id this))
+  "java.util.UUID getId()"
+  (-uuid [this] (.getId this))
+  "java.util.UUID getUID()"
+  (-uuid [this] (.getUID this))
+  "java.util.UUID getUUID()"
+  (-uuid [this] (.getUUID this)))
+
+(reflect/extend-signatures HasLocation
+  "org.bukkit.Location getLocation()"
+  (-location [this]
+    (.getLocation this))
+  "org.bukkit.Location toLocation(org.bukkit.World)"
+  (-location [this]
+    (.toLocation this (default-world))))
+
+(reflect/extend-signatures HasXYZ
+  "double getX()" (-x [this] (.getX this))
+  "double getY()" (-y [this] (.getY this))
+  "double getZ()" (-z [this] (.getZ this))
+  "int getX()" (-x [this] (.getX this))
+  "int getY()" (-y [this] (.getY this))
+  "int getZ()" (-z [this] (.getZ this)))
+
+(reflect/extend-signatures HasPitchYaw
+  "float getPitch()" (-pitch [this] (.getPitch this))
+  "float getYaw()" (-yaw [this] (.getYaw this)))
+
+;; Chunks only have x and z
+(extend-protocol HasXYZ
+  org.bukkit.Chunk (-y [_] 0)
+  org.bukkit.ChunkSnapshot (-y [_] 0))
+
+(reflect/extend-signatures HasWorld
+  "org.bukkit.World getWorld()"
+  (-world [this]
+    (.getWorld this)))
+
+(reflect/extend-signatures HasWorlds
+  "java.util.List getWorlds()"
+  (-worlds [this]
+    (.getWorlds this))
+  "org.bukkit.World getWorld(java.lang.String)"
+  (-world-by-name [this ^String obj]
+    (.getWorld this obj))
+  "org.bukkit.World getWorld(java.util.UUID)"
+  (-world-by-uuid [this ^java.util.UUID obj]
+    (.getWorld this obj)))
+
+(reflect/extend-signatures HasItemMeta
+  "org.bukkit.inventory.meta.ItemMeta getItemMeta()"
+  (-item-meta [this]
+    (.getItemMeta this))
+  "setItemMeta(org.bukkit.inventory.meta.ItemMeta)"
+  (-set-item-meta [this ^org.bukkit.inventory.meta.ItemMeta im]
+    (.setItemMeta this im)))
+
+(reflect/extend-signatures HasDisplayName
+  "java.lang.String getDisplayName()"
+  (-display-name [this]
+    (.getDisplayName this))
+  "setDisplayName(java.lang.String)"
+  (-set-display-name [this ^String n]
+    (.setDisplayName this n)))
+
+(reflect/extend-signatures HasLore
+  "java.util.List getLore()"
+  (-lore [this]
+    (.getLore this))
+  "setLore(java.util.List)"
+  (-set-lore [this lore]
+    (.setLore this lore)))
+
+(reflect/extend-signatures HasTargetBlock
+  "org.bukkit.block.Block getTargetBlock(java.util.Set,int)"
+  (-get-target-block [this ^java.util.Set transparent ^long max-distance]
+    (.getTargetBlock this transparent max-distance)))
+
+(reflect/extend-signatures HasBlockData
+  "org.bukkit.block.data.BlockData getBlockData()"
+  (-get-block-data [this]
+    (.getBlockData this))
+  "void setBlockData(org.bukkit.block.data.BlockData)"
+  (-set-block-data [this ^org.bukkit.block.data.BlockData bd]
+    (.setBlockData this bd)))
+
+(reflect/extend-signatures HasMaterial
+  "org.bukkit.Material getMaterial()"
+  (-material [this] (.getMaterial this))
+  "org.bukkit.Material getType()"
+  (-material [this] (.getType this)))
+
+(reflect/extend-signatures HasEntity
+  "org.bukkit.entity.Entity getEntity()"
+  (-entity [this] (.getEntity this)))
+
+(reflect/extend-signatures CanParseBlockData
+  "org.bukkit.block.data.BlockData createBlockData(java.lang.String)"
+  (-parse-block-data [this ^String string]
+    (.createBlockData this string)))
+
+(reflect/extend-signatures HasInventory
+  "org.bukkit.inventory.Inventory getInventory()"
+  (-inventory [this]
+    (.getInventory this)))
+
+(reflect/extend-signatures HasItemStack
+  "org.bukkit.inventory.ItemStack getItemStack()"
+  (-item-stack [this]
+    (.getItemStack this)))
+
+(reflect/extend-signatures CanBreakNaturally
+  "boolean breakNaturally()"
+  (-break-naturally [this] (.breakNaturally this)))
+
+(reflect/extend-signatures CanBreakNaturallyTool
+  "boolean breakNaturally(org.bukkit.inventory.ItemStack)"
+  (-break-naturally-tool [this ^ItemStack tool]
+    (.breakNaturally this tool)))
+
+(reflect/extend-signatures CanBreakNaturallyEffect
+  "boolean breakNaturally(boolean)"
+  (-break-naturally-boolean [this ^Boolean effect]
+    (.breakNaturally this effect)))
+
+(reflect/extend-signatures CanBreakNaturallyToolEffect
+  "boolean breakNaturally(org.bukkit.inventory.ItemStack,boolean)"
+  (-break-naturally-tool [this ^ItemStack tool ^Boolean effect]
+    (.breakNaturally this tool effect)))
+
+(reflect/extend-signatures CanSpawn
+  "spawn(org.bukkit.Location)"
+  (-spawn [this loc] (.spawn this loc))
+  "spawnAt(org.bukkit.Location)"
+  (-spawn [this loc] (.spawnAt this loc)))
+
+(reflect/extend-signatures HasDifficulty
+  "org.bukkit.Difficulty getDifficulty()"
+  (-get-difficulty [this] (.getDifficulty this))
+  "void setDifficulty(org.bukkit.Difficulty)"
+  (-set-difficulty [this d] (.setDifficulty this d)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interop wrappers
@@ -234,7 +428,6 @@
 (declare ^Block get-block)
 (declare ^clojure.lang.IPersistentMap block)
 (declare ^World world)
-(declare ^World default-world)
 (declare ^ItemStack item-stack)
 
 (defn add
@@ -407,6 +600,19 @@
    (Bukkit/getWorlds))
   ([o]
    (-worlds o)))
+
+(defn entity
+  "Get an object's entity, or get entity by UUID."
+  [o]
+  (cond
+    (instance? Entity o)
+    o
+
+    (instance? UUID o)
+    (.getEntity (server) o)
+
+    (satisfies? HasEntity o)
+    (-entity o)))
 
 (def
   ^{:doc "Render hiccup-like markup into a string with color and styling codes that Minecraft understand, see the [[lambdaisland.witchcraft.markup]] namespace for details."}
@@ -603,27 +809,102 @@
     o
 
     (satisfies? HasInventory o)
-    (-inventory o)))
+    (-inventory o)
 
-(defn inventory
-  "Get the inventory of something as a sequence of maps."
+    (satisfies? HasEntity o)
+    (-inventory (-entity o))))
+
+(defn contents
+  "Get the contents of the inventory of something as a sequence of maps."
   [o]
   (let [inv (get-inventory o)]
-    (for [^ItemStack stack inv
-          :when stack]
-      (let [im (.getItemMeta stack)
-            dn (.getDisplayName im)
-            lore (.getLore im)
-            itemflags (.getItemFlags im)
-            localized (.getLocalizedName im)
-            enchants (.getEnchants im)]
-        (cond-> {:material (mat stack)
-                 :amount (.getAmount stack)}
-          (not= "" dn) (assoc :display-name dn)
-          (not= "" localized) (assoc :localized-dname localized)
-          (seq lore) (assoc :lore (seq lore))
-          (seq itemflags) (assoc :item-flags itemflags)
-          (seq enchants) (assoc :enchants enchants))))))
+    (->> (for [^ItemStack stack (reverse inv)]
+           (when stack
+             (let [im (.getItemMeta stack)
+                   dn (.getDisplayName im)
+                   lore (.getLore im)
+                   itemflags (.getItemFlags im)
+                   localized (.getLocalizedName im)
+                   enchants (.getEnchants im)]
+               (cond-> {:material (mat stack)
+                        :amount (.getAmount stack)}
+                 (not= "" dn) (assoc :display-name dn)
+                 (not= "" localized) (assoc :localized-display-name localized)
+                 (seq lore) (assoc :lore (seq lore))
+                 (seq itemflags) (assoc :item-flags itemflags)
+                 (seq enchants) (assoc :enchants
+                                       (into {}
+                                             (map (fn [[^Enchantment k v]]
+                                                    [(enchantment-key k) v]))
+                                             enchants))))))
+         (drop-while nil?)
+         reverse
+         vec)))
+
+(defn inventory-type
+  "Get the type of an inventory object, or of something that has an
+  inventory (like a player or chest entity) as a keyword."
+  [i]
+  (get
+   (set/map-invert inventory-types)
+   (.getType (get-inventory i))))
+
+(defn inventory
+  "Get a Clojure/EDN representation of an inventory (or of something that has an
+  inventory). Has `:type` and `:contents` keys, and `:size` for chest type
+  inventories (others have a fixed size)."
+  [i]
+  (let [i (get-inventory i)
+        type (inventory-type i)
+        #_#_title (.getName i)]
+    (cond->
+        {:type type
+         :contents (contents i)}
+      (= :chest type)
+      (assoc :size (.getSize i))
+      #_#_title
+      (assoc :title title))))
+
+(defn set-contents
+  "Set inventory contents on an inventory or something that has an inventory."
+  [inv items]
+  (.setContents (get-inventory inv)
+                (into-array ItemStack (map item-stack items))))
+
+(defn make-inventory
+  "Make a new Bukkit inventory object, with either `:type` (keyword) or
+  `:size` (must be multiple of 9), and optional `:owner` and/or `:title`."
+  [{:keys [^org.bukkit.inventory.InventoryHolder owner type size ^String title contents]
+    :or {size 27}}]
+  (let [inv
+        (cond
+          (and type title)
+          (org.bukkit.Bukkit/createInventory owner ^org.bukkit.event.inventory.InventoryType (get inventory-types type) title)
+
+          type
+          (org.bukkit.Bukkit/createInventory owner ^org.bukkit.event.inventory.InventoryType (get inventory-types type))
+
+          title
+          (org.bukkit.Bukkit/createInventory owner ^long size title)
+
+          :else
+          (org.bukkit.Bukkit/createInventory owner ^long size)
+          )]
+    (when contents
+      (set-contents inv contents))
+    inv))
+
+(defn open-inventory
+  "Open the inventory UI, pass it a player and the inventory to show."
+  ([target]
+   (open-inventory target (get-inventory target)))
+  ([target inventory]
+   (let [^org.bukkit.entity.HumanEntity human-entity (entity target)
+         ^Inventory inventory (if (instance? Inventory inventory)
+                                inventory
+                                (make-inventory inventory))]
+     (.openInventory human-entity inventory))))
+
 
 (defn break-naturally
   "Breaks the block and spawns items, can optionally take a `tool` argument, as if
@@ -660,130 +941,6 @@
        (-break-naturally-tool block is)
        :else
        (-break-naturally block)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Interop protocol implementations
-
-(reflect/extend-signatures HasLocation
-  "org.bukkit.Location getLocation()"
-  (-location [this]
-    (.getLocation this))
-  "org.bukkit.Location toLocation(org.bukkit.World)"
-  (-location [this]
-    (.toLocation this (default-world))))
-
-(reflect/extend-signatures HasXYZ
-  "double getX()" (-x [this] (.getX this))
-  "double getY()" (-y [this] (.getY this))
-  "double getZ()" (-z [this] (.getZ this))
-  "int getX()" (-x [this] (.getX this))
-  "int getY()" (-y [this] (.getY this))
-  "int getZ()" (-z [this] (.getZ this)))
-
-(reflect/extend-signatures HasPitchYaw
-  "float getPitch()" (-pitch [this] (.getPitch this))
-  "float getYaw()" (-yaw [this] (.getYaw this)))
-
-;; Chunks only have x and z
-(extend-protocol HasXYZ
-  org.bukkit.Chunk (-y [_] 0)
-  org.bukkit.ChunkSnapshot (-y [_] 0))
-
-(reflect/extend-signatures HasWorld
-  "org.bukkit.World getWorld()"
-  (-world [this]
-    (.getWorld this)))
-
-(reflect/extend-signatures HasWorlds
-  "java.util.List getWorlds()"
-  (-worlds [this]
-    (.getWorlds this))
-  "org.bukkit.World getWorld(java.lang.String)"
-  (-world-by-name [this ^String obj]
-    (.getWorld this obj))
-  "org.bukkit.World getWorld(java.util.UUID)"
-  (-world-by-uuid [this ^java.util.UUID obj]
-    (.getWorld this obj)))
-
-(reflect/extend-signatures HasItemMeta
-  "org.bukkit.inventory.meta.ItemMeta getItemMeta()"
-  (-item-meta [this]
-    (.getItemMeta this))
-  "setItemMeta(org.bukkit.inventory.meta.ItemMeta)"
-  (-set-item-meta [this ^org.bukkit.inventory.meta.ItemMeta im]
-    (.setItemMeta this im)))
-
-(reflect/extend-signatures HasDisplayName
-  "java.lang.String getDisplayName()"
-  (-display-name [this]
-    (.getDisplayName this))
-  "setDisplayName(java.lang.String)"
-  (-set-display-name [this ^String n]
-    (.setDisplayName this n)))
-
-(reflect/extend-signatures HasLore
-  "java.util.List getLore()"
-  (-lore [this]
-    (.getLore this))
-  "setLore(java.util.List)"
-  (-set-lore [this lore]
-    (.setLore this lore)))
-
-(reflect/extend-signatures HasTargetBlock
-  "org.bukkit.block.Block getTargetBlock(java.util.Set,int)"
-  (-get-target-block [this ^java.util.Set transparent ^long max-distance]
-    (.getTargetBlock this transparent max-distance)))
-
-(reflect/extend-signatures HasBlockData
-  "org.bukkit.block.data.BlockData getBlockData()"
-  (-get-block-data [this]
-    (.getBlockData this))
-  "void setBlockData(org.bukkit.block.data.BlockData)"
-  (-set-block-data [this ^org.bukkit.block.data.BlockData bd]
-    (.setBlockData this bd)))
-
-(reflect/extend-signatures HasMaterial
-  "org.bukkit.Material getMaterial()"
-  (-material [this] (.getMaterial this))
-  "org.bukkit.Material getType()"
-  (-material [this] (.getType this)))
-
-(reflect/extend-signatures HasEntity
-  "org.bukkit.entity.Entity getEntity()"
-  (-entity [this] (.getEntity this)))
-
-(reflect/extend-signatures CanParseBlockData
-  "org.bukkit.block.data.BlockData createBlockData(java.lang.String)"
-  (-parse-block-data [this ^String string]
-    (.createBlockData this string)))
-
-(reflect/extend-signatures HasInventory
-  "org.bukkit.inventory.Inventory getInventory()"
-  (-inventory [this]
-    (.getInventory this)))
-
-(reflect/extend-signatures CanBreakNaturally
-  "boolean breakNaturally()"
-  (-break-naturally [this] (.breakNaturally this)))
-
-(reflect/extend-signatures CanBreakNaturallyTool
-  "boolean breakNaturally(org.bukkit.inventory.ItemStack)"
-  (-break-naturally-tool [this ^ItemStack tool] (.breakNaturally this tool)))
-
-(reflect/extend-signatures CanBreakNaturallyEffect
-  "boolean breakNaturally(boolean)"
-  (-break-naturally-boolean [this ^Boolean effect] (.breakNaturally this effect)))
-
-(reflect/extend-signatures CanBreakNaturallyToolEffect
-  "boolean breakNaturally(org.bukkit.inventory.ItemStack,boolean)"
-  (-break-naturally-tool [this ^ItemStack tool ^Boolean effect]
-    (.breakNaturally this tool effect)))
-
-(reflect/extend-signatures CanSpawn
-  "spawn(org.bukkit.Location)"
-  (-spawn [this loc] (.spawn this loc))
-  "spawnAt(org.bukkit.Location)"
-  (-spawn [this loc] (.spawnAt this loc)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1188,24 +1345,55 @@
      (.setThundering false)
      (.setStorm false))))
 
+(defn enchantment [o]
+  (cond
+    (instance? Enchantment o)
+    o
+
+    (keyword? o)
+    (get enchant-types o)))
+
 (defn item-stack
-  "Create an ItemStack object"
+  "Create (from a material) or get (from something that has an item-stack) an
+  ItemStack object"
   ^ItemStack
-  ([material]
-   (if (instance? ItemStack material)
-     material
-     (.parseItem (xmaterial material))))
+  ([o]
+   (cond
+     (nil? o)
+     nil
+
+     (instance? ItemStack o)
+     o
+     (satisfies? HasItemStack o)
+     (-item-stack o)
+
+     (map? o)
+     (let [{:keys [material amount enchants display-name lore]} o
+           ^ItemStack is (.parseItem (xmaterial material))
+           ^ItemMeta im (-item-meta is)]
+       (when amount (.setAmount is amount))
+       (when lore (set-lore im lore))
+       (when display-name (set-display-name im display-name))
+       (when enchants
+         (doseq [[ench level] enchants]
+           (.addEnchant im (enchantment ench) level true)))
+       (-set-item-meta is im)
+       is)
+
+     (vector? o)
+     (item-stack (first o) (second o))
+     :else
+     (.parseItem (xmaterial o))))
   ([material count]
-   (let [^ItemStack is (if (instance? ItemStack material)
-                         material
-                         (.parseItem (xmaterial material)))]
+   (let [^ItemStack is (item-stack material)]
      (.setAmount is count)
      is)))
 
 (defn add-inventory
   "Add the named item to the player or entity's inventory, or n copies of it"
   ([player item]
-   (add-inventory player item 1))
+   (.addItem (get-inventory player)
+             (into-array ItemStack [(item-stack item)])))
   ([player item n]
    (.addItem (get-inventory player)
              (into-array ItemStack [(item-stack item n)]))))
@@ -1539,6 +1727,19 @@
    [world m]
    (run! #(set-game-rule world (key %) (val %)) m)))
 
+(defn set-difficulty
+  "Set the world's difficulty (keyword)"
+  [the-world level]
+  (-set-difficulty (world the-world) (get difficulty-types level)))
+
+(defn difficulty
+  "Get the difficulty of the world (keyword)"
+  [the-world]
+  (get
+   (set/map-invert difficulty-types)
+   (-get-difficulty (world the-world))))
+
+;; TODO: convert to protocol
 (defn eye-height [^LivingEntity e]
   (.getEyeHeight e))
 

@@ -108,8 +108,11 @@
   [klasses]
   (remove
    (fn [klass]
-     (some (set klasses) (map (memfn ^Class getName)
-                              (ancestors (Class/forName klass)))))
+     (try
+       (some (set klasses) (map (memfn ^Class getName)
+                                (ancestors (Class/forName klass))))
+       (catch Error _
+         true)))
    klasses))
 
 (defmacro extend-signatures
@@ -129,6 +132,13 @@
            form))))
 
 (comment
-  (filter #(.contains (key %) "createNPC") @reflections)
+  (filter #(re-find #"openInventory\(" (key %)) @reflections)
+
+  (exclude-descendants
+   (get @reflections "getInventory()"))
+
+  (ancestors (Class/forName "org.bukkit.entity.HumanEntity"))
   (load-reflections)
+
+  (clojure.reflect/reflect org.bukkit.inventory.Inventory)
   )
