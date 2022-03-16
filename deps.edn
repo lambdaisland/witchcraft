@@ -18,7 +18,7 @@
   #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
 
   :papermc
-  {:extra-deps {io.papermc/paper {:local/root "/home/arne/Downloads/paper-1.17.1-157.jar"}}}
+  {:extra-deps {io.papermc/paper {:mvn/version "1.18.2-R0.1-SNAPSHOT"}}}
 
   :paperclip
   {:extra-deps {io.papermc/paperclip {:mvn/version "3.0.2"}}}

@@ -20,7 +20,7 @@
                        World
                        WorldCreator)
            (org.bukkit.block Block BlockFace)
-           (org.bukkit.block.data BlockData)
+           ;; (org.bukkit.block.data BlockData) ; not yet available in Glowstone 1.12
            (org.bukkit.configuration.serialization ConfigurationSerialization)
            (org.bukkit.enchantments Enchantment)
            (org.bukkit.entity Entity Player HumanEntity LivingEntity)
@@ -99,6 +99,7 @@
 ;; ================================================================================
 
 (defn enchantment-key [^Enchantment e]
+  ;; FIXME: no getKey on Glowstone 1.12
   (keyword
    (-> e
        .getKey
@@ -352,13 +353,14 @@
   (-get-target-block [this ^java.util.Set transparent ^long max-distance]
     (.getTargetBlock this transparent max-distance)))
 
-(reflect/extend-signatures HasBlockData
-  "org.bukkit.block.data.BlockData getBlockData()"
-  (-get-block-data [this]
-    (.getBlockData this))
-  "void setBlockData(org.bukkit.block.data.BlockData)"
-  (-set-block-data [this ^org.bukkit.block.data.BlockData bd]
-    (.setBlockData this bd)))
+(util/when-class-exists org.bukkit.block.data.BlockData
+  (reflect/extend-signatures HasBlockData
+    "org.bukkit.block.data.BlockData getBlockData()"
+    (-get-block-data [this]
+      (.getBlockData this))
+    "void setBlockData(org.bukkit.block.data.BlockData)"
+    (-set-block-data [this ^org.bukkit.block.data.BlockData bd]
+      (.setBlockData this bd))))
 
 (reflect/extend-signatures HasMaterial
   "org.bukkit.Material getMaterial()"
@@ -698,45 +700,53 @@
   [& args]
   (block (apply get-target-block args)))
 
-(defn get-block-data
-  "Get the BlockData object of something"
-  ^org.bukkit.block.data.BlockData
-  [b]
-  (cond
-    (instance? org.bukkit.block.data.BlockData b)
-    b
-    (satisfies? HasBlockData b)
-    (-get-block-data b)
-    (string? b)
-    (-parse-block-data (server) b)
-    :else
-    (-get-block-data (get-block b))))
+(util/if-class-exists org.bukkit.block.data.BlockData
+  (defn get-block-data
+    "Get the BlockData object of something"
+    ^org.bukkit.block.data.BlockData
+    [b]
+    (cond
+      (instance? org.bukkit.block.data.BlockData b)
+      b
+      (satisfies? HasBlockData b)
+      (-get-block-data b)
+      (string? b)
+      (-parse-block-data (server) b)
+      :else
+      (-get-block-data (get-block b))))
 
-(defn block-data
-  "Get the block data for the block as a map with `:material`, and other
-  material-specific key-values. This is kind of hacky in that we essentially
-  parse this out of the stringified version of the `BlockData`, but given the
-  immense parochialism in concrete `BlockData` subclasses we have little other
-  choice, and we can still reconstitute the `BlockData` by parsing it with
-  `Server/createBlockData`."
-  [b]
-  (let [bd (get-block-data b)
-        [_ _ attrs] (re-find #"^([^\[]*)\[(.*)\]"
-                             (.getAsString bd))
-        result {:material (material-name bd)}]
-    (if attrs
-      (into result
-            (map (fn [s]
-                   (let [[k v] (str/split s #"=")]
-                     [(keyword k)
-                      (cond
-                        (= "true" v) true
-                        (= "false" v) false
-                        (re-find #"\d+" v) (Long/parseLong v)
-                        (re-find #"\d+\.\d+" v) (Double/parseDouble v)
-                        :else (keyword v))])))
-            (str/split attrs #","))
-      result)))
+  (defn get-block-data [b]
+    (throw (ex-info "BlockData is not implemented on this server" {}))))
+
+(util/if-class-exists org.bukkit.block.data.BlockData
+  (defn block-data
+    "Get the block data for the block as a map with `:material`, and other
+    material-specific key-values. This is kind of hacky in that we essentially
+    parse this out of the stringified version of the `BlockData`, but given the
+    immense parochialism in concrete `BlockData` subclasses we have little other
+    choice, and we can still reconstitute the `BlockData` by parsing it with
+    `Server/createBlockData`."
+    [b]
+    (let [bd (get-block-data b)
+          [_ _ attrs] (re-find #"^([^\[]*)\[(.*)\]"
+                               (.getAsString bd))
+          result {:material (material-name bd)}]
+      (if attrs
+        (into result
+              (map (fn [s]
+                     (let [[k v] (str/split s #"=")]
+                       [(keyword k)
+                        (cond
+                          (= "true" v) true
+                          (= "false" v) false
+                          (re-find #"\d+" v) (Long/parseLong v)
+                          (re-find #"\d+\.\d+" v) (Double/parseDouble v)
+                          :else (keyword v))])))
+              (str/split attrs #","))
+        result)))
+
+  (defn block-data [b]
+    (throw (ex-info "BlockData is not implemented on this server" {}))))
 
 (defn material
   "Get the `org.bukkit.Material` for the given object.
@@ -1138,20 +1148,23 @@
       :else
       (XMaterial/matchXMaterial ^Material (material m)))))
 
-(defn map->blockdata
-  "Create a `BlockData` instance for the given material and properties"
-  ^BlockData [material prop-map]
-  (-parse-block-data
-   material
-   (str "["
-        (str/join "," (map (fn [[k v]]
-                             (str (name k)
-                                  "="
-                                  (if (keyword? v)
-                                    (name v)
-                                    (str v))))
-                           prop-map))
-        "]")))
+(util/if-class-exists org.bukkit.block.data.BlockData
+  (defn map->blockdata
+    "Create a `BlockData` instance for the given material and properties"
+    ^BlockData [material prop-map]
+    (-parse-block-data
+     material
+     (str "["
+          (str/join "," (map (fn [[k v]]
+                               (str (name k)
+                                    "="
+                                    (if (keyword? v)
+                                      (name v)
+                                      (str v))))
+                             prop-map))
+          "]")))
+  (defn map->blockdata [_ _]
+    (throw (ex-info "BlockData is not implemented on this server" {}))))
 
 (defn set-block-data
   "Set `BlockData` properties, these are material dependent, e.g. slabs can have
@@ -1364,8 +1377,12 @@
 
      (instance? ItemStack o)
      o
+
      (satisfies? HasItemStack o)
      (-item-stack o)
+
+     (keyword? o)
+     (.parseItem (xmaterial o))
 
      (map? o)
      (let [{:keys [material amount enchants display-name lore]} o
@@ -1382,6 +1399,7 @@
 
      (vector? o)
      (item-stack (first o) (second o))
+
      :else
      (.parseItem (xmaterial o))))
   ([material count]
@@ -1678,7 +1696,13 @@
        :structures? (.generateStructures wc v)
        :generator (.generator wc ^String v)
        :generator-settings (.generatorSettings wc v)
-       :hardcore? (.hardcore wc v)
+       :hardcore? (try
+                    ;; FIXME: come up with something cleaner to deal with the
+                    ;; fact that this is not implemented in Glowstone. Currently
+                    ;; yields a reflection warning.
+                    (.hardcore wc v)
+                    (catch java.lang.IllegalArgumentException _
+                      false))
        :type (.type wc v)))
    (WorldCreator. name)
    opts))

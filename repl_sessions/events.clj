@@ -1,4 +1,4 @@
-(ns events
+(ns repl-sessions.events
   (:require [lambdaisland.witchcraft :as wc]
             [clojure.java.classpath :as cp]
             [clojure.string :as str])
@@ -7,6 +7,8 @@
            (java.net URL URLClassLoader)))
 
 (wc/start-glowstone!)
+
+(.getSeed (wc/world "world"))
 
 (wc/listen! :player-interact
             ::get-event
