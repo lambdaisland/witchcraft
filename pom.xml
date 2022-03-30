@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>witchcraft</artifactId>
-  <version>0.11.216</version>
+  <version>0.12.232</version>
   <name>witchcraft</name>
   <description>Clojure API for Minecraft/Glowstone/Bukkit</description>
   <url>https://github.com/lambdaisland/witchcraft</url>
@@ -25,13 +25,13 @@
     <url>https://github.com/lambdaisland/witchcraft</url>
     <connection>scm:git:git://github.com/lambdaisland/witchcraft.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/witchcraft.git</developerConnection>
-    <tag>180bddf54127aac5aa6e69f509a114e0b979a264</tag>
+    <tag>a8146ff4d05589ed63c474355e1c616d05e61a59</tag>
   </scm>
   <dependencies>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-      <version>1.10.3</version>
+      <version>1.11.0</version>
     </dependency>
     <dependency>
       <groupId>com.lambdaisland</groupId>
@@ -46,7 +46,7 @@
     <dependency>
       <groupId>com.github.cryptomorin</groupId>
       <artifactId>XSeries</artifactId>
-      <version>8.4.0</version>
+      <version>8.7.0</version>
     </dependency>
     <dependency>
       <groupId>clojure2d</groupId>
@@ -61,18 +61,18 @@
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
-      <version>3.1.0</version>
+      <version>4.0.1</version>
     </dependency>
     <dependency>
       <groupId>net.glowstone</groupId>
       <artifactId>glowstone</artifactId>
-      <version>2021.7.1-SNAPSHOT</version>
+      <version>2021.8.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>nrepl</groupId>
       <artifactId>nrepl</artifactId>
-      <version>0.9.0-beta4</version>
+      <version>0.9.0</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
@@ -106,7 +106,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>180bddf54127aac5aa6e69f509a114e0b979a264</git-revision>
+              <git-revision>a8146ff4d05589ed63c474355e1c616d05e61a59</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
@@ -146,6 +146,11 @@
       <id>papermc</id>
       <name>papermc</name>
       <url>https://papermc.io/repo/repository/maven-public/</url>
+    </repository>
+    <repository>
+      <id>sk_tomsik68</id>
+      <name>sk_tomsik68</name>
+      <url>https://raw.githubusercontent.com/tomsik68/maven-repo/master/</url>
     </repository>
   </repositories>
   <distributionManagement>
