@@ -3,8 +3,6 @@
             [progrock.core :as pr])
   (:import (sk.tomsik68.mclauncher.backend MinecraftLauncherBackend)))
 
-(.setLevel sk.tomsik68.mclauncher.api.common.MCLauncherAPI/log java.util.logging.Level/OFF)
-
 (defn launcher-backend ^MinecraftLauncherBackend [file]
   (MinecraftLauncherBackend. (io/file file)))
 
@@ -55,6 +53,7 @@
         (pr-bar)))))
 
 (defn update-minecraft [backend version]
+  (.setLevel sk.tomsik68.mclauncher.api.common.MCLauncherAPI/log java.util.logging.Level/OFF)
   (.updateMinecraft backend version (progress-monitor)))
 
 (defn session [{:keys [username session-id uuid type properties]
@@ -66,19 +65,5 @@
     (getType [_] type)
     (getProperties [_] properties)))
 
-(defn launch! [backend session version]
+(defn launch-cmd [backend session version]
   (.command (.launchMinecraft backend session version)))
-
-(comment
-  (do (require '[lambdaisland.witchcraft.launcher-api :as l]) (def backend (l/launcher-backend "/tmp/mc")) (l/update-minecraft backend "1.18.2"))
-
-  (do
-    (require (quote [lambdaisland.witchcraft.launcher-api :as l]))
-    (l/launch! (l/launcher-backend "client") (l/session {:username "$1" :session-id "x" :uuid (random-uuid)})))
-  )
-
-
-
-
-#_
-(sk.tomsik68.mclauncher.impl.login.legacy.LegacySession. "user" "sessid" "uuid" "dlTicket" "1.18.2")

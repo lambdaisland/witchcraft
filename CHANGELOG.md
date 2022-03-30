@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
-## Fixed
-
 ## Changed
+
+- Rename `launch!` to the more accurate `launch-cmd`
 
 # 0.12.232 (2022-03-30 / 7350cc8)
 
