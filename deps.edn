@@ -27,9 +27,13 @@
   {:extra-deps {io.papermc.paper/paper-api {:mvn/version "1.18.2-R0.1-SNAPSHOT"}}}
 
   :nrepl
-  {:extra-deps {nrepl/nrepl {:mvn/version "0.9.0"}}}}
+  {:extra-deps {nrepl/nrepl {:mvn/version "0.9.0"}}}
+
+  :launcher-api
+  {:extra-deps {sk.tomsik68/mclauncher-api {:mvn/version "0.3.6"}}}}
 
  :mvn/repos
  {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
   "aikar"          {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}
-  "papermc"        {:url "https://papermc.io/repo/repository/maven-public/"}}}
+  "papermc"        {:url "https://papermc.io/repo/repository/maven-public/"}
+  "sk_tomsik68"    {:url "https://raw.githubusercontent.com/tomsik68/maven-repo/master/"}}}
