@@ -1,5 +1,8 @@
 (ns repl-sessions.launcher-api
-  (:require [clojure.java.io :as io]))
+  (:require [clojure.java.io :as io]
+            [progrock.core :as pr]))
+
+(def progress (atom nil))
 
 (.getVersionList
  (sk.tomsik68.mclauncher.backend.MinecraftLauncherBackend. (io/file "/tmp")))
@@ -16,10 +19,17 @@
 (.updateMinecraft
  backend "1.18.2"
  (reify sk.tomsik68.mclauncher.api.ui.IProgressMonitor
-   (setProgress [_ progress])
-   (setMax [_ len])
-   (incrementProgress [_ amount])
-   (setStatus [_ status])))
+   (setProgress [_ amount]
+     (swap! progress assoc :progress amount)
+     (pr/print @progress))
+   (setMax [_ len]
+     (reset! progress (pr/progress-bar len))
+     (pr/print @progress))
+   (incrementProgress [_ amount]
+     (swap! progress pr/tick amount)
+     (pr/print @progress))
+   (setStatus [_ status]
+     (println (str "\r" status)))))
 
 (.command(.launchMinecraft
           backend

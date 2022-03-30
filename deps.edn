@@ -1,5 +1,5 @@
 {:paths ["src" "test" "resources"]
- :deps  {org.clojure/clojure            {:mvn/version "1.10.3"}
+ :deps  {org.clojure/clojure            {:mvn/version "1.11.0"}
          com.lambdaisland/classpath     {:mvn/version "0.0.27"}
          lambdaisland/data-printers     {:mvn/version "0.7.47"}
          com.github.cryptomorin/XSeries {:mvn/version "8.7.0"}
@@ -30,7 +30,8 @@
   {:extra-deps {nrepl/nrepl {:mvn/version "0.9.0"}}}
 
   :launcher-api
-  {:extra-deps {sk.tomsik68/mclauncher-api {:mvn/version "0.3.6"}}}}
+  {:extra-deps {sk.tomsik68/mclauncher-api {:mvn/version "0.3.6"}
+                progrock/progrock {:mvn/version "0.1.2"}}}}
 
  :mvn/repos
  {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
