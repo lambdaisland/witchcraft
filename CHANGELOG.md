@@ -1,10 +1,12 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
+- Fix a regression that caused a load error on servers that support BlockData (1.13+)
+
 ## Changed
+
+- Bump Clojure2D, XSeries
 
 # 0.13.235 (2022-03-30 / 922aeda)
 
