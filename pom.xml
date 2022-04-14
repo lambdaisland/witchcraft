@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>witchcraft</artifactId>
-  <version>0.13.235</version>
+  <version>0.14.239</version>
   <name>witchcraft</name>
   <description>Clojure API for Minecraft/Glowstone/Bukkit</description>
   <url>https://github.com/lambdaisland/witchcraft</url>
@@ -25,13 +25,13 @@
     <url>https://github.com/lambdaisland/witchcraft</url>
     <connection>scm:git:git://github.com/lambdaisland/witchcraft.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/witchcraft.git</developerConnection>
-    <tag>f243ffe4a890a5d54f8dd0405a160b6315053a4e</tag>
+    <tag>32119aa8ae26fd0804ce3e31344878e1431bb529</tag>
   </scm>
   <dependencies>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-      <version>1.11.0</version>
+      <version>1.11.1</version>
     </dependency>
     <dependency>
       <groupId>com.lambdaisland</groupId>
@@ -46,12 +46,12 @@
     <dependency>
       <groupId>com.github.cryptomorin</groupId>
       <artifactId>XSeries</artifactId>
-      <version>8.7.0</version>
+      <version>8.7.1</version>
     </dependency>
     <dependency>
       <groupId>clojure2d</groupId>
       <artifactId>clojure2d</artifactId>
-      <version>1.4.3</version>
+      <version>1.4.4</version>
     </dependency>
     <dependency>
       <groupId>org.reflections</groupId>
@@ -106,7 +106,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>f243ffe4a890a5d54f8dd0405a160b6315053a4e</git-revision>
+              <git-revision>32119aa8ae26fd0804ce3e31344878e1431bb529</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
