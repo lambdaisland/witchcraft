@@ -31,13 +31,17 @@
         (str/replace #"^-" "")
         (str/replace #"-$" ""))))
 
-(defmacro when-class-exists [classname & body]
+(defmacro when-class-exists
+  {:style/indent 1}
+  [classname & body]
   (try
     (Class/forName (str classname))
     `(do ~@body)
     (catch ClassNotFoundException e)))
 
-(defmacro if-class-exists [classname then else]
+(defmacro if-class-exists
+  {:style/indent 1}
+  [classname then else]
   (try
     (Class/forName (str classname))
     then

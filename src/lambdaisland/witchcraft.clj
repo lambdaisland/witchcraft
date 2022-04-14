@@ -1151,7 +1151,7 @@
 (util/if-class-exists org.bukkit.block.data.BlockData
   (defn map->blockdata
     "Create a `BlockData` instance for the given material and properties"
-    ^BlockData [material prop-map]
+    ^org.bukkit.block.data.BlockData [material prop-map]
     (-parse-block-data
      material
      (str "["
