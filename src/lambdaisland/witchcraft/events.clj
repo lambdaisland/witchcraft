@@ -6,6 +6,7 @@
             [clojure.string :as str])
   (:import (java.util.jar JarFile JarEntry)
            (org.bukkit Bukkit)
+           (org.bukkit.event Event)
            (org.bukkit.event.block Action)))
 
 (require 'lambdaisland.witchcraft.classpath-hacks)
@@ -65,7 +66,9 @@
       (when (= key (::key (meta listener)))
         (.unregister handler-list listener)))))
 
-(defn listen! [event k f]
+(defn listen-raw!
+  "Like [[listen!]], but skips calling [[bean]], you get the raw Bukkit event instance. "
+  [event k f]
   (let [event-class (resolve-event-class event)]
     (unlisten! event-class k)
     (when-let [pm (and (Bukkit/getServer)
@@ -80,10 +83,7 @@
        (reify org.bukkit.plugin.EventExecutor
          (execute [this listener event]
            (try
-             (let [e (bean event)]
-               (f (cond-> e
-                    (:action e)
-                    (update :action actions))))
+             (f event)
              (catch Throwable t
                (println "Error in event handler" event k t)))))
        (proxy [org.bukkit.plugin.PluginBase] []
@@ -91,6 +91,27 @@
            (org.bukkit.plugin.PluginDescriptionFile. (str "Listen for " (name event)) "1.0" (str k)))
          (isEnabled []
            true))))))
+
+(defn listen!
+  "Listen to the given event (keyword, see `(keys
+  lambdaisland.witchcraft.events/events)`). `k` is a unique key for this
+  handler, subsequent calls with the same key will replace the previous handler.
+  `f` is a single argument function, it receives the bukkit event converted to a
+  Clojure map with [[bean]]. The original event class can be accessed with
+  `:lambdaisland.witchcraft.events/raw`"
+  [event k f]
+  (listen-raw!
+   event k
+   (fn [e]
+     (let [e (assoc (bean e) ::raw e)]
+       (f (cond-> e
+            (:action e)
+            (update :action actions)))))))
+
+(defn cancel!
+  "Cancel an event, use in event handler to stop things from happening"
+  [event]
+  (.setCancelled ^Event (::raw event event) true))
 
 (comment
   (listen! :async-player-chat
@@ -124,4 +145,6 @@
   (unlisten! :block-damage ::show-block-dmg)
 
   (unregister-all-event-listeners :async-player-chat)
+
+  (resolve-event-class :inventory-click)
   )

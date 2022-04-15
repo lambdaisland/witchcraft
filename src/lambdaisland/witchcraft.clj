@@ -237,9 +237,19 @@
 (defprotocol HasTargetBlock
   (^org.bukkit.Block -get-target-block [_ transparent max-distance]))
 
+(defprotocol HasBlock
+  (^org.bukkit.block.Block -block [_]))
+
 (defprotocol HasBlockData
   (^org.bukkit.block.data.BlockData -get-block-data [_])
   (-set-block-data [_ _]))
+
+(defprotocol HasBlockState
+  (^org.bukkit.block.BlockState -block-state [_]))
+
+(defprotocol HasCustomName
+  (^String -get-custom-name [_])
+  (-set-custom-name [_ ^String _]))
 
 (defprotocol HasInventory
   (^org.bukkit.inventory.Inventory -inventory [_]))
@@ -253,6 +263,9 @@
 (defprotocol HasDifficulty
   (-get-difficulty [_])
   (-set-difficulty [_ d]))
+
+(defprotocol HasPlayer
+  (-player [_]))
 
 (defprotocol CanParseBlockData
   (^org.bukkit.block.data.BlockData -parse-block-data [_ _]))
@@ -353,6 +366,27 @@
   (-get-target-block [this ^java.util.Set transparent ^long max-distance]
     (.getTargetBlock this transparent max-distance)))
 
+(reflect/extend-signatures HasBlock
+  "org.bukkit.block.Block getBlock()"
+  (-block [this]
+    (.getBlock this)))
+
+(reflect/extend-signatures HasBlockState
+  "org.bukkit.block.BlockState getState()"
+  (-block-state [this]
+    (.getState this))
+  "org.bukkit.block.BlockState getBlockState()"
+  (-block-state [this]
+    (.getBlockState this)))
+
+(reflect/extend-signatures HasCustomName
+  "java.lang.String getCustomName()"
+  (-get-custom-name [this]
+    (.getCustomName this))
+  "setCustomName(java.lang.String)"
+  (-set-custom-name [this name]
+    (.setCustomName this name)))
+
 (util/when-class-exists org.bukkit.block.data.BlockData
   (reflect/extend-signatures HasBlockData
     "org.bukkit.block.data.BlockData getBlockData()"
@@ -417,6 +451,11 @@
   (-get-difficulty [this] (.getDifficulty this))
   "void setDifficulty(org.bukkit.Difficulty)"
   (-set-difficulty [this d] (.setDifficulty this d)))
+
+(reflect/extend-signatures HasPlayer
+  "org.bukkit.entity.Player getPlayer()"
+  (-player [this]
+    (.getPlayer this)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interop wrappers
@@ -633,10 +672,19 @@
     (-item-meta o)))
 
 (defn display-name
-  "Get the display-name for an item or compatible object."
+  "Get the display-name for an item, itemstack, itemmeta, or nameable block or blockstate."
   ^String [o]
-  (if (satisfies? HasDisplayName o)
+  (cond
+    (satisfies? HasDisplayName o)
     (-display-name o)
+
+    (satisfies? HasCustomName o)
+    (-get-custom-name o)
+
+    (satisfies? HasBlockState o)
+    (recur (-block-state o))
+
+    :else
     (when-let [im (item-meta o)]
       (-display-name im))))
 
@@ -662,8 +710,12 @@
   of strings, or of markup vectors as
   per [[lambdaisland.witchcraft.markup/render]]."
   [o name]
-  (if (satisfies? HasDisplayName o)
+  (cond
+    (satisfies? HasDisplayName o)
     (-set-display-name o (markup/render name))
+    (satisfies? HasCustomName o)
+    (-set-custom-name o (markup/render name))
+    :else
     (let [m (item-meta o)]
       (-set-display-name m (markup/render name))
       (-set-item-meta o m))))
@@ -964,9 +1016,16 @@
   (^Player []
    (first (online-players)))
   (^Player [name]
-   (some #(when (= name (:name (bean %)))
-            %)
-         (online-players))))
+   (cond
+     (instance? Player name)
+     name
+     (satisfies? HasPlayer name)
+     (-player name)
+
+     (string? name)
+     (some #(when (= name (:name (bean %)))
+              %)
+           (online-players)))))
 
 (defn default-world
   "World used for commands when no explicit world is given.
@@ -1049,8 +1108,12 @@
 (defn get-block
   "Get the block at a given location. Idempotent."
   ^Block [loc]
-  (if (instance? Block loc)
+  (cond
+    (instance? Block loc)
     loc
+    (satisfies? HasBlock loc)
+    (-block loc)
+    :else
     (.getBlockAt ^World (world loc) (x loc) (y loc) (z loc))))
 
 (defn direction
@@ -1489,6 +1552,8 @@
   location."
   [o]
   [(x o) (y o) (z o)])
+
+(def locv xyz) ;; alias
 
 (defn xyz1
   "Like [[xyz]], but add an extra `1` at the end, for affine transformations"

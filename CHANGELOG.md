@@ -2,9 +2,12 @@
 
 ## Added
 
-## Fixed
-
-## Changed
+- More interop wrappers! `-block`, `-block-state`, `-set/get-custom-name`, `-player`
+- Handle more input types in `player`, `display-name`, `set-display-name`, `get-block`
+- Add `locv` as an alias to `xyz`
+- Add `listen-raw!` for when you want to skip the `bean` call and get the raw bukkit event
+- Add `e/cancel!` for convenient cancelling of events
+- Add `private-chest` to the gallery, a mini-mod for when there's too much stealing on the server
 
 # 0.14.239 (2022-04-14 / 855da06)
 
