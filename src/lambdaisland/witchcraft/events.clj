@@ -2,17 +2,59 @@
   (:refer-clojure :exclude [bean])
   (:require [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util]
-            [lambdaisland.classpath :as licp]
+            [clojure.java.classpath :as cp]
             [clojure.string :as str])
   (:import (java.util.jar JarFile JarEntry)
+           (java.io File)
            (org.bukkit Bukkit)
            (org.bukkit.event Event)
            (org.bukkit.event.block Action)))
 
 (require 'lambdaisland.witchcraft.classpath-hacks)
 
+;; Inlined from lambdaisland.classpath so we don't pull in all of tools.deps
+
+(defn classpath
+  "clojure.java.classpath does not play well with the post-Java 9 application
+  class loader, which is no longer a URLClassLoader, even though ostensibly it
+  tries to cater for this, but in practice if any URLClassLoader or
+  DynamicClassLoader higher in the chain contains a non-empty list of URLs, then
+  this shadows the system classpath."
+  []
+  (distinct (concat (cp/classpath) (cp/system-classpath))))
+
+(defn classpath-directories
+  "Returns a sequence of File objects for the directories on classpath."
+  []
+  (filter #(.isDirectory ^File %) (classpath)))
+
+(defn classpath-jarfiles
+  "Returns a sequence of JarFile objects for the JAR files on classpath."
+  []
+  (map #(JarFile. ^File %) (filter cp/jar-file? (classpath))))
+
+(defn find-resources
+  "Scan 'the classpath' for resources that match the given regex."
+  [regex]
+  ;; FIXME currently jar entries always come first in the result, this should be
+  ;; in classpath order.
+  (concat
+   (sequence
+    (comp
+     (mapcat #(iterator-seq (.entries ^JarFile %)))
+     (map #(.getName ^JarEntry %))
+     (filter #(re-find regex %)))
+    (classpath-jarfiles))
+
+   (sequence
+    (comp
+     (mapcat file-seq)
+     (map str)
+     (filter #(re-find regex %)))
+    (classpath-directories))))
+
 (defn find-event-classes []
-  (licp/find-resources #"(bukkit|paper|spigot|net/citizensnpcs).*event.*Event\.class"))
+  (find-resources #"(bukkit|paper|spigot|net/citizensnpcs).*event.*Event\.class"))
 
 (def event-classes
   (let [classes (find-event-classes)

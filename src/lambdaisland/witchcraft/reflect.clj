@@ -1,5 +1,6 @@
 (ns lambdaisland.witchcraft.reflect
-  (:require [lambdaisland.classpath :as licp])
+  (:require [clojure.string :as str]
+            [lambdaisland.witchcraft.classpath-hacks :as classpath-hacks])
   (:import (org.reflections Reflections Store)
            (org.reflections.util ConfigurationBuilder
                                  ClasspathHelper
@@ -15,8 +16,6 @@
                                      MethodParameterScanner)))
 
 (set! *warn-on-reflection* true)
-
-(require 'lambdaisland.witchcraft.classpath-hacks)
 
 (def packages
   ["org.bukkit"
@@ -37,7 +36,7 @@
   ;; provide
   (let [plugin-loader (when-let [instance-var (resolve 'lambdaisland.witchcraft.plugin/instance)]
                         (.getClassLoader (.getClass ^Object @@instance-var)))]
-    (cond-> [(licp/context-classloader)]
+    (cond-> [(classpath-hacks/context-classloader)]
       plugin-loader
       (conj plugin-loader
             (.getParent plugin-loader)))))
