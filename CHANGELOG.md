@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
-## Fixed
-
 ## Changed
+
+- Reduce usage of lambdaisland.classpath (and thus tools.deps), to make AOT easier
 
 # 0.15.242 (2022-04-15 / 2a76029)
 
