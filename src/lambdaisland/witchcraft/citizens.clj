@@ -4,8 +4,7 @@
             [lambdaisland.witchcraft.citizens.trait :as trait]
             [lambdaisland.witchcraft.reflect :as reflect]
             [lambdaisland.witchcraft.util :as util])
-  (:import (net.citizensnpcs Citizens)
-           (net.citizensnpcs.api CitizensAPI)
+  (:import (net.citizensnpcs.api CitizensAPI)
            (net.citizensnpcs.api.ai Navigator)
            (net.citizensnpcs.api.trait Trait TraitFactory)
            (net.citizensnpcs.api.npc NPC NPCRegistry)

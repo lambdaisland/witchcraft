@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Remove reference to non-API class from Citizens, in an attempt to appease cljdoc
 
 # 0.18.253 (2022-04-17 / 2e5b986)
 
