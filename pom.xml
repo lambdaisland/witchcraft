@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>witchcraft</artifactId>
-  <version>0.18.253</version>
+  <version>0.19.256</version>
   <name>witchcraft</name>
   <description>Clojure API for Minecraft/Glowstone/Bukkit</description>
   <url>https://github.com/lambdaisland/witchcraft</url>
@@ -25,7 +25,7 @@
     <url>https://github.com/lambdaisland/witchcraft</url>
     <connection>scm:git:git://github.com/lambdaisland/witchcraft.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/witchcraft.git</developerConnection>
-    <tag>d2789b391e286174c96de6fc368722398a2bf74f</tag>
+    <tag>0116d7cf138636893884ebcb8ee8ac1ca68265a6</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -112,7 +112,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>d2789b391e286174c96de6fc368722398a2bf74f</git-revision>
+              <git-revision>0116d7cf138636893884ebcb8ee8ac1ca68265a6</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
