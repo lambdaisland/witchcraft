@@ -1,28 +1,11 @@
 # Unreleased
 
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.19.256 (2022-04-17 / 948a75a)
-
-## Fixed
-
-- Remove reference to non-API class from Citizens, in an attempt to appease cljdoc
-
-# 0.18.253 (2022-04-17 / 2e5b986)
-
-## Fixed
-
-- Add CitizensNPCs are optional dep, in an attempt to appease cljdoc
-
-# 0.17.250 (2022-04-17 / 5abf739)
-
 ## Fixed
 
 - Make sure we use the right Glowstone artifact, in an attempt to appease cljdoc
+- Add CitizensNPCs are optional dep, in an attempt to appease cljdoc
+- Remove reference to non-API class from Citizens, in an attempt to appease cljdoc
+- Remove second reference to non-API class from Citizens, in an attempt to appease cljdoc
 
 # 0.16.246 (2022-04-15 / 73f9b24)
 

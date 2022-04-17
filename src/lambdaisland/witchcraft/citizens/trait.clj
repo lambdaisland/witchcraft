@@ -25,7 +25,6 @@
             [lambdaisland.witchcraft.util :as util]
             [lambdaisland.classpath :as licp])
   (:import (clojure.lang IAtom2 IDeref)
-           (net.citizensnpcs Citizens)
            (net.citizensnpcs.api CitizensAPI)
            (net.citizensnpcs.api.trait Trait
                                        TraitFactory
