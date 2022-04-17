@@ -1,29 +1,5 @@
 # Unreleased
 
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.22.265 (2022-04-17 / dd63da3)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.21.262 (2022-04-17 / 283cbec)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.20.259 (2022-04-17 / ec28837)
-
 ## Fixed
 
 - Make sure we use the right Glowstone artifact, in an attempt to appease cljdoc
@@ -32,6 +8,7 @@
 - Remove second reference to non-API class from Citizens, in an attempt to appease cljdoc
 - Put gallery code inside a function, in an attempt to appease cljdoc
 - Put more gallery code inside a function, in an attempt to appease cljdoc
+- Include more optional deps in the pom, in an attempt to appease cljdoc
 
 # 0.16.246 (2022-04-15 / 73f9b24)
 
