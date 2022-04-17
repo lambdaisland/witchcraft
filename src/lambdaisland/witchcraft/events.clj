@@ -3,14 +3,13 @@
   (:require [lambdaisland.witchcraft.safe-bean :refer [bean bean->]]
             [lambdaisland.witchcraft.util :as util]
             [clojure.java.classpath :as cp]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [lambdaisland.witchcraft.classpath-hacks])
   (:import (java.util.jar JarFile JarEntry)
            (java.io File)
            (org.bukkit Bukkit)
            (org.bukkit.event Event)
            (org.bukkit.event.block Action)))
-
-(require 'lambdaisland.witchcraft.classpath-hacks)
 
 ;; Inlined from lambdaisland.classpath so we don't pull in all of tools.deps
 

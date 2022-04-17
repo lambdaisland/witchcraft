@@ -1,10 +1,10 @@
 {:paths ["src" "test" "resources"]
- :deps  {org.clojure/clojure            {:mvn/version "1.11.1"}
-         com.lambdaisland/classpath     {:mvn/version "0.0.27"}
-         lambdaisland/data-printers     {:mvn/version "0.7.47"}
-         com.github.cryptomorin/XSeries {:mvn/version "8.7.1"}
-         clojure2d/clojure2d            {:mvn/version "1.4.4"}
-         org.reflections/reflections    {:mvn/version "0.9.12"} ;; need to pin this, API rewrite in 0.10
+ :deps  {org.clojure/clojure             {:mvn/version "1.11.1"}
+         com.lambdaisland/classpath      {:mvn/version "0.0.27"}
+         lambdaisland/data-printers      {:mvn/version "0.7.47"}
+         com.github.cryptomorin/XSeries  {:mvn/version "8.7.1"}
+         clojure2d/clojure2d             {:mvn/version "1.4.4"}
+         org.reflections/reflections     {:mvn/version "0.9.12"} ;; need to pin this, API rewrite in 0.10
          ;; seems to be needed for reflections to function, might be a paper
          ;; classloader issue
          javax.servlet/javax.servlet-api {:mvn/version "4.0.1"}}
@@ -14,7 +14,7 @@
   {:extra-paths ["dev" "repl_sessions"]}
 
   :glowstone
-  {:extra-deps {net.glowstone/glowstone {:mvn/version "2021.8.0"}}}
+  {:extra-deps {net.glowstone/glowstone {:mvn/version "2021.7.0-SNAPSHOT"}}}
   #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
 
   :papermc
@@ -31,10 +31,11 @@
 
   :launcher-api
   {:extra-deps {sk.tomsik68/mclauncher-api {:mvn/version "0.3.6"}
-                progrock/progrock {:mvn/version "0.1.2"}}}}
+                progrock/progrock          {:mvn/version "0.1.2"}}}}
 
  :mvn/repos
- {"glowstone-repo" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
-  "aikar"          {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}
-  "papermc"        {:url "https://papermc.io/repo/repository/maven-public/"}
-  "sk_tomsik68"    {:url "https://raw.githubusercontent.com/tomsik68/maven-repo/master/"}}}
+ {"glowstone-snapshots" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
+  ;;"glowstone-releases"  {:url "https://repo.glowstone.net/content/repositories/releases/"}
+  "aikar"               {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}
+  "papermc"             {:url "https://papermc.io/repo/repository/maven-public/"}
+  "sk_tomsik68"         {:url "https://raw.githubusercontent.com/tomsik68/maven-repo/master/"}}}

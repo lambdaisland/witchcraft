@@ -5,6 +5,8 @@
   supported by the running system)"
   (:require [clojure.string :as str]))
 
+(set! *warn-on-reflection* true)
+
 (defn context-classloader
   "Get the context classloader for the current thread"
   ^ClassLoader
@@ -75,11 +77,11 @@
   PluginClassloader). This ensures that any code that deals with the classpath
   can see the classes in these jars."
   [klz]
-  (.addURL (root-loader)
-           (some-> klz
-                   class-resource
-                   (str/replace #"!/.*" "")
-                   (str/replace #"^jar:" "")
-                   java.net.URL.)))
+  (when-let [url (some-> klz
+                         class-resource
+                         (str/replace #"!/.*" "")
+                         (str/replace #"^jar:" "")
+                         java.net.URL.)]
+    (.addURL ^clojure.lang.DynamicClassLoader (root-loader) url)))
 
 (defonce inject-jars! (run! inject-jar-by-class! tracer-classes))
