@@ -1,13 +1,5 @@
 # Unreleased
 
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.23.268 (2022-04-17 / 2c38e84)
-
 ## Fixed
 
 - Make sure we use the right Glowstone artifact, in an attempt to appease cljdoc
@@ -17,6 +9,7 @@
 - Put gallery code inside a function, in an attempt to appease cljdoc
 - Put more gallery code inside a function, in an attempt to appease cljdoc
 - Include more optional deps in the pom, in an attempt to appease cljdoc
+- Include even more optional deps in the pom, in an attempt to appease cljdoc
 
 # 0.16.246 (2022-04-15 / 73f9b24)
 
