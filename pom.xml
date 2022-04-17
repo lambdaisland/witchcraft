@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>witchcraft</artifactId>
-  <version>0.16.246</version>
+  <version>0.17.250</version>
   <name>witchcraft</name>
   <description>Clojure API for Minecraft/Glowstone/Bukkit</description>
   <url>https://github.com/lambdaisland/witchcraft</url>
@@ -25,7 +25,7 @@
     <url>https://github.com/lambdaisland/witchcraft</url>
     <connection>scm:git:git://github.com/lambdaisland/witchcraft.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/witchcraft.git</developerConnection>
-    <tag>1255d710ca48f762c5c1412d44c35c4a194c16b4</tag>
+    <tag>7cf047a6a913239187d21ee0ccbceacca950cb88</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -66,7 +66,7 @@
     <dependency>
       <groupId>net.glowstone</groupId>
       <artifactId>glowstone</artifactId>
-      <version>2021.8.0</version>
+      <version>2021.7.0-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -106,7 +106,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>1255d710ca48f762c5c1412d44c35c4a194c16b4</git-revision>
+              <git-revision>7cf047a6a913239187d21ee0ccbceacca950cb88</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
@@ -133,8 +133,8 @@
       <url>https://repo.clojars.org/</url>
     </repository>
     <repository>
-      <id>glowstone-repo</id>
-      <name>glowstone-repo</name>
+      <id>glowstone-snapshots</id>
+      <name>glowstone-snapshots</name>
       <url>https://repo.glowstone.net/content/repositories/snapshots/</url>
     </repository>
     <repository>
