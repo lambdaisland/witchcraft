@@ -1,21 +1,5 @@
 # Unreleased
 
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.25.274 (2022-04-17 / 59794c7)
-
-## Added
-
-## Fixed
-
-## Changed
-
-# 0.24.271 (2022-04-17 / f87184e)
-
 ## Fixed
 
 - Make sure we use the right Glowstone artifact, in an attempt to appease cljdoc
@@ -28,6 +12,7 @@
 - Include paper-api as optional dep in the pom, in an attempt to appease cljdoc
 - Remove paper-api as optional dep again, it requires JDK 17
 - Remove reference to org.bukkit.block.data.BlockData, in an attempt to appease cljdoc
+- Check for org.bukkit.block.data.Directional with `util/when-class-exists`, in an attempt to appease cljdoc
 
 # 0.16.246 (2022-04-15 / 73f9b24)
 

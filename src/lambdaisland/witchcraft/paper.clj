@@ -26,8 +26,7 @@
   (:require [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.util :as util])
   (:import (org.bukkit Bukkit Server)
-           (org.bukkit.block Block BlockFace)
-           (org.bukkit.block.data Directional)))
+           (org.bukkit.block Block BlockFace)))
 
 (set! *warn-on-reflection* true)
 
@@ -57,8 +56,9 @@
 
 ;; The XSeries implmenentation doesn't call `setBlockData`, which is necessary
 ;; on Paper, so we do it ourselves.
-(defmethod wc/-set-direction :paper [_ ^Block block ^BlockFace face]
-  (let [data (.getBlockData block)]
-    (when (instance? Directional data)
-      (.setFacing ^Directional data face)
-      (.setBlockData block data))))
+(util/when-class-exists org.bukkit.block.data.Directional
+  (defmethod wc/-set-direction :paper [_ ^Block block ^BlockFace face]
+    (let [data (.getBlockData block)]
+      (when (instance? org.bukkit.block.data.Directional data)
+        (.setFacing ^org.bukkit.block.data.Directional data face)
+        (.setBlockData block data)))))
