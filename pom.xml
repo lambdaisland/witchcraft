@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>witchcraft</artifactId>
-  <version>0.22.265</version>
+  <version>0.23.268</version>
   <name>witchcraft</name>
   <description>Clojure API for Minecraft/Glowstone/Bukkit</description>
   <url>https://github.com/lambdaisland/witchcraft</url>
@@ -25,7 +25,7 @@
     <url>https://github.com/lambdaisland/witchcraft</url>
     <connection>scm:git:git://github.com/lambdaisland/witchcraft.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/witchcraft.git</developerConnection>
-    <tag>93b84cce4da892cad7d8f8652b3b37a28fa05b59</tag>
+    <tag>36c1d3ec334a9c1d62b1cc5e164aec7eac7b66a5</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -81,6 +81,18 @@
       <version>2.0.29-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>sk.tomsik68</groupId>
+      <artifactId>mclauncher-api</artifactId>
+      <version>0.3.6</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>progrock</groupId>
+      <artifactId>progrock</artifactId>
+      <version>0.1.2</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   <build>
     <sourceDirectory>src</sourceDirectory>
@@ -112,7 +124,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>93b84cce4da892cad7d8f8652b3b37a28fa05b59</git-revision>
+              <git-revision>36c1d3ec334a9c1d62b1cc5e164aec7eac7b66a5</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
