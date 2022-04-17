@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Add CitizensNPCs are optional dep, in an attempt to appease cljdoc
 
 # 0.17.250 (2022-04-17 / 5abf739)
 

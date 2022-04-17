@@ -31,11 +31,18 @@
 
   :launcher-api
   {:extra-deps {sk.tomsik68/mclauncher-api {:mvn/version "0.3.6"}
-                progrock/progrock          {:mvn/version "0.1.2"}}}}
+                progrock/progrock          {:mvn/version "0.1.2"}}}
+
+  :citizens
+  {:extra-deps {net.citizensnpcs/citizensapi {:mvn/version "2.0.29-SNAPSHOT"}}}
+  }
+
+
 
  :mvn/repos
  {"glowstone-snapshots" {:url "https://repo.glowstone.net/content/repositories/snapshots/"}
   ;;"glowstone-releases"  {:url "https://repo.glowstone.net/content/repositories/releases/"}
   "aikar"               {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}
   "papermc"             {:url "https://papermc.io/repo/repository/maven-public/"}
-  "sk_tomsik68"         {:url "https://raw.githubusercontent.com/tomsik68/maven-repo/master/"}}}
+  "sk_tomsik68"         {:url "https://raw.githubusercontent.com/tomsik68/maven-repo/master/"}
+  "citizensnpcs"        {:url "http://repo.citizensnpcs.co/"}}}

@@ -22,7 +22,7 @@
   :inception-year            2021
   :description               "Clojure API for Minecraft/Glowstone/Bukkit"
   :group-id                  "com.lambdaisland"
-  :aliases-as-scope-provided [:glowstone :nrepl]
+  :aliases-as-scope-provided [:glowstone :nrepl :citizens]
   :pre-release-hook gen-markdown-manual
   :commands ["gen-md-doc"
              {:description "Generate markdown version of the manual"
