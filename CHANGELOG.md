@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Make sure we use the right Glowstone artifact, in an attempt to appease cljdoc
 
 # 0.16.246 (2022-04-15 / 73f9b24)
 
