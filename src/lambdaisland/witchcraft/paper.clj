@@ -27,7 +27,7 @@
             [lambdaisland.witchcraft.util :as util])
   (:import (org.bukkit Bukkit Server)
            (org.bukkit.block Block BlockFace)
-           (org.bukkit.block.data BlockData Directional)))
+           (org.bukkit.block.data Directional)))
 
 (set! *warn-on-reflection* true)
 

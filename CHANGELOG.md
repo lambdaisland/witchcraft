@@ -16,8 +16,10 @@
 - Remove second reference to non-API class from Citizens, in an attempt to appease cljdoc
 - Put gallery code inside a function, in an attempt to appease cljdoc
 - Put more gallery code inside a function, in an attempt to appease cljdoc
-- Include more optional deps in the pom, in an attempt to appease cljdoc
-- Include even more optional deps in the pom, in an attempt to appease cljdoc
+- Include launcher-api/progrock as optional deps in the pom, in an attempt to appease cljdoc
+- Include paper-api as optional dep in the pom, in an attempt to appease cljdoc
+- Remove paper-api as optional dep again, it requires JDK 17
+- Remove reference to org.bukkit.block.data.BlockData, in an attempt to appease cljdoc
 
 # 0.16.246 (2022-04-15 / 73f9b24)
 
