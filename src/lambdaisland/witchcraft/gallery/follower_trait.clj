@@ -7,30 +7,31 @@
 ;; `:min-dist` away from the entity they `:follow`, they will navigate towards
 ;; that entity, until they are at most `:max-dist` blocks away.
 
-(c/make-trait
- ;; Name of the trait
- :follower
- ;; Map of callback and config
- {;; Initial value of the trait's state, for each instance. This state is kept
-  ;; and automatically persisted.
-  :init {:follow nil
-         :min-dist 4
-         :max-dist 2
-         :following? false}
-  ;; Run hook where we periodically check if we should navigate or not, we get
-  ;; passed the trait instance, which we can deref to get the current state.
-  :run
-  (fn [this]
-    (let [{:keys [min-dist max-dist follow following? offset]} @this
-          do-nav #(c/navigate-to this (cond-> (wc/location follow)
-                                        offset (wc/add offset)))]
-      (when (and (c/spawned? (c/npc this)) follow) ; Kicks in as soon as we are following someone
-        (if following?
-          (if (< max-dist (wc/distance (c/npc this) follow))
-            (do-nav)
-            (c/stop-navigating this))
-          (when (< min-dist (wc/distance (c/npc this) follow))
-            (do-nav))))))})
+(defn init! []
+  (c/make-trait
+   ;; Name of the trait
+   :follower
+   ;; Map of callback and config
+   {;; Initial value of the trait's state, for each instance. This state is kept
+    ;; and automatically persisted.
+    :init {:follow nil
+           :min-dist 4
+           :max-dist 2
+           :following? false}
+    ;; Run hook where we periodically check if we should navigate or not, we get
+    ;; passed the trait instance, which we can deref to get the current state.
+    :run
+    (fn [this]
+      (let [{:keys [min-dist max-dist follow following? offset]} @this
+            do-nav #(c/navigate-to this (cond-> (wc/location follow)
+                                          offset (wc/add offset)))]
+        (when (and (c/spawned? (c/npc this)) follow) ; Kicks in as soon as we are following someone
+          (if following?
+            (if (< max-dist (wc/distance (c/npc this) follow))
+              (do-nav)
+              (c/stop-navigating this))
+            (when (< min-dist (wc/distance (c/npc this) follow))
+              (do-nav))))))}))
 
 (comment
   (def jonny (create-npc :player "jonny"))

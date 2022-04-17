@@ -23,6 +23,7 @@
 - Remove reference to non-API class from Citizens, in an attempt to appease cljdoc
 - Remove second reference to non-API class from Citizens, in an attempt to appease cljdoc
 - Put gallery code inside a function, in an attempt to appease cljdoc
+- Put more gallery code inside a function, in an attempt to appease cljdoc
 
 # 0.16.246 (2022-04-15 / 73f9b24)
 
