@@ -1256,16 +1256,26 @@
   "Set the block at a specific location to a specific material
 
   `material` can be a keyword (see [[materials]]), a String like `RED_WOOL` or
-  `WOOL:14`, a bukkit Material, a Bukkit ItemStack, or an xseries XMaterial."
-  ([loc]
-   (set-block loc (material loc)))
-  ([loc material]
-   (let [b (get-block loc)]
+  `WOOL:14`, a bukkit Material, a Bukkit ItemStack, or an xseries XMaterial.
+
+  Single-arity version takes a map with
+  `:x`/`:y`/`:z`/`:world`/`:material`/`:material-data`/`:block-data` (some
+  optional)
+
+  Two-arity version takes something that is or has a location (can also be a
+  vector or map), and a material or map with
+  `:material`/`:direction`/`:block-data`.
+  "
+  ([loc-or-map]
+   (set-block loc-or-map loc-or-map))
+  ([loc material-or-map]
+   (let [b (get-block loc)
+         mat (material material-or-map)]
      (swap! undo-history conj {:before [(block b)]
                                :after [loc]})
-     (-set-block server-type b material
-                 (when (map? loc) (:direction loc))
-                 (when (map? loc) (:block-data loc))))
+     (-set-block server-type b mat
+                 (when (map? material-or-map) (:direction material-or-map))
+                 (when (map? material-or-map) (:block-data material-or-map))))
    loc))
 
 (defmulti -set-blocks (fn [server blocks] server))
@@ -1381,6 +1391,19 @@
                     ^Entity (if (keyword? entity-or-npc)
                               (get entity-types entity-or-npc)
                               entity-or-npc)))))
+
+(defn despawn
+  "Remove an entity from the world"
+  [^Entity entity]
+  (.remove entity))
+
+(defn create-explosion
+  "Create an explosion at a certain location, with a given explosion size (default: 5)"
+  ([loc-like]
+   (create-explosion loc-like 5))
+  ([loc-like strength]
+   (let [loc (location loc-like)]
+     (.createExplosion (world loc) loc (double strength)))))
 
 (defn game-mode
   "Get the current game mode"
@@ -1610,6 +1633,8 @@
   (as-vec [e]
     (as-vec (location e)))
   (^org.bukkit.util.Vector direction-vec [e] (direction-vec (location e)))
+  (-add [this that]
+    (-add (location this) that)))
 
   Block
   (as-vec [e] (as-vec (location e)))
