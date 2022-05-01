@@ -35,6 +35,9 @@
 
   :citizens
   {:extra-deps {net.citizensnpcs/citizensapi {:mvn/version "2.0.29-SNAPSHOT"}}}
+
+  :adventure
+  {:extra-deps {net.kyori/adventure-api {:mvn/version "4.10.1"}}}
   }
 
 
