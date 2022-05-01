@@ -23,6 +23,7 @@
    :bold "§l"
    :strikethrough "§l"
    :underline "§n"
+   :underlined "§n"
    :italic "§o"
    :reset "§r"})
 

@@ -230,6 +230,9 @@
   (^String -display-name [_])
   (-set-display-name [_ ^String _]))
 
+(defprotocol CanRenderDisplayName
+  (-render-and-set-display-name [_ ^String _]))
+
 (defprotocol HasLore
   (^java.util.List -lore [_])
   (-set-lore [_ _]))
@@ -352,6 +355,12 @@
   "setDisplayName(java.lang.String)"
   (-set-display-name [this ^String n]
     (.setDisplayName this n)))
+
+(reflect/extend-signatures CanRenderDisplayName
+  "displayName(net.kyori.adventure.text.Component)"
+  (-render-and-set-display-name [this ^String n]
+    ;; This seems to be just a Paper thing
+    (.displayName this ((requiring-resolve 'lambdaisland.witchcraft.adventure.text/component) n))))
 
 (reflect/extend-signatures HasLore
   "java.util.List getLore()"
@@ -711,6 +720,8 @@
   per [[lambdaisland.witchcraft.markup/render]]."
   [o name]
   (cond
+    (satisfies? CanRenderDisplayName o)
+    (-render-and-set-display-name o name)
     (satisfies? HasDisplayName o)
     (-set-display-name o (markup/render name))
     (satisfies? HasCustomName o)
@@ -864,7 +875,9 @@
   (mat m))
 
 (defn get-inventory
-  "Get the org.bukkit.inventory.Inventory for the given object/entity."
+  "Get the org.bukkit.inventory.Inventory for the given object/entity. Works for
+  players, blocks (e.g. chests), itemstacks (e.g. shulker box in inventory),
+  etc."
   ^org.bukkit.inventory.Inventory [o]
   (cond
     (instance? org.bukkit.inventory.Inventory o)
@@ -873,8 +886,14 @@
     (satisfies? HasInventory o)
     (-inventory o)
 
+    (satisfies? HasBlockState o)
+    (-inventory (-block-state o))
+
     (satisfies? HasEntity o)
-    (-inventory (-entity o))))
+    (-inventory (-entity o))
+
+    (satisfies? HasItemMeta o)
+    (-inventory (-block-state (-item-meta o)))))
 
 (defn contents
   "Get the contents of the inventory of something as a sequence of maps."
@@ -1495,20 +1514,20 @@
 
 (defn add-inventory
   "Add the named item to the player or entity's inventory, or n copies of it"
-  ([player item]
-   (.addItem (get-inventory player)
+  ([has-inventory item]
+   (.addItem (get-inventory has-inventory)
              (into-array ItemStack [(item-stack item)])))
-  ([player item n]
-   (.addItem (get-inventory player)
+  ([has-inventory item n]
+   (.addItem (get-inventory has-inventory)
              (into-array ItemStack [(item-stack item n)]))))
 
 (defn remove-inventory
   "Remove the named items from the player or entity's inventory, or n copies of
   it"
-  ([player item]
-   (remove-inventory player item 1))
-  ([player item n]
-   (.removeItem (get-inventory player)
+  ([has-inventory item]
+   (remove-inventory has-inventory item 1))
+  ([has-inventory item n]
+   (.removeItem (get-inventory has-inventory)
                 (into-array ItemStack [(item-stack item n)]))))
 
 (defn empty-inventory
@@ -1517,6 +1536,11 @@
   (let [i (get-inventory entity)
         c (.getContents i)]
     (.removeItem i c)))
+
+(defn into-inventory
+  "Add multiple items to an inventory at once"
+  [has-inventory items]
+  (run! (partial add-inventory has-inventory) items))
 
 (defn item-in-hand ^ItemStack [^HumanEntity entity]
   (.getItemInHand entity))
@@ -1634,7 +1658,7 @@
     (as-vec (location e)))
   (^org.bukkit.util.Vector direction-vec [e] (direction-vec (location e)))
   (-add [this that]
-    (-add (location this) that)))
+    (-add (location this) that))
 
   Block
   (as-vec [e] (as-vec (location e)))
