@@ -2,9 +2,15 @@
 
 ## Added
 
-## Fixed
-
-## Changed
+- Added `lambdaisland.witchcraft.adventure.text`, which contains a conversion
+  from Hiccup-like markup (a la `lambdaisland.witchcraft.markup`) to a Adventure
+  Component
+- When setting a display-name, if supported by the server, render to a Component
+  instead of to a string. This fixes item-stack equality/isSimilar checks on Paper.
+- Make inventory functions (add-inventory, contents, etc) take more types of
+  objects, so you can call them directly on a block or itemstack that has an
+  inventory.
+- Added `into-inventory` as a convenience function
 
 # 0.26.277 (2022-04-17 / eebe741)
 
