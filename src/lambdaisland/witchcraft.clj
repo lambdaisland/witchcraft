@@ -488,6 +488,8 @@
   ([this that & more]
    (reduce -add (-add this that) more)))
 
+;; The type hint here has the downside that for block locations we still get
+;; floats, even though in that case they are ints.
 (defn x ^double [o]
   (cond
     (satisfies? HasXYZ o)
@@ -599,8 +601,8 @@
                            {:x x
                             :y y
                             :z z
-                            :yaw (when (number? yaw) yaw)
-                            :pitch pitch
+                            :yaw (if (number? yaw) yaw 0)
+                            :pitch (if (number? pitch) pitch 0)
                             :world world})))
 
     (map? o)
@@ -1097,15 +1099,22 @@
   take Clojure maps or vectors, so you can use it to coerce input of unknown
   type."
   [obj]
-  (let [pitch (pitch obj)
-        yaw   (yaw obj)
-        ^World world (world obj)]
-    (cond-> {:x (x obj)
-             :y (y obj)
-             :z (z obj)}
-      pitch (assoc :pitch pitch)
-      yaw   (assoc :yaw yaw)
-      world (assoc :world (.getName world)))))
+  (if (instance? org.bukkit.block.Block obj)
+    ;; Special casing this so we can return integers and omit pitch/yaw
+    (let [loc (-location obj)]
+      {:x (.getBlockX loc)
+       :y (.getBlockY loc)
+       :z (.getBlockZ loc)
+       :world (.getName (-world loc))})
+    (let [pitch (pitch obj)
+          yaw   (yaw obj)
+          ^World world (world obj)]
+      (cond-> {:x (x obj)
+               :y (y obj)
+               :z (z obj)}
+        pitch (assoc :pitch pitch)
+        yaw   (assoc :yaw yaw)
+        world (assoc :world (.getName world))))))
 
 (defn map->Location
   "Convert a map/bean to a Location instance"
@@ -1163,8 +1172,8 @@
              :material (:material block-data)}
       (pre-flattening?)
       (assoc :data (.getData (.getData (.getState block))))
-      (and (not (pre-flattening?)) (< 1 (count block-data)))
-      (assoc :block-data (dissoc block-data :material))
+      (and (not (pre-flattening?)) (seq (dissoc block-data :material :facing)))
+      (assoc :block-data (dissoc block-data :material :facing))
       (not= :self direction)
       (assoc :direction direction))))
 
@@ -1286,7 +1295,13 @@
   `:material`/`:direction`/`:block-data`.
   "
   ([loc-or-map]
-   (set-block loc-or-map loc-or-map))
+   (set-block loc-or-map (if (vector? loc-or-map)
+                           (let [[_ _ _ ?mat ?dir-or-map] loc-or-map]
+                             (cond
+                               (map? ?dir-or-map) (assoc ?dir-or-map :material ?mat)
+                               (keyword? ?dir-or-map) {:material ?mat :direction ?dir-or-map}
+                               :else ?mat))
+                           loc-or-map)))
   ([loc material-or-map]
    (let [b (get-block loc)
          mat (material material-or-map)]
@@ -1369,7 +1384,6 @@
                   (if palette
                     (map (partial handle-palette palette) $)
                     $))]
-     (def xxx blocks)
      (when keep-history?
        (swap! undo-history conj {:before (doall (map block blocks))
                                  :after blocks}))
@@ -1853,29 +1867,37 @@
  (defn set-game-rule
    "Set a game rule like `:do-daylight-cycle` or `:do-insomnia`.
   See `(keys wc/game-rule-types)` for all options"
-   [wrld kw bool]
-   (if-let [rule (get game-rule-types kw)]
-     (.setGameRule (world wrld) ^org.bukkit.GameRule rule bool)
-     (throw (ex-info (str "No such game rule " kw ", see " `game-rule-types)))))
+   ([kw bool]
+    (set-game-rule (default-world) kw bool))
+   ([wrld kw bool]
+    (if-let [rule (get game-rule-types kw)]
+      (.setGameRule (world wrld) ^org.bukkit.GameRule rule bool)
+      (throw (ex-info (str "No such game rule " kw ", see " `game-rule-types))))))
 
  (defn set-game-rules
    "Set multiple game rules like `:do-daylight-cycle` or `:do-insomnia`.
   See `(keys wc/game-rule-types)` for all options. Takes a map from keyword to
   bool."
-   [world m]
-   (run! #(set-game-rule world (key %) (val %)) m)))
+   ([m]
+    (set-game-rules (default-world) m))
+   ([world m]
+    (run! #(set-game-rule world (key %) (val %)) m))))
 
 (defn set-difficulty
   "Set the world's difficulty (keyword)"
-  [the-world level]
-  (-set-difficulty (world the-world) (get difficulty-types level)))
+  ([level]
+   (set-difficulty (default-world) level))
+  ([the-world level]
+   (-set-difficulty (world the-world) (get difficulty-types level))))
 
 (defn difficulty
-  "Get the difficulty of the world (keyword)"
-  [the-world]
-  (get
-   (set/map-invert difficulty-types)
-   (-get-difficulty (world the-world))))
+  "Get the difficulty of the world (keyword, World instance, or anything coercible by [[world]])"
+  ([]
+   (difficulty (default-world)))
+  ([the-world]
+   (get
+    (set/map-invert difficulty-types)
+    (-get-difficulty (world the-world)))))
 
 ;; TODO: convert to protocol
 (defn eye-height [^LivingEntity e]

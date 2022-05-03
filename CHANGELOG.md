@@ -2,9 +2,18 @@
 
 ## Added
 
+- Added different arities for
+  set-game-rule/set-game-rules/difficulty/set-difficulty, making the world
+  argument optional
+
 ## Fixed
 
+- Fix `map->Location` for vectors that contain material/direction info
+
 ## Changed
+
+- Optimize `loc` for blocks
+- Make `set-block` accept vectors for consistency
 
 # 0.27.283 (2022-05-03 / 48a23fa)
 
