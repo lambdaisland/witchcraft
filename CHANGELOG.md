@@ -36,6 +36,8 @@
   objects, so you can call them directly on a block or itemstack that has an
   inventory.
 - Added `into-inventory` as a convenience function
+- Added `despawn`
+- Added `create-explosion`
 
 # 0.26.277 (2022-04-17 / eebe741)
 
