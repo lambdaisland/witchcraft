@@ -175,8 +175,9 @@
   then this is taken as [material material-data], and overrides the
   material-data in the cursor."
   [{:keys [x y z material block-data block-facing
-           data palette dir face-direction? rotate-block]}]
-  (let [m (get palette material material)
+           data palette dir face-direction? rotate-block] :as loc}]
+  (let [m (if (fn? material) (material loc) material)
+        m (get palette m m)
         [m md] (if (vector? m) m [m data])
         md (or md 0)]
     (cond->
@@ -239,7 +240,9 @@
 
 (defn material
   "Set the current cursor material, and optionally material-data (integer), or
-  block-data (map), to be used for consecutive blocks."
+  block-data (map), to be used for consecutive blocks. Material can be a
+  keyword, a vector of [material block-data], or a function which takes the
+  current cursor and returns a material."
   ([c m]
    (if (vector? m)
      (material c (first m) (second m))
