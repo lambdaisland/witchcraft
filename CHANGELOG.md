@@ -1,13 +1,9 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
 - Locally cache results to `satisfies?` calls in `lambdaisland.witchcraft`,
   leading to a big speedup for a lot of operations
-
-## Changed
 
 # 0.28.286 (2022-05-03 / 1cabce3)
 
