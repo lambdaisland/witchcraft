@@ -1,6 +1,6 @@
 (ns lambdaisland.witchcraft
   "Clojure API for Minecraft/Bukkit"
-  (:refer-clojure :exclude [time bean chunk])
+  (:refer-clojure :exclude [time bean chunk satisfies?])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.set :as set]
@@ -33,6 +33,20 @@
            (org.bukkit.util Vector)))
 
 (set! *warn-on-reflection* true)
+
+(def satisfies-cache (volatile! {}))
+
+(defn satisfies?
+  "Like clojure.core/satisfies?, but cache the result. We make heavy use of
+  satisfies, and this is not very well optimized in core."
+  [protocol x]
+  (let [klazz (class x)
+        iface (:on-interface protocol)]
+    (if-some [i (get-in @satisfies-cache [iface klazz])]
+      (boolean i)
+      (let [i (boolean (find-protocol-impl protocol x))]
+        (vswap! satisfies-cache assoc-in [iface klazz] i)
+        i))))
 
 (defonce server-type nil)
 
@@ -492,6 +506,12 @@
 ;; floats, even though in that case they are ints.
 (defn x ^double [o]
   (cond
+    (vector? o)
+    (get o 0)
+
+    (map? o)
+    (:x o 0)
+
     (satisfies? HasXYZ o)
     (-x o)
 
@@ -499,16 +519,16 @@
     (-x (-location o))
 
     (satisfies? HasEntity o)
-    (-x (-location (-entity o)))
-
-    (map? o)
-    (:x o 0)
-
-    (vector? o)
-    (get o 0)))
+    (-x (-location (-entity o)))))
 
 (defn y ^double [o]
   (cond
+    (vector? o)
+    (get o 1)
+
+    (map? o)
+    (:y o 0)
+
     (satisfies? HasXYZ o)
     (-y o)
 
@@ -516,16 +536,16 @@
     (-y (-location o))
 
     (satisfies? HasEntity o)
-    (-y (-location (-entity o)))
-
-    (map? o)
-    (:y o 0)
-
-    (vector? o)
-    (get o 1)))
+    (-y (-location (-entity o)))))
 
 (defn z ^double [o]
   (cond
+    (vector? o)
+    (get o 2)
+
+    (map? o)
+    (:z o 0)
+
     (satisfies? HasXYZ o)
     (-z o)
 
@@ -533,16 +553,19 @@
     (-z (-location o))
 
     (satisfies? HasEntity o)
-    (-z (-location (-entity o)))
-
-    (map? o)
-    (:z o 0)
-
-    (vector? o)
-    (get o 2)))
+    (-z (-location (-entity o)))))
 
 (defn pitch ^double [o]
   (cond
+    (vector? o)
+    (let [n (get o 3)]
+      (if (number? n)
+        n
+        0))
+
+    (map? o)
+    (:pitch o 0)
+
     (satisfies? HasPitchYaw o)
     (-pitch o)
 
@@ -550,19 +573,19 @@
     (-pitch (-location o))
 
     (satisfies? HasEntity o)
-    (-pitch (-location (-entity o)))
-
-    (map? o)
-    (:pitch o 0)
-
-    (vector? o)
-    (let [n (get o 3)]
-      (if (number? n)
-        n
-        0))))
+    (-pitch (-location (-entity o)))))
 
 (defn yaw ^double [o]
   (cond
+    (vector? o)
+    (let [n (get o 4)]
+      (if (number? n)
+        n
+        0))
+
+    (map? o)
+    (:yaw o 0)
+
     (satisfies? HasPitchYaw o)
     (-yaw o)
 
@@ -571,29 +594,12 @@
 
     (satisfies? HasEntity o)
     (-yaw (-location (-entity o)))
-
-    (map? o)
-    (:yaw o 0)
-
-    (vector? o)
-    (let [n (get o 4)]
-      (if (number? n)
-        n
-        0))))
+    ))
 
 (defn location
   "Get the location of the given object"
   ^Location [o]
   (cond
-    (instance? Location o)
-    o
-
-    (satisfies? HasLocation o)
-    (-location o)
-
-    (satisfies? HasEntity o)
-    (-location (-entity o))
-
     (vector? o)
     (let [[x y z yaw pitch world] o]
       (map->Location (into {}
@@ -608,6 +614,15 @@
     (map? o)
     (or (:location o)
         (map->Location o))
+
+    (instance? Location o)
+    o
+
+    (satisfies? HasLocation o)
+    (-location o)
+
+    (satisfies? HasEntity o)
+    (-location (-entity o))
 
     :else
     (map->Location (into {}
