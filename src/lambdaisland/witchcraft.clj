@@ -757,6 +757,12 @@
     (-set-item-meta o im)
 
     (map? im)
+    ;; TODO: we only handle a couple of keys here right now, we'd have to go
+    ;; through all classes listed in
+    ;; org.bukkit.craftbukkit.v1_18_R2.inventory.CraftMetaItem$SerializableMeta/deserialize,
+    ;; and see what they do in their map-based constructor, then convert that to
+    ;; individual setters, see repl-sessions.s2022-05-22 in cauldron for an
+    ;; exploration.
     (let [my-meta (item-meta o)]
       (doseq [[k v] im]
         (case k
@@ -876,8 +882,9 @@
     (and (map? m) (keyword? (:material m)))
     (:material m)
 
-    (and (vector? m) (keyword? (get m 3)))
-    (get m 3)
+    (vector? m)
+    (when (and  (<= 3 (count m)) (keyword? (get m 3)))
+      (get m 3))
 
     (instance? XMaterial m)
     (get material-names m)
@@ -924,8 +931,12 @@
                    itemflags (.getItemFlags im)
                    localized (.getLocalizedName im)
                    enchants (.getEnchants im)]
-               (cond-> {:material (mat stack)
-                        :amount (.getAmount stack)}
+               (cond-> (into {:material (mat stack)
+                              :amount (.getAmount stack)}
+                             (map (juxt (comp keyword key) val))
+                             ;; Leverage ConfigurationSerializable to get extra
+                             ;; keys, but we don't currently deserialize these
+                             (.serialize im))
                  (not= "" dn) (assoc :display-name dn)
                  (not= "" localized) (assoc :localized-display-name localized)
                  (seq lore) (assoc :lore (seq lore))
@@ -1388,7 +1399,7 @@
   incur significant lag."
   ([blocks]
    (set-blocks blocks {:keep-history? true}))
-  ([blocks {:keys [keep-history? start anchor palette]
+  ([blocks {:keys [keep-history? start anchor palette material]
             :or {keep-history? true}}]
    (let [blocks (as-> blocks $
                   (remove nil? $)
@@ -1396,6 +1407,13 @@
                     (map #(add % (or start anchor)) $)
                     $)
                   (map block-map $)
+                  (cond
+                    (fn? material)
+                    (map #(if (:material %) % (assoc % :material (material %))) $)
+                    material
+                    (map #(if (:material %) % (assoc % :material material)) $)
+                    :else
+                    $)
                   (if palette
                     (map (partial handle-palette palette) $)
                     $))]

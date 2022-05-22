@@ -80,6 +80,13 @@
         b (if (vector? b) b (wc/xyz b))]
     (reduce + (map * a b))))
 
+(defn cross-product [a b]
+  (let [[ax ay az] (wc/xyz a)
+        [bx by bz] (wc/xyz b)]
+    [(- (* ay bz) (* az by))
+     (- (* az bx) (* ax bz))
+     (- (* ax by) (* ay bx))]))
+
 (defn m*v
   "Multiply a matrix (vector of vectors) with a vector
 

@@ -112,7 +112,9 @@
            end
            length
            direction
-           material]}]
+           material
+           step]
+    :or {step 0.41}}]
   (assert (or (and end (not direction) (not length))
               (and (not end) direction length))
           "specify either end or direction+length, not both")
@@ -124,15 +126,15 @@
           end (wc/xyz end)
           direction (when direction (m/vnorm direction))
           end (or end (m/v+ start (m/v* direction length)))
-          direction (or direction (m/v* (m/vnorm (m/v- end start)) 0.51))
+          direction (or direction (m/v* (m/vnorm (m/v- end start)) step))
           new-pos #(conj (mapv (fn [x] (Math/round x)) %)
                          (if (fn? material)
                            (material (wc/xyz %))
                            material))]
-      (loop [blocks #{(new-pos start)}
+      (loop [blocks [(new-pos start)]
              pos start]
         (if (< (wc/distance pos end) 1)
-          (conj blocks (new-pos end))
+          (distinct (conj blocks (new-pos end)))
           (recur (conj blocks (new-pos pos))
                  (m/v+ pos direction)))))))
 
