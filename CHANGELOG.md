@@ -2,9 +2,19 @@
 
 ## Added
 
+- Add `lambdaisland.witchcraft.matrix/cross-product`
+- Allow passing `:material` to `set-blocks` as a default
+- make the step size for `lambdaisland.witchcraft.shapes/line` configurable
+
 ## Fixed
 
+- return `nil` when asking for the material of a vector that doesn't have one, instead of erroring out
+
 ## Changed
+
+- handle `item-meta` more generally (read-only currently)
+- return an ordered sequence from `lambdaisland.witchcraft.shapes/line` in the order of the line, instead of a set
+- Improvements to `lambdaisland.witchcraft.shapes/line`
 
 # 0.29.292 (2022-05-17 / ad428d6)
 
