@@ -2,40 +2,40 @@
 
 # Witchcraft Manual
 
-1.  [Introduction](#orgba61e7c)
-2.  [Minecraft Concepts](#org9f8f2b2)
-    1.  [Survival vs Creative](#orga782c1d)
-    2.  [Whirlwind Tour of a Survival Game](#org81bfeb6)
-    3.  [Worlds and Biomes](#orgabda643)
-    4.  [Coordinate system](#org6d47b68)
-    5.  [The flattening](#org8ca49c8)
-    6.  [Resources and Crafting](#orgc6c68f6)
-    7.  [Villagers and Traders](#orgc7694e9)
-    8.  [Farming](#orge49a640)
-    9.  [Redstone](#orgfd12255)
-    10. [Enchanting and XP](#org97bdb3b)
-    11. [Modding, Bukkit, SpigotMC](#orgdd44739)
-    12. [Java vs Bedrock](#orga8a00f8)
-    13. [Alternative Games](#org5afbad9)
-        1.  [Parkour](#org9143287)
-        2.  [Speedrunner vs Hunters](#org0d1f5bd)
-        3.  [Skyblock](#org9a5404d)
-        4.  [Build Wars](#org2d5c2b1)
-        5.  [Bed Wars](#orgdc07c8f)
-3.  [Getting started with Witchcraft](#org302581d)
-    1.  [Running the plugin](#org4fada2e)
-    2.  [Running from the REPL](#orga375100)
-4.  [Learning to code with Witchcraft](#org013f65f)
-5.  [Topics](#org11f2869)
-    1.  [Inspecting the world](#org825b81c)
-    2.  [Creating blocks](#org98a897b)
-    3.  [Drawing with Cursor](#org5ad0901)
-    4.  [Adding Event Handlers](#org4b522b5)
-    5.  [Interacting with Players](#org04b7e9d)
+1.  [Introduction](#org55fb944)
+2.  [Minecraft Concepts](#org3533802)
+    1.  [Survival vs Creative](#org03c0e49)
+    2.  [Whirlwind Tour of a Survival Game](#org5dc9eaf)
+    3.  [Worlds and Biomes](#orgcb7fdb2)
+    4.  [Coordinate system](#orgd46c7f4)
+    5.  [The flattening](#org40abe78)
+    6.  [Resources and Crafting](#orgb994c43)
+    7.  [Villagers and Traders](#orgb726c3a)
+    8.  [Farming](#org5c4dcb4)
+    9.  [Redstone](#orgd11093c)
+    10. [Enchanting and XP](#orga84c753)
+    11. [Modding, Bukkit, SpigotMC](#orgb495a93)
+    12. [Java vs Bedrock](#orgdf19b88)
+    13. [Alternative Games](#orgf307090)
+        1.  [Parkour](#org8849bd9)
+        2.  [Speedrunner vs Hunters](#org8cd53bf)
+        3.  [Skyblock](#org0d2ba19)
+        4.  [Build Wars](#org0968a3e)
+        5.  [Bed Wars](#org341148f)
+3.  [Getting started with Witchcraft](#orgc3b0aba)
+    1.  [Running the plugin](#orgb85e058)
+    2.  [Running from the REPL](#org372f66e)
+4.  [Learning to code with Witchcraft](#orga77eebd)
+5.  [Topics](#orgcd6babe)
+    1.  [Inspecting the world](#org1a9de27)
+    2.  [Creating blocks](#orgeecc4e1)
+    3.  [Drawing with Cursor](#org94ee845)
+    4.  [Adding Event Handlers](#orgff85792)
+    5.  [Interacting with Players](#org0c5c8fb)
 
 
 
-<a id="orgba61e7c"></a>
+<a id="org55fb944"></a>
 
 # Introduction
 
@@ -71,7 +71,7 @@ has been used succesfully for things like lobby servers, and it provides a great
 basis for creative coding, which is mainly what we are interested in.
 
 
-<a id="org9f8f2b2"></a>
+<a id="org3533802"></a>
 
 # Minecraft Concepts
 
@@ -87,7 +87,7 @@ and you can safely skip to the next section, or skim through it to find any
 unexplored areas.
 
 
-<a id="orga782c1d"></a>
+<a id="org03c0e49"></a>
 
 ## Survival vs Creative
 
@@ -106,7 +106,7 @@ a sense of what Minecraft is all about, it's good to understand what a "full"
 survival game looks like.
 
 
-<a id="org81bfeb6"></a>
+<a id="org5dc9eaf"></a>
 
 ## Whirlwind Tour of a Survival Game
 
@@ -148,7 +148,7 @@ you need to slay the final boss, the Ender Dragon. And, tada! You've beaten
 Minecraft. (This all is easier said than done.)
 
 
-<a id="orgabda643"></a>
+<a id="orgcb7fdb2"></a>
 
 ## Worlds and Biomes
 
@@ -178,7 +178,7 @@ Note that this description of the world generation process is highly simplistic,
 but at least it gives you a basic idea of how things world.
 
 
-<a id="org6d47b68"></a>
+<a id="orgd46c7f4"></a>
 
 ## Coordinate system
 
@@ -204,7 +204,7 @@ data. It is also used for blocks that can be placed in a specific direction, for
 instance stair cases.
 
 
-<a id="org8ca49c8"></a>
+<a id="org40abe78"></a>
 
 ## The flattening
 
@@ -237,7 +237,7 @@ data.
 You can support the Glowstone by [Donating on Bountysource](https://salt.bountysource.com/checkout/amount?team=glowstonemc).
 
 
-<a id="orgc6c68f6"></a>
+<a id="orgb994c43"></a>
 
 ## Resources and Crafting
 
@@ -270,7 +270,7 @@ torches. Use the number keys for quick access to specific slots, or flip through
 them with your mouse's scroll wheel.
 
 
-<a id="orgc7694e9"></a>
+<a id="orgb726c3a"></a>
 
 ## Villagers and Traders
 
@@ -289,7 +289,7 @@ the world with their llamas. These tend to have rare and useful items on them,
 which you can buy with the emeralds you got from your villagers.
 
 
-<a id="orge49a640"></a>
+<a id="org5c4dcb4"></a>
 
 ## Farming
 
@@ -312,7 +312,7 @@ Manually farming is fine for a while, but if you really want to cash in then you
 need to automate things, this is where redstone comes in.
 
 
-<a id="orgfd12255"></a>
+<a id="orgd11093c"></a>
 
 ## Redstone
 
@@ -335,7 +335,7 @@ and comporators you can create intricate machinery, including complete logic
 circuits, as well as fully automated farms.
 
 
-<a id="org97bdb3b"></a>
+<a id="orga84c753"></a>
 
 ## Enchanting and XP
 
@@ -354,7 +354,7 @@ it with bookshelves, as well as sufficient XP. You need to reach level 30 before
 the highest levels become available.
 
 
-<a id="orgdd44739"></a>
+<a id="orgb495a93"></a>
 
 ## Modding, Bukkit, SpigotMC
 
@@ -412,7 +412,7 @@ which incorporates improvements made by other projects, notably SpigotMC and
 Paper.
 
 
-<a id="orga8a00f8"></a>
+<a id="orgdf19b88"></a>
 
 ## Java vs Bedrock
 
@@ -434,7 +434,7 @@ it will never be able to fully support, due to inherent differences between the
 servers, but it's a cool project nonetheless.
 
 
-<a id="org5afbad9"></a>
+<a id="orgf307090"></a>
 
 ## Alternative Games
 
@@ -445,7 +445,7 @@ mechanisms. I'm just listing a few common ones to give you an idea, since these
 are the kind of things you could do with Witchcraft as well.
 
 
-<a id="org9143287"></a>
+<a id="org8849bd9"></a>
 
 ### Parkour
 
@@ -453,7 +453,7 @@ Complete a custom trail high in the sky with lots of jumps and other challenges.
 A great way to practice your gameplay dexterity.
 
 
-<a id="org0d1f5bd"></a>
+<a id="org8cd53bf"></a>
 
 ### Speedrunner vs Hunters
 
@@ -463,7 +463,7 @@ a pack of hunters, other players whose sole objective is to stop the speedrunner
 from reaching their goal. Hilarity ensues.
 
 
-<a id="org9a5404d"></a>
+<a id="org0d2ba19"></a>
 
 ### Skyblock
 
@@ -472,7 +472,7 @@ random resources, and need to survive, eventually building up shelter and food
 production.
 
 
-<a id="org2d5c2b1"></a>
+<a id="org0968a3e"></a>
 
 ### Build Wars
 
@@ -480,7 +480,7 @@ Groups of players are tasked with building a specific item or structure within a
 set time limit. Once time is up players rate each other's creations.
 
 
-<a id="orgdc07c8f"></a>
+<a id="org341148f"></a>
 
 ### Bed Wars
 
@@ -488,12 +488,12 @@ Popular game where groups of players need to try to destroy the bed of another
 group, while protecting their own
 
 
-<a id="org302581d"></a>
+<a id="orgc3b0aba"></a>
 
 # Getting started with Witchcraft
 
 
-<a id="org4fada2e"></a>
+<a id="orgb85e058"></a>
 
 ## Running the plugin
 
@@ -510,7 +510,7 @@ including the Witchcraft library/API version, and the second to configure the
 plugin, and the Clojure code it should run at startup.
 
 
-<a id="orga375100"></a>
+<a id="org372f66e"></a>
 
 ## Running from the REPL
 
@@ -561,7 +561,7 @@ join the server we just started.
 Hold \`F3\` and press \`p\` so you can tab out without the game pausing. 
 
 
-<a id="org013f65f"></a>
+<a id="orga77eebd"></a>
 
 # Learning to code with Witchcraft
 
@@ -684,12 +684,12 @@ function to get it, and it will generally do the right thing.
 </table>
 
 
-<a id="org11f2869"></a>
+<a id="orgcd6babe"></a>
 
 # Topics
 
 
-<a id="org825b81c"></a>
+<a id="org1a9de27"></a>
 
 ## Inspecting the world
 
@@ -741,22 +741,22 @@ for interop, but most of the time you'll use `block`, which gives you a map
 representation of the most important aspects: its location and material.
 
 
-<a id="org98a897b"></a>
+<a id="orgeecc4e1"></a>
 
 ## Creating blocks
 
 
-<a id="org5ad0901"></a>
+<a id="org94ee845"></a>
 
 ## Drawing with Cursor
 
 
-<a id="org4b522b5"></a>
+<a id="orgff85792"></a>
 
 ## Adding Event Handlers
 
 
-<a id="org04b7e9d"></a>
+<a id="org0c5c8fb"></a>
 
 ## Interacting with Players
 
