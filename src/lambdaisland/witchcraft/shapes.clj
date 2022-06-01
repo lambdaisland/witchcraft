@@ -175,7 +175,8 @@
            fill
            distance-fn]
     :or {inner-radius -0.1
-         distance-fn wc/distance}}]
+         distance-fn wc/distance
+         start [0 0 0]}}]
   (assert (or (and end (not direction) (not length))
               (and (not end) direction length))
           "specify either end or direction+length, not both")
@@ -237,11 +238,11 @@
   [{:keys [radius tube-radius material margin start]
     :or {margin 15}}]
   (for [x (range (Math/floor (- (- radius) margin))
-                 (Math/ceil (+ radius margin)))
+                 (inc (Math/ceil (+ radius margin))))
         y (range (Math/floor (- (- tube-radius) 3))
                  (Math/ceil (+ tube-radius 3)))
         z (range (Math/floor (- (- radius) margin))
-                 (Math/ceil (+ radius margin)))
+                 (inc (Math/ceil (+ radius margin))))
         :when (<= (Math/abs (- (+ (Math/pow (- (Math/sqrt (+ (* x x) (* z z)))
                                                radius) 2)
                                   (* y y))

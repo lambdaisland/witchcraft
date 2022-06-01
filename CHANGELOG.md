@@ -2,9 +2,12 @@
 
 ## Added
 
-## Fixed
+- Add matrix/translate
 
 ## Changed
+
+- Fine tune gradient-gen, tube
+
 
 # 0.31.300 (2022-06-01 / dbda30c)
 

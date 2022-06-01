@@ -214,7 +214,14 @@
 (defn extrude
   "Extrude a shape in a given direction, takes a collection of locations/blocks, a
   direction vector, and a number of times to apply the direction vector."
-  [coll dir steps]
+  [dir steps coll]
   (for [blk coll
         i (range steps)]
     (v+ blk (v* dir i))))
+
+(defn translate
+  "Move all locations by a given offset"
+  [offset coll]
+  (into (empty coll)
+        (map #(v+ % offset))
+        coll))

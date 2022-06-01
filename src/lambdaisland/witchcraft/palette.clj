@@ -115,7 +115,19 @@
   index (number), and returns a material that is either the material at that
   entry in the palette, or a neighboring material, with further off materials
   increasingly unlikely to be picked. This allows using a palette with somewhat
-  gradual transitions."
+  gradual transitions.
+
+  `:spread` is the amount of blocks distance that each material in the palette
+  will take up.
+
+  `:bleed-distance` is how many blocks distance a neighboring material is allowed to
+  \"bleed\" into the next.
+
+  `:bleed` is the probability that a neighboring block bleeds into the next
+  \"zone\", with `1` meaning it has the same probability as the main material
+  for the given zone. This probability halves for every block further into the
+  next zone you are.
+  "
   [{:keys [palette spread bleed bleed-distance]
     :or {palette [:bedrock
                   :deepslate-bricks
@@ -139,13 +151,15 @@
                                  (and (= idx 0) (< x 0))
                                  1
                                  (and (= (dec (count palette)) idx)
-                                      (<= (* spread (count palette))
+                                      (<= (- (* spread (count palette))
+                                             (/ spread 2))
                                           (Math/ceil x)))
                                  1
                                  (<= dist (/ spread 2))
                                  1
                                  (<= dist (+ (/ spread 2) bleed-distance))
-                                 (nth (iterate #(/ % 2) bleed) (dec dist))
+                                 (nth (iterate #(/ % 2) bleed) (Math/round (double (/ (dec dist)
+                                                                                      (/ spread 2)))))
                                  :else
                                  0
                                  ))])
