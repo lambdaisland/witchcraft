@@ -1,4 +1,5 @@
 (ns lambdaisland.witchcraft.shapes
+  "Functions that create common shapes, like a box, ball, torus, tube, etc."
   (:require [lambdaisland.witchcraft :as wc]
             [lambdaisland.witchcraft.matrix :as m]))
 
@@ -275,6 +276,26 @@
                          (not (= direction :north-south))))]
       (handle-start+material [x y z] start material))))
 
+
+(defn arch
+  "Creates an arch shape in the xy-plane (z=0), with given width and height. width
+  is really the half-width, the distance from the center block to the side, and
+  it can not be smaller than height. if (= width height) then this is just a
+  half circle, if (< width height) then there a certain amount of 'pointedness'
+  at the top. Note that if (< width height) the actual height might be smaller
+  than the requested height."
+  [{:keys [width height start material]}]
+  (assert (<= width height))
+  (let [pointedness (- height width)
+        radius (+ width pointedness)]
+    (for [x (range (- (dec radius)) radius)
+          y (range radius)
+          z [0]
+          :let [n (Math/round
+                   (max (wc/distance [pointedness 0 0] [x y z])
+                        (wc/distance [(- pointedness) 0 0] [x y z])))]
+          :when (= (dec radius) n)]
+      (handle-start+material [x y z] start material))))
 
 (comment
   (wc/set-blocks

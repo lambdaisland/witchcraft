@@ -2,7 +2,12 @@
 
 ## Added
 
+- Add `lambdaisland.witchcraft.shapes/arch`
+- Add `lambdaisland.witchcraft.matrix/extrude`
+
 ## Fixed
+
+- Fix `lambdaisland.witchcraft.matrix/rotation-matrix`
 
 ## Changed
 

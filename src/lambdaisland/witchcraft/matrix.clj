@@ -146,11 +146,10 @@
                      (cond (= dim dim1) (Math/sin rad)
                            (= dim dim2) (Math/cos rad)
                            :else 0))
-                   [:x :y :z 0])
-        row0 [0 0 0 0]]
-    [(cond (= :x dim1) row1 (= :x dim2) row2 :else row0)
-     (cond (= :y dim1) row1 (= :y dim2) row2 :else row0)
-     (cond (= :z dim1) row1 (= :z dim2) row2 :else row0)
+                   [:x :y :z 0])]
+    [(cond (= :x dim1) row1 (= :x dim2) row2 :else [1 0 0 0])
+     (cond (= :y dim1) row1 (= :y dim2) row2 :else [0 1 0 0])
+     (cond (= :z dim1) row1 (= :z dim2) row2 :else [0 0 1 0])
      [0 0 0 1]]))
 
 (defn mirror-matrix
@@ -193,14 +192,29 @@
          (map (partial m*v m))
          coll)))
 
-(defn rotate [rad dim1 dim2 coll]
+(defn center
+  "The center point of a collection of points, simply takes the average in each
+  dimension."
+  [coll]
+  [(/ (transduce (map wc/x) + coll) (count coll))
+   (/ (transduce (map wc/y) + coll) (count coll))
+   (/ (transduce (map wc/z) + coll) (count coll))])
+
+(defn rotate
+  "Rotate a shape around its center (average of all block locations), given an
+  angle in radians, and the two dimensions (as keywords, `:x`/`:y`/`:z`) that
+  form the plane within which to rotate."
+  [rad dim1 dim2 coll]
   (transform
    coll
    (with-origin
      (rotation-matrix rad dim1 dim2)
-     [(/ (transduce (map wc/x) + coll) (count coll))
-      (/ (transduce (map wc/y) + coll) (count coll))
-      (/ (transduce (map wc/z) + coll) (count coll))])))
+     (center coll))))
 
-#_
-(with-origin (rotation-matrix Math/PI :x :z) [100 100 100])
+(defn extrude
+  "Extrude a shape in a given direction, takes a collection of locations/blocks, a
+  direction vector, and a number of times to apply the direction vector."
+  [coll dir steps]
+  (for [blk coll
+        i (range steps)]
+    (v+ blk (v* dir i))))
