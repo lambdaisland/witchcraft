@@ -146,6 +146,9 @@
          (map (juxt #(keyword (util/dasherize (.getName ^org.bukkit.GameRule %))) identity))
          (org.bukkit.GameRule/values))))
 
+(def game-modes
+  (util/enum->map org.bukkit.GameMode))
+
 (def inventory-types
   (util/enum->map org.bukkit.event.inventory.InventoryType))
 
@@ -1477,6 +1480,14 @@
    (game-mode (player)))
   ([^Player player]
    (keyword (str (.getGameMode player)))))
+
+(defn set-game-mode
+  "Sets the game mode for the player, takes a keyword or a `org.bukkit.GameMode`,
+  see [[game-modes]]"
+  [^Player player mode]
+  (.setGameMode player (if (keyword? mode)
+                         (get game-modes mode)
+                         mode)))
 
 (defn teleport
   "Teleport to a given location"

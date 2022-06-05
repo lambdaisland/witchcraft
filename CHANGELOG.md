@@ -2,6 +2,8 @@
 
 ## Added
 
+- Add `set-game-mode`
+
 ## Fixed
 
 ## Changed
