@@ -1,6 +1,7 @@
 (ns lambdaisland.witchcraft.launcher-api
   (:require [clojure.java.io :as io]
-            [progrock.core :as pr])
+            [progrock.core :as pr]
+            [clojure.string :as str])
   (:import (sk.tomsik68.mclauncher.backend MinecraftLauncherBackend)))
 
 (defn launcher-backend ^MinecraftLauncherBackend [file]
@@ -67,3 +68,17 @@
 
 (defn launch-cmd [backend session version]
   (.command (.launchMinecraft backend session version)))
+
+(defn shellquote [arg]
+  (if (or (str/includes? arg " ")
+          (str/includes? arg "'")
+          (str/includes? arg "\"")
+          (str/includes? arg "$"))
+    #_(str \' (str/replace arg #"\'" "'\"'\"'") \')
+    (str \" (str/replace arg #"\"" "\"'\"'\"") \")
+    arg))
+
+(defn launch-cmd-str [backend session version]
+  (let [args (launch-cmd backend session version)]
+    (str/join " " (cons (first args)
+                        (map shellquote (next args))))))

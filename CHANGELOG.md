@@ -1,10 +1,10 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Fix chicken-shape example
+- Optimize wc/loc for maps and vectors
+- Augment launcher code to deal with spaces in paths
 
 # 0.33.307 (2022-06-05 / 4ae4713)
 

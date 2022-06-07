@@ -1656,7 +1656,14 @@
   `:x`/`:y`/`:z` keys, or virtually any Glowstone object that encodes or has a
   location."
   [o]
-  [(x o) (y o) (z o)])
+  (cond
+    (vector? o)
+    o
+    (map? o)
+    [(:x o 0) (:y o 0) (:z o 0)]
+
+    :else
+    [(x o) (y o) (z o)]))
 
 (def locv xyz) ;; alias
 

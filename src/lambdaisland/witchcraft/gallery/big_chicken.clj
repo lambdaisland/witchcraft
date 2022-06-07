@@ -54,7 +54,7 @@
     [3 -4 1 :orange-wool]]))
 
 (defn chicken-shape [pos]
-  (m/with-origin pos chicken))
+  (map #(wc/add % pos) chicken))
 
 (comment
   (wc/set-blocks
