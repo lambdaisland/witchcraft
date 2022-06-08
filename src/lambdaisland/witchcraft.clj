@@ -1591,9 +1591,10 @@
 (defn empty-inventory
   "Clear out the inventory"
   [entity]
-  (let [i (get-inventory entity)
-        c (.getContents i)]
-    (.removeItem i c)))
+  (let [i (get-inventory entity)]
+    (doseq [c (.getContents i)
+            :when c]
+      (.remove i c))))
 
 (defn into-inventory
   "Add multiple items to an inventory at once"

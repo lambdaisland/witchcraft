@@ -128,7 +128,7 @@
           direction (when direction (m/vnorm direction))
           end (or end (m/v+ start (m/v* direction length)))
           direction (or direction (m/v* (m/vnorm (m/v- end start)) step))
-          new-pos #(conj (mapv (fn [x] (Math/round x)) %)
+          new-pos #(conj (mapv (fn [x] (Math/round (double x))) %)
                          (if (fn? material)
                            (material (wc/xyz %))
                            material))]
