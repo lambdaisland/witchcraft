@@ -2,9 +2,7 @@
 
 ## Added
 
-## Fixed
-
-## Changed
+- Add `world-seed`
 
 # 0.35.314 (2022-06-08 / 4f9afaf)
 

@@ -2003,4 +2003,12 @@
    (doto (item-stack :wooden-axe 1)
      (set-display-name (render-markup txt)))))
 
+(defn world-seed
+  "Get the seed that was used to generate the world. Arguments are as
+  for [[world]]."
+  ([]
+   (world-seed "world"))
+  ([w]
+   (.getSeed (world w))))
+
 (load "witchcraft/printers")
