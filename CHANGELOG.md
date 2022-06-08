@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- fix `empty-inventory` and `shapes/line`
 
 # 0.34.310 (2022-06-07 / a7af9c7)
 
