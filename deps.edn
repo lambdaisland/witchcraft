@@ -31,8 +31,8 @@
                 progrock/progrock          {:mvn/version "0.1.2"}}}
 
   :citizens
-  {:extra-deps {net.citizensnpcs/citizensapi {:mvn/version "2.0.30-SNAPSHOT"}
-                net.citizensnpcs/citizensapi$sources {:mvn/version "2.0.30-SNAPSHOT"}}}
+  {:extra-deps {net.citizensnpcs/citizensapi {:mvn/version "2.0.29-SNAPSHOT"}
+                #_#_net.citizensnpcs/citizensapi$sources {:mvn/version "2.0.30-SNAPSHOT"}}}
 
   :adventure
   {:extra-deps {net.kyori/adventure-api {:mvn/version "4.11.0"}}}
