@@ -1,10 +1,9 @@
 # Unreleased
 
-## Added
-
-## Fixed
-
 ## Changed
+
+- Bumped our version of [XSeries](https://github.com/CryptoMorin/XSeries), which
+  makes us now compatible with Minecraft 1.19
 
 # 0.36.317 (2022-06-08 / 41ab5a5)
 
