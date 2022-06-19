@@ -46,4 +46,4 @@
   "aikar"               {:url "https://repo.aikar.co/nexus/content/repositories/aikar-release/"}
   "papermc"             {:url "https://papermc.io/repo/repository/maven-public/"}
   "sk_tomsik68"         {:url "https://raw.githubusercontent.com/tomsik68/maven-repo/master/"}
-  "citizensnpcs"        {:url "http://repo.citizensnpcs.co/"}}}
+  "citizensnpcs"        {:url "https://repo.citizensnpcs.co/"}}}
