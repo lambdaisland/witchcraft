@@ -2,9 +2,10 @@
  :deps  {org.clojure/clojure             {:mvn/version "1.11.1"}
          com.lambdaisland/classpath      {:mvn/version "0.0.27"}
          lambdaisland/data-printers      {:mvn/version "0.7.47"}
-         com.github.cryptomorin/XSeries  {:mvn/version "8.7.1"}
+         com.github.cryptomorin/XSeries  {:mvn/version "8.8.0"}
          clojure2d/clojure2d             {:mvn/version "1.4.4"}
-         org.reflections/reflections     {:mvn/version "0.9.12"} ;; need to pin this, API rewrite in 0.10
+         org.reflections/reflections     {:mvn/version "0.9.12"}
+         ;; need to pin this, API rewrite in 0.10
          ;; seems to be needed for reflections to function, might be a paper
          ;; classloader issue
          javax.servlet/javax.servlet-api {:mvn/version "4.0.1"}}
@@ -15,16 +16,12 @@
 
   :glowstone
   {:extra-deps {net.glowstone/glowstone {:mvn/version "2021.7.0-SNAPSHOT"}}}
-  #_{:local/root "/home/arne/github/Glowstone/target/glowstone.jar"}
-
-  :papermc
-  {:extra-deps {io.papermc/paper {:mvn/version "1.18.2-R0.1-SNAPSHOT"}}}
 
   :paperclip
   {:extra-deps {io.papermc/paperclip {:mvn/version "3.0.2"}}}
 
   :paper-api
-  {:extra-deps {io.papermc.paper/paper-api {:mvn/version "1.18.2-R0.1-SNAPSHOT"}}}
+  {:extra-deps {io.papermc.paper/paper-api {:mvn/version "1.19-R0.1-SNAPSHOT"}}}
 
   :nrepl
   {:extra-deps {nrepl/nrepl {:mvn/version "0.9.0"}}}
@@ -34,10 +31,11 @@
                 progrock/progrock          {:mvn/version "0.1.2"}}}
 
   :citizens
-  {:extra-deps {net.citizensnpcs/citizensapi {:mvn/version "2.0.29-SNAPSHOT"}}}
+  {:extra-deps {net.citizensnpcs/citizensapi {:mvn/version "2.0.30-SNAPSHOT"}
+                net.citizensnpcs/citizensapi$sources {:mvn/version "2.0.30-SNAPSHOT"}}}
 
   :adventure
-  {:extra-deps {net.kyori/adventure-api {:mvn/version "4.10.1"}}}
+  {:extra-deps {net.kyori/adventure-api {:mvn/version "4.11.0"}}}
   }
 
 
