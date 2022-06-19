@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>witchcraft</artifactId>
-  <version>0.36.317</version>
+  <version>0.37.324</version>
   <name>witchcraft</name>
   <description>Clojure API for Minecraft/Glowstone/Bukkit</description>
   <url>https://github.com/lambdaisland/witchcraft</url>
@@ -25,7 +25,7 @@
     <url>https://github.com/lambdaisland/witchcraft</url>
     <connection>scm:git:git://github.com/lambdaisland/witchcraft.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/witchcraft.git</developerConnection>
-    <tag>6da156c7b640d3236f2e0b09e5f7449940f9132b</tag>
+    <tag>6eecafcb08be5b5fbdef023cd25a4d0ac6313f6b</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -46,7 +46,7 @@
     <dependency>
       <groupId>com.github.cryptomorin</groupId>
       <artifactId>XSeries</artifactId>
-      <version>8.7.1</version>
+      <version>8.8.0</version>
     </dependency>
     <dependency>
       <groupId>clojure2d</groupId>
@@ -96,7 +96,7 @@
     <dependency>
       <groupId>net.kyori</groupId>
       <artifactId>adventure-api</artifactId>
-      <version>4.10.1</version>
+      <version>4.11.0</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
@@ -130,7 +130,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>6da156c7b640d3236f2e0b09e5f7449940f9132b</git-revision>
+              <git-revision>6eecafcb08be5b5fbdef023cd25a4d0ac6313f6b</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
@@ -179,7 +179,7 @@
     <repository>
       <id>citizensnpcs</id>
       <name>citizensnpcs</name>
-      <url>http://repo.citizensnpcs.co/</url>
+      <url>https://repo.citizensnpcs.co/</url>
     </repository>
   </repositories>
   <distributionManagement>
